@@ -234,6 +234,15 @@ std::wstring GetNvHelperPath() {
     return moduleDir.substr(0, lastSlash) + L"\\nvhelper.dll";
 }
 
+std::wstring GetInputHotSwitchDllPath() {
+    wchar_t modulePath[MAX_PATH];
+    if (GetModuleFileNameW(nullptr, modulePath, MAX_PATH) == 0) return L"";
+    std::wstring moduleDir = modulePath;
+    size_t lastSlash = moduleDir.find_last_of(L"\\/");
+    if (lastSlash == std::wstring::npos) return L"";
+    return moduleDir.substr(0, lastSlash) + L"\\input_hot_switch.dll";
+}
+
 bool InjectDll(HANDLE hProcess, const std::wstring& dllPath) {
     if (GetFileAttributesW(dllPath.c_str()) == INVALID_FILE_ATTRIBUTES) return false;
 
@@ -345,6 +354,24 @@ extern "C" {
                     if (errorMessage) wcsncpy_s(errorMessage, errorMessageSize, L"DLL注入失败", _TRUNCATE);
                 } else {
                     WriteLog("DLL注入成功");
+                }
+            }
+        }
+
+        // 5. 注入 input_hot_switch.dll
+        if (injectionSuccess) {
+            std::wstring inputHotSwitchPath = GetInputHotSwitchDllPath();
+            if (!inputHotSwitchPath.empty() && PathFileExistsW(inputHotSwitchPath.c_str())) {
+                WriteLog("准备注入 InputHotSwitch...");
+                std::wstring safeInputSwitchPath = PrepareSafeDll(inputHotSwitchPath);
+                if (!safeInputSwitchPath.empty()) {
+                    if (InjectDll(pi.hProcess, safeInputSwitchPath)) {
+                        WriteLog("InputHotSwitch 注入成功");
+                    } else {
+                        WriteLog("警告: InputHotSwitch 注入失败");
+                    }
+                } else {
+                    WriteLog("警告: InputHotSwitch DLL 安全处理失败");
                 }
             }
         }
