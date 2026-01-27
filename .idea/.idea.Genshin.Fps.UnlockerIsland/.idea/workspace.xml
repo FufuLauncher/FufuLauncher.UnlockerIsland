@@ -5,6 +5,7 @@
     <projectFile>ConsoleApplication1/ConsoleApplication1.vcxproj</projectFile>
     <projectFile>ConsoleApplication2/ConsoleApplication2.vcxproj</projectFile>
     <projectFile>ConsoleApplication3/ConsoleApplication3.vcxproj</projectFile>
+    <projectFile>FufuLauncher.UnlockerIsland/FufuLauncher.UnlockerIsland.vcxproj</projectFile>
     <projectFile>Launcher Pro/Launcher Pro.csproj</projectFile>
     <projectFile>Launcher/Launcher.vcxproj</projectFile>
     <projectFile>LauncherPro-1.0.0/LauncherPro-1.0.0.csproj</projectFile>
@@ -14,12 +15,24 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="81168a12-0629-450d-985f-10fe9c4900e9" name="更改" comment="">
+    <list default="true" id="81168a12-0629-450d-985f-10fe9c4900e9" name="更改" comment="1">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Genshin.Fps.UnlockerIsland/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Genshin.Fps.UnlockerIsland/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/DesignTimeBuild/.dtbcache.v2" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/DesignTimeBuild/.dtbcache.v2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/FileContentIndex/81ac8a37-0547-4344-936e-dcc0a0c2c5c8.vsidx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/FileContentIndex/acbcf928-4441-4ea7-aa1e-9a3b54707b6e.vsidx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/.futdcache.v2" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/.futdcache.v2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/.suo" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/.suo" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/DocumentLayout.backup.json" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/DocumentLayout.backup.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/DocumentLayout.json" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/DocumentLayout.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/Insiders/Browse.VC.db" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/Insiders/Browse.VC.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/Insiders/Solution.VC.db" beforeDir="false" afterPath="$PROJECT_DIR$/.vs/Genshin.Fps.UnlockerIsland/v18/Insiders/Solution.VC.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.Fps.UnlockerIsland.sln" beforeDir="false" afterPath="$PROJECT_DIR$/Genshin.Fps.UnlockerIsland.sln" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/GameState.h" beforeDir="false" afterPath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/GameState.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Launcher/Launcher.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Launcher/Launcher.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Launcher/Launcher.h" beforeDir="false" afterPath="$PROJECT_DIR$/Launcher/Launcher.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Launcher/Launcher.vcxproj" beforeDir="false" afterPath="$PROJECT_DIR$/Launcher/Launcher.vcxproj" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Launcher/x64/Release/Launcher.iobj" beforeDir="false" afterPath="$PROJECT_DIR$/Launcher/x64/Release/Launcher.iobj" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Launcher/x64/Release/Launcher.ipdb" beforeDir="false" afterPath="$PROJECT_DIR$/Launcher/x64/Release/Launcher.ipdb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Launcher/x64/Release/Launcher.log" beforeDir="false" afterPath="$PROJECT_DIR$/Launcher/x64/Release/Launcher.log" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Launcher/x64/Release/Launcher.tlog/CL.read.1.tlog" beforeDir="false" afterPath="$PROJECT_DIR$/Launcher/x64/Release/Launcher.tlog/CL.read.1.tlog" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -34,11 +47,10 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="cidr-memory-view://0" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Genshin.UnlockerIsland.API/GameState.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Genshin.UnlockerIsland.API/PipeServer.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Genshin.UnlockerIsland.API/PipeServer.h" root0="FORCE_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/Administrator/Desktop/CN/Launcher/Launcher.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/Administrator/Desktop/CN/Launcher/Launcher.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Launcher/Launcher.h" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
@@ -50,17 +62,22 @@
   &quot;associatedIndex&quot;: 7
 }</component>
   <component name="ProjectId" id="35nWjfwnwORQ2IHFohwIvrzgadl" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;.NET 可执行文件.Install.executor&quot;: &quot;Run&quot;,
     &quot;.NET 项目.LauncherPro-1.0.0.executor&quot;: &quot;Run&quot;,
     &quot;.NET 项目.LauncherPro.executor&quot;: &quot;Run&quot;,
     &quot;C/C++ 项目.2.executor&quot;: &quot;Debug&quot;,
     &quot;C/C++ 项目.ConsoleApplication2.executor&quot;: &quot;Run&quot;,
     &quot;C/C++ 项目.ConsoleApplication3.executor&quot;: &quot;Run&quot;,
+    &quot;C/C++ 项目.FufuLauncher.UnlockerIsland.executor&quot;: &quot;Debug&quot;,
     &quot;C/C++ 项目.Launcher.executor&quot;: &quot;Run&quot;,
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
@@ -75,7 +92,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected="C/C++ 项目.2">
+  <component name="RunManager" selected=".NET 可执行文件.Install">
     <configuration name="2" type="CppProject" factoryName="C++ Project" singleton="false">
       <configuration_1 setup="1">
         <option name="CONFIGURATION" value="Release" />
@@ -139,6 +156,26 @@
       </configuration_1>
       <option name="DEFAULT_PROJECT_PATH" value="$PROJECT_DIR$/ConsoleApplication3/ConsoleApplication3.vcxproj" />
       <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/ConsoleApplication3/ConsoleApplication3.vcxproj" />
+      <option name="AUTO_SELECT_PRIORITY" value="0" />
+      <method v="2">
+        <option name="Build" />
+      </method>
+    </configuration>
+    <configuration name="FufuLauncher.UnlockerIsland" type="CppProject" factoryName="C++ Project">
+      <configuration_1 setup="1">
+        <option name="CONFIGURATION" value="Release" />
+        <option name="PLATFORM" value="x64" />
+        <option name="CURRENT_LAUNCH_PROFILE" value="Local" />
+        <option name="EXE_PATH" value="$(LocalDebuggerCommand)" />
+        <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
+        <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
+        <option name="PASS_PARENT_ENVS" value="1" />
+        <option name="USE_EXTERNAL_CONSOLE" value="0" />
+        <option name="TERMINAL_INTERACTION_BEHAVIOR" value="AUTO_DETECT" />
+        <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/FufuLauncher.UnlockerIsland.vcxproj" />
+      </configuration_1>
+      <option name="DEFAULT_PROJECT_PATH" value="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/FufuLauncher.UnlockerIsland.vcxproj" />
+      <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/FufuLauncher.UnlockerIsland.vcxproj" />
       <option name="AUTO_SELECT_PRIORITY" value="0" />
       <method v="2">
         <option name="Build" />
@@ -256,11 +293,30 @@
         <option name="Build" />
       </method>
     </configuration>
+    <configuration name="Install" type="RunExe" factoryName=".NET Executable">
+      <option name="EXE_PATH" value="$PROJECT_DIR$/x64/Release/FufuLauncher.Install/FufuLauncher_Install.exe" />
+      <option name="PROGRAM_PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/x64/Release/FufuLauncher.Install" />
+      <option name="PASS_PARENT_ENVS" value="1" />
+      <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      <option name="ENV_FILE_PATHS" value="" />
+      <option name="REDIRECT_INPUT_PATH" value="" />
+      <option name="PTY_MODE" value="Auto" />
+      <option name="MIXED_MODE_DEBUG" value="0" />
+      <option name="USE_MONO" value="0" />
+      <option name="RUNTIME_ARGUMENTS" value="" />
+      <option name="AUTO_ATTACH_CHILDREN" value="0" />
+      <method v="2">
+        <option name="Build Solution" enabled="true" />
+      </method>
+    </configuration>
     <list>
+      <item itemvalue=".NET 可执行文件.Install" />
       <item itemvalue=".NET 项目.ConsoleApp1" />
       <item itemvalue=".NET 项目.LauncherPro-1.0.0" />
       <item itemvalue=".NET 项目.LauncherPro" />
       <item itemvalue=".NET 项目.Launcher Pro" />
+      <item itemvalue="C/C++ 项目.FufuLauncher.UnlockerIsland" />
       <item itemvalue="C/C++ 项目.ConsoleApplication3" />
       <item itemvalue="C/C++ 项目.ConsoleApplication2" />
       <item itemvalue="C/C++ 项目.ConsoleApplication1" />
@@ -348,7 +404,20 @@
       <workItem from="1767463017423" duration="527000" />
       <workItem from="1767504670342" duration="2154000" />
       <workItem from="1767530148679" duration="1374000" />
-      <workItem from="1767624445597" duration="3580000" />
+      <workItem from="1767624445597" duration="3624000" />
+      <workItem from="1767629664756" duration="1032000" />
+      <workItem from="1767705634761" duration="1184000" />
+      <workItem from="1768061625839" duration="1683000" />
+      <workItem from="1769144690260" duration="17987000" />
+      <workItem from="1769167281666" duration="45000" />
+      <workItem from="1769178407916" duration="24000" />
+      <workItem from="1769182700336" duration="3066000" />
+      <workItem from="1769352350634" duration="14915000" />
+      <workItem from="1769373222036" duration="1881000" />
+      <workItem from="1769425047007" duration="10138000" />
+      <workItem from="1769436412185" duration="3351000" />
+      <workItem from="1769453909358" duration="727000" />
+      <workItem from="1769525443658" duration="311000" />
     </task>
     <task id="LOCAL-00001" summary="1">
       <option name="closed" value="true" />
@@ -398,7 +467,15 @@
       <option name="project" value="LOCAL" />
       <updated>1767530176077</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="1">
+      <option name="closed" value="true" />
+      <created>1767628319763</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1767628319763</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
