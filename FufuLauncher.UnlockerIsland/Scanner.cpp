@@ -1,9 +1,6 @@
 ﻿#include "Scanner.h"
-
-// 必须先包含 Windows.h，以此引入核心类型定义
 #include <Windows.h> 
 #include <Psapi.h>
-
 #include <sstream>
 #include <vector>
 #include <iostream>

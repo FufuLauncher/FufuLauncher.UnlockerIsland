@@ -16,10 +16,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="81168a12-0629-450d-985f-10fe9c4900e9" name="更改" comment="">
-      <change beforePath="$PROJECT_DIR$/Launcher/obj/rider.project.model.nuget.info" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Launcher/obj/rider.project.restore.info" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Launcher/obj/x64/Release/net6.0-windows/Launcher.assets.cache" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Launcher/obj/x64/Release/net6.0-windows/Launcher.vcxproj.FileListAbsolute.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Genshin.Fps.UnlockerIsland/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Genshin.Fps.UnlockerIsland/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Hooks.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Hooks.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Scanner.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Scanner.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Utils.h" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Utils.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/dllmain.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/dllmain.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/dllmain.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/dllmain.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Launcher/Launcher.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Launcher/Launcher.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,7 +82,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected=".NET 可执行文件.Install">
+  <component name="RunManager" selected="C/C++ 项目.FufuLauncher.UnlockerIsland">
     <configuration name="2" type="CppProject" factoryName="C++ Project" singleton="false">
       <configuration_1 setup="1">
         <option name="CONFIGURATION" value="Release" />
@@ -404,7 +407,14 @@
       <workItem from="1769425047007" duration="10138000" />
       <workItem from="1769436412185" duration="3351000" />
       <workItem from="1769453909358" duration="727000" />
-      <workItem from="1769525443658" duration="643000" />
+      <workItem from="1769525443658" duration="783000" />
+      <workItem from="1769539654997" duration="12000" />
+      <workItem from="1769539682824" duration="4000" />
+      <workItem from="1769539710234" duration="15000" />
+      <workItem from="1769546052476" duration="2286000" />
+      <workItem from="1769552496095" duration="2243000" />
+      <workItem from="1769556552295" duration="15000" />
+      <workItem from="1769563455469" duration="1679000" />
     </task>
     <task id="LOCAL-00001" summary="1">
       <option name="closed" value="true" />
@@ -478,7 +488,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769525948144</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="1">
+      <option name="closed" value="true" />
+      <created>1769526101953</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1769526101953</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

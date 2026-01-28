@@ -7,7 +7,7 @@
 #include <sstream>
 #include <vector>
 #include "Launcher.h"
-#include "SecurityUtils.h" // 确保包含此头文件
+#include "SecurityUtils.h"
 
 #pragma comment(lib, "shlwapi.lib")
 
@@ -59,7 +59,6 @@ bool InjectDll(HANDLE hProcess, const std::wstring& dllPath) {
         return false;
     }
     
-    // 等待 LoadLibrary 返回 (DllMain 执行完毕)
     WaitForSingleObject(hThread, INFINITE);
     DWORD exitCode = 0;
     GetExitCodeThread(hThread, &exitCode);

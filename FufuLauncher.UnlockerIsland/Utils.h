@@ -23,8 +23,8 @@ namespace Detail {
         __try {
             runner(funcPtr);
         }
-        __except (EXCEPTION_EXECUTE_HANDLER) { 
-            // OutputDebugStringA("[Utils] SafeInvoke caught a crash!\n");
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            OutputDebugStringA("[Utils] SafeInvoke caught a crash!\n");
         }
     }
 }

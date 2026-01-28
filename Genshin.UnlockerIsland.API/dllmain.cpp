@@ -322,7 +322,7 @@ DWORD WINAPI Run(LPVOID lpParam)
     return TRUE;
 }
 
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call)
 {
     if (ul_reason_for_call == DLL_PROCESS_ATTACH)
     {
