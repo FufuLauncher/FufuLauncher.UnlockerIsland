@@ -25,7 +25,16 @@ namespace Scanner {
     }
     
     void* ScanMainMod(const std::string& signature) {
-        HMODULE hModule = GetModuleHandle(nullptr);
+        HMODULE hModule = nullptr;
+        
+        if (Config::Get().enable_hsr_fps) {
+            hModule = GetModuleHandleA("GameAssembly.dll");
+        }
+        
+        if (!hModule) {
+            hModule = GetModuleHandleA(nullptr);
+        }
+
         if (!hModule) return nullptr;
 
         MODULEINFO modInfo = { 0 };
@@ -39,18 +48,18 @@ namespace Scanner {
         uintptr_t startAddr = (uintptr_t)modInfo.lpBaseOfDll;
         uintptr_t endAddr = startAddr + modInfo.SizeOfImage;
         uintptr_t current = startAddr;
-        
-        MEMORY_BASIC_INFORMATION mbi;
+
         while (current < endAddr) {
-            if (VirtualQuery((LPCVOID)current, &mbi, sizeof(mbi)) == 0) {
+            MEMORY_BASIC_INFORMATION mbi;
+            if (!VirtualQuery((LPCVOID)current, &mbi, sizeof(mbi))) {
                 break;
             }
-            
-            bool isGood = (mbi.State == MEM_COMMIT) &&
+
+            bool isGood = (mbi.State == MEM_COMMIT) && 
                           ((mbi.Protect & PAGE_EXECUTE_READ) || 
                            (mbi.Protect & PAGE_EXECUTE_READWRITE) || 
-                           (mbi.Protect & PAGE_READONLY) || 
-                           (mbi.Protect & PAGE_READWRITE));
+                           (mbi.Protect & PAGE_READWRITE) || 
+                           (mbi.Protect & PAGE_READONLY));
 
             if (isGood) {
                 size_t regionSize = mbi.RegionSize;
@@ -60,7 +69,7 @@ namespace Scanner {
                 
                 const uint8_t* pStart = (const uint8_t*)mbi.BaseAddress;
                 const size_t pSize = pattern.size();
-
+                
                 for (size_t i = 0; i <= regionSize - pSize; ++i) {
                     bool found = true;
                     for (size_t j = 0; j < pSize; ++j) {

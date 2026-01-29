@@ -175,7 +175,9 @@ void MainWorker(HMODULE hMod) {
         std::cout << "[!] Hooks::Init Failed!" << std::endl;
         return;
     }
-
+    
+    Hooks::InitHSRFps();
+    
     std::cout << "[*] Waiting for GameUpdate..." << std::endl;
     while (!Hooks::IsGameUpdateInit()) {
         Sleep(1000);
@@ -183,6 +185,23 @@ void MainWorker(HMODULE hMod) {
 
     while (true) {
         auto& cfg = Config::Get();
+        
+        static bool net_was_pressed = false;
+        bool net_is_pressed = (GetAsyncKeyState(cfg.network_toggle_key) & 0x8000);
+
+        if (net_is_pressed && !net_was_pressed) {
+            cfg.is_currently_blocking = !cfg.is_currently_blocking;
+            
+            if (cfg.is_currently_blocking) {
+                Beep(300, 500); 
+                std::cout << "[Network] >>> STATUS: DISCONNECTED (Blocking)" << std::endl;
+            } else {
+                // 连网提示音：高音，短促清脆 (1000Hz, 200ms)
+                Beep(1000, 200); 
+                std::cout << "[Network] >>> STATUS: CONNECTED (Normal)" << std::endl;
+            }
+        }
+        net_was_pressed = net_is_pressed;
         
         if (GetAsyncKeyState(cfg.toggle_key) & 0x8000) {
             Config::Load();
@@ -198,6 +217,9 @@ void MainWorker(HMODULE hMod) {
             Hooks::RequestOpenCraft();
             Sleep(500);
         }
+        
+        Hooks::UpdateHSRFps();
+        
         Sleep(100);
     }
 }

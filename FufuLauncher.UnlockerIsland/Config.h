@@ -60,6 +60,24 @@ struct ModConfig {
     bool enable_dx11_hook = true;
 
     bool dump_offsets = false;
+
+    bool enable_hsr_fps = false;
+    
+    int hsr_target_fps = 120;
+    
+    bool show_feature_list = false;
+
+    bool enable_speedhack = false;
+    
+    float game_speed = 1.0f;
+
+    bool block_network = false;
+
+    bool enable_network_toggle = false;
+    
+    int network_toggle_key = VK_F11;
+
+    bool is_currently_blocking = false;
 };
 
 namespace Config {

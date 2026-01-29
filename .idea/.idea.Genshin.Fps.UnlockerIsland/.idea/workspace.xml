@@ -20,6 +20,27 @@
       <change beforePath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Config.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Config.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Config.h" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Config.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Hooks.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Hooks.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Hooks.h" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Hooks.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Scanner.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/Scanner.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/dllmain.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher.UnlockerIsland/dllmain.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.Fps.UnlockerIsland.sln" beforeDir="false" afterPath="$PROJECT_DIR$/Genshin.Fps.UnlockerIsland.sln" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/.idea/Genshin.UnlockerIsland.API.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/.idea/editor.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/GameState.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/Genshin.Fps.UnlockerIsland.vcxproj.filters" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/Genshin.Fps.UnlockerIsland.vcxproj.user" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/Genshin.UnlockerIsland.API.vcxproj" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/Genshin.UnlockerIsland.API.vcxproj.user" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/MinHook/include/MinHook.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/MinHookManager.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/PatternScanner.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/PipeServer.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/PipeServer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/dllmain.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/pch.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Genshin.UnlockerIsland.API/pch.h" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -413,6 +434,7 @@
       <workItem from="1769556552295" duration="15000" />
       <workItem from="1769563455469" duration="2343000" />
       <workItem from="1769566075138" duration="3380000" />
+      <workItem from="1769648627274" duration="5632000" />
     </task>
     <task id="LOCAL-00001" summary="1">
       <option name="closed" value="true" />

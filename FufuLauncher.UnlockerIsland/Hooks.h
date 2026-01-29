@@ -7,5 +7,7 @@ namespace Hooks {
     bool IsGameUpdateInit();
     void RequestOpenCraft();
     void TriggerReloadPopup();
-    void UpdateVisuals(); 
+    void UpdateVisuals();
+    void InitHSRFps();   
+    void UpdateHSRFps();
 }

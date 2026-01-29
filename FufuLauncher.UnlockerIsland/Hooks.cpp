@@ -1,4 +1,8 @@
-﻿#include "Hooks.h"
+﻿#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include "Hooks.h"
 #include "Scanner.h"
 #include "Config.h"
 #include "Utils.h"
@@ -15,12 +19,16 @@
 #include <ctime>
 #include <vector>
 #include <algorithm>
-#include <fstream> // [新增]
-#include <iomanip> // [新增]
+#include <fstream>
+#include <iomanip>
 #include <sstream>
+#include <winsock2.h>
+#include <wincodec.h>
 
+#pragma comment(lib, "windowscodecs.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "MinHook/libMinHook.x64.lib")
+#pragma comment(lib, "ws2_32.lib")
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -59,12 +67,24 @@ const char* GetRegName(int index) {
     return "???";
 }
 
-// [新增] 简易指令分析，用于识别常见指令和寄存器
+std::string GetOwnDllDir() {
+    char path[MAX_PATH];
+    HMODULE hm = NULL;
+    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)Hooks::Init, &hm)) {
+        GetModuleFileNameA(hm, path, sizeof(path));
+        std::string fullPath = path;
+        size_t lastSlash = fullPath.find_last_of("\\/");
+        if (lastSlash != std::string::npos) {
+            return fullPath.substr(0, lastSlash);
+        }
+    }
+    return ".";
+}
+
 std::string GetInstructionInfo(uint8_t* addr) {
     if (!addr) return "";
     std::stringstream ss;
-
-    // 读取前几个字节
+    
     uint8_t b0 = addr[0];
     uint8_t b1 = addr[1];
     uint8_t b2 = addr[2];
@@ -73,12 +93,10 @@ std::string GetInstructionInfo(uint8_t* addr) {
     uint8_t rex = isRex ? b0 : 0;
     uint8_t opcode = isRex ? b1 : b0;
     uint8_t modrm = isRex ? b2 : b1;
-
-    // 解析 ModR/M 中的 Reg 字段 (Bits 3-5)
+    
     int regIndex = ((modrm >> 3) & 7);
-    if (rex & 4) regIndex += 8; // REX.R 扩展位
-
-    // 简单判断常见指令
+    if (rex & 4) regIndex += 8;
+    
     if (opcode == 0xE8) {
         ss << "CALL (Rel)";
     }
@@ -95,13 +113,12 @@ std::string GetInstructionInfo(uint8_t* addr) {
         ss << "XOR " << GetRegName(regIndex);
     }
     else if (opcode == 0x89) {
-        ss << "MOV [Mem], " << GetRegName(regIndex); // 这里的 Reg 是源
+        ss << "MOV [Mem], " << GetRegName(regIndex);
     }
     else {
         ss << "OP: " << std::hex << std::uppercase << (int)opcode;
     }
-
-    // 补充打印前5个字节，方便人工确认
+    
     ss << " | Bytes: ";
     for (int i = 0; i < 5; ++i) {
         ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << (int)addr[i] << " ";
@@ -149,6 +166,13 @@ namespace EncryptedPatterns {
     constexpr auto SetSyncCount = XorString::encrypt("E8 ? ? ? ? E8 ? ? ? ? 89 C6 E8 ? ? ? ? 31 C9 89 F2 49 89 C0 E8 ? ? ? ? 48 89 C6 48 8B 0D ? ? ? ? 80 B9 ? ? ? ? ? 74 47 48 8B 3D ? ? ? ? 48 85 DF 74 4C");
     // 19. GameUpdate
     constexpr auto GameUpdate = XorString::encrypt("E8 ? ? ? ? 48 8D 4C 24 ? 8B F8 FF 15 ? ? ? ? E8 ? ? ? ?");
+    // HSR
+    // 1. FPS 1
+    constexpr auto HSR_FPS_1 = XorString::encrypt("80 B9 ? ? ? ? 00 0F 84 ? ? ? ? C7 05 ? ? ? ? 03 00 00 00 48 83 C4 20 5E C3");
+    // 2. FPS 2
+    constexpr auto HSR_FPS_2 = XorString::encrypt("80 B9 ? ? ? ? 00 74 ? C7 05 ? ? ? ? 03 00 00 00 48 83 C4 20 5E C3");
+    // 3. FPS 3
+    constexpr auto HSR_FPS_3 = XorString::encrypt("75 05 E8 ? ? ? ? C7 05 ? ? ? ? 03 00 00 00 48 83 C4 28 C3");
 }
 
 namespace EncryptedStrings {
@@ -176,6 +200,10 @@ typedef void* (WINAPI *tPlayerPerspective)(void*, float, void*);
 typedef int32_t (WINAPI *tSetSyncCount)(bool);
 typedef __int64 (WINAPI *tGameUpdate)(__int64, const char*);
 typedef HRESULT(__stdcall* tPresent)(IDXGISwapChain*, UINT, UINT);
+typedef BOOL (WINAPI* tQueryPerformanceCounter)(LARGE_INTEGER*);
+typedef ULONGLONG (WINAPI* tGetTickCount64)();
+typedef int (WSAAPI* tSend)(SOCKET s, const char* buf, int len, int flags);
+typedef int (WSAAPI* tSendTo)(SOCKET s, const char* buf, int len, int flags, const struct sockaddr* to, int tolen);
 
 namespace {
     std::atomic<void*> o_GetFrameCount{ nullptr };
@@ -187,8 +215,6 @@ namespace {
     std::atomic<void*> o_EventCamera{ nullptr };
     std::atomic<void*> o_OpenTeam{ nullptr };
     std::atomic<void*> o_DisplayFog{ nullptr };
-    tPresent o_Present = nullptr;
-
     std::atomic<void*> p_SwitchInput{ nullptr };
     std::atomic<void*> p_FindString{ nullptr };
     std::atomic<void*> p_CraftPartner{ nullptr };
@@ -196,21 +222,32 @@ namespace {
     std::atomic<void*> p_SetActive{ nullptr };
     std::atomic<void*> p_CheckCanEnter{ nullptr };
     std::atomic<void*> p_OpenTeamPage{ nullptr };
-
     std::atomic g_GameUpdateInit{ false };
     std::atomic g_RequestCraft{ false };
     std::atomic<void*> o_PlayerPerspective{ nullptr };
     std::once_flag g_TouchInitOnce;
     std::atomic<void*> o_SetSyncCount{ nullptr };
     std::atomic<void*> o_GameUpdate{ nullptr };
-
+    std::atomic g_RequestReloadPopup{ false };
+    std::atomic<void*> p_HSRFpsAddr{ nullptr };
+    tPresent o_Present = nullptr;
     ID3D11Device* g_pd3dDevice = nullptr;
     ID3D11DeviceContext* g_pd3dContext = nullptr;
     ID3D11RenderTargetView* g_mainRenderTargetView = nullptr;
     HWND g_hGameWindow_ImGui = nullptr;
     bool g_dx11Init = false;
-    std::atomic g_RequestReloadPopup{ false };
+    ID3D11ShaderResourceView* g_LogoTexture = nullptr;
+    int g_LogoWidth = 0;
+    int g_LogoHeight = 0;
+    ImFont* g_fontBold = nullptr;
+    tQueryPerformanceCounter o_QueryPerformanceCounter = nullptr;
+    tGetTickCount64 o_GetTickCount64 = nullptr;
+    std::mutex g_TimeMutex;
+    LARGE_INTEGER g_LastRealTimeQPC = { 0 };
+    std::atomic<void*> o_send{ nullptr };
+    std::atomic<void*> o_sendto{ nullptr };
 }
+
 
 #define HOOK_REL(name, enc_pat, hookFn, storeOrig) \
     { \
@@ -220,7 +257,7 @@ namespace {
         if (addr) { \
             void* target = Scanner::ResolveRelative(addr, 1, 5); \
             if (target) { \
-                LogOffset(name, target, addr); /* 传入 target(结果) 和 addr(指令位置) */ \
+                LogOffset(name, target, addr); \
                 std::cout << "   -> Found at: " << target << std::endl; \
                 if (MH_CreateHook(target, (void*)hookFn, (void**)&storeOrig) == MH_OK) \
                     std::cout << "   -> Hook Ready." << std::endl; \
@@ -235,7 +272,7 @@ namespace {
         std::string _dec_pat = XorString::decrypt(enc_pat); \
         void* addr = Scanner::ScanMainMod(_dec_pat); \
         if (addr) { \
-            LogOffset(name, addr, addr); /* 直接 Hook 地址，指令位置也是 addr */ \
+            LogOffset(name, addr, addr); \
             std::cout << "   -> Found at: " << addr << std::endl; \
             if (MH_CreateHook(addr, (void*)hookFn, (void**)&storeOrig) == MH_OK) \
                  std::cout << "   -> Hook Ready." << std::endl; \
@@ -251,7 +288,7 @@ namespace {
         if (addr) { \
             void* target = Scanner::ResolveRelative(addr, 1, 5); \
             if (target) { \
-                LogOffset(name, target, addr); /* 传入 target(结果) 和 addr(指令位置) */ \
+                LogOffset(name, target, addr); \
                 storePtr.store(target); \
                 std::cout << "   -> Found." << std::endl; \
             } \
@@ -264,7 +301,7 @@ namespace {
         std::string _dec_pat = XorString::decrypt(enc_pat); \
         void* addr = Scanner::ScanMainMod(_dec_pat); \
         if (addr) { \
-            LogOffset(name, addr, addr); /* 直接地址 */ \
+            LogOffset(name, addr, addr); \
             storePtr.store(addr); \
             std::cout << "   -> Found." << std::endl; \
         } \
@@ -277,6 +314,145 @@ struct SafeFogBuffer {
 };
 
 static SafeFogBuffer g_fogBuf = { 0 };
+
+int WSAAPI hk_send(SOCKET s, const char* buf, int len, int flags) {
+    if (Config::Get().enable_network_toggle && Config::Get().is_currently_blocking) {
+        return len; 
+    }
+    return ((tSend)o_send.load())(s, buf, len, flags);
+}
+
+int WSAAPI hk_sendto(SOCKET s, const char* buf, int len, int flags, const struct ::sockaddr* to, int tolen) {
+    if (Config::Get().enable_network_toggle && Config::Get().is_currently_blocking) {
+        return len; 
+    }
+    return ((tSendTo)o_sendto.load())(s, buf, len, flags, to, tolen);
+}
+
+BOOL WINAPI hk_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount) {
+    if (!o_QueryPerformanceCounter(&g_LastRealTimeQPC)) return FALSE; 
+
+    static LARGE_INTEGER s_LastReal = { 0 };
+    static LARGE_INTEGER s_LastFake = { 0 };
+
+    std::lock_guard lock(g_TimeMutex);
+
+    if (s_LastReal.QuadPart == 0) {
+        s_LastReal = g_LastRealTimeQPC;
+        s_LastFake = g_LastRealTimeQPC;
+    }
+
+    if (Config::Get().enable_speedhack) {
+        double delta = (double)(g_LastRealTimeQPC.QuadPart - s_LastReal.QuadPart);
+        s_LastFake.QuadPart += (LONGLONG)(delta * Config::Get().game_speed);
+    } else {
+        s_LastFake.QuadPart += (g_LastRealTimeQPC.QuadPart - s_LastReal.QuadPart);
+    }
+
+    s_LastReal = g_LastRealTimeQPC;
+    lpPerformanceCount->QuadPart = s_LastFake.QuadPart;
+    return TRUE;
+}
+
+ULONGLONG WINAPI hk_GetTickCount64() {
+    ULONGLONG current_real = o_GetTickCount64();
+
+    static ULONGLONG s_LastRealTick = 0;
+    static ULONGLONG s_LastFakeTick = 0;
+
+    std::lock_guard lock(g_TimeMutex);
+
+    if (s_LastRealTick == 0) {
+        s_LastRealTick = current_real;
+        s_LastFakeTick = current_real;
+    }
+
+    if (Config::Get().enable_speedhack) {
+        double delta = (double)(current_real - s_LastRealTick);
+        s_LastFakeTick += (ULONGLONG)(delta * Config::Get().game_speed);
+    } else {
+        s_LastFakeTick += (current_real - s_LastRealTick);
+    }
+
+    s_LastRealTick = current_real;
+    return s_LastFakeTick;
+}
+
+bool LoadTextureFromFile(const char* filename, ID3D11Device* device, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
+{
+    HRESULT coResult = CoInitialize(NULL);
+
+    IWICImagingFactory* iwicFactory = nullptr;
+    HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&iwicFactory));
+    
+    if (FAILED(hr)) {
+        std::cout << "[Error] WIC Factory Create Failed: " << std::hex << hr << std::endl;
+        if (coResult == S_OK || coResult == S_FALSE) CoUninitialize();
+        return false;
+    }
+
+    IWICBitmapDecoder* decoder = nullptr;
+    wchar_t wFilename[MAX_PATH];
+    MultiByteToWideChar(CP_ACP, 0, filename, -1, wFilename, MAX_PATH);
+
+    hr = iwicFactory->CreateDecoderFromFilename(wFilename, NULL, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder);
+    if (FAILED(hr)) {
+        std::cout << "[Error] Image File Not Found or Locked: " << filename << std::endl;
+        iwicFactory->Release();
+        if (coResult == S_OK || coResult == S_FALSE) CoUninitialize();
+        return false;
+    }
+
+    IWICBitmapFrameDecode* frame = nullptr;
+    decoder->GetFrame(0, &frame);
+
+    IWICFormatConverter* converter = nullptr;
+    iwicFactory->CreateFormatConverter(&converter);
+    
+    converter->Initialize(frame, GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone, NULL, 0.0, WICBitmapPaletteTypeCustom);
+
+    UINT width, height;
+    frame->GetSize(&width, &height);
+    *out_width = (int)width;
+    *out_height = (int)height;
+    
+    UINT stride = width * 4;
+    UINT imageSize = stride * height;
+    std::vector<unsigned char> buffer(imageSize);
+
+    converter->CopyPixels(NULL, stride, imageSize, buffer.data());
+    
+    D3D11_TEXTURE2D_DESC desc = {};
+    desc.Width = width;
+    desc.Height = height;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA subResource = {};
+    subResource.pSysMem = buffer.data();
+    subResource.SysMemPitch = stride;
+
+    ID3D11Texture2D* pTexture = nullptr;
+    device->CreateTexture2D(&desc, &subResource, &pTexture);
+
+    if (pTexture) {
+        device->CreateShaderResourceView(pTexture, NULL, out_srv);
+        pTexture->Release();
+    }
+    
+    frame->Release();
+    converter->Release();
+    decoder->Release();
+    iwicFactory->Release();
+
+    if (coResult == S_OK || coResult == S_FALSE) CoUninitialize();
+
+    return (*out_srv != nullptr);
+}
 
 static float GetProcessCpuUsage() {
     static ULONGLONG lastRun = 0;
@@ -349,6 +525,7 @@ HRESULT __stdcall hk_Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT
             io.IniFilename = nullptr; 
             
             io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 18.0f, nullptr, io.Fonts->GetGlyphRangesChineseFull());
+            g_fontBold = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyhbd.ttc", 18.0f, nullptr, io.Fonts->GetGlyphRangesChineseFull());
             
             ImGui::StyleColorsDark();
             ImGuiStyle& style = ImGui::GetStyle();
@@ -363,7 +540,20 @@ HRESULT __stdcall hk_Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT
             pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
             g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
             pBackBuffer->Release();
-
+            
+            std::string dllDir = GetOwnDllDir();
+            
+            if (g_LogoTexture == nullptr) {
+                std::string imagePath = dllDir + "\\logo_banner.png";
+                bool loaded = LoadTextureFromFile(imagePath.c_str(), g_pd3dDevice, &g_LogoTexture, &g_LogoWidth, &g_LogoHeight);
+            
+                if (loaded) {
+                    std::cout << "Logo Loaded: " << g_LogoWidth << "x" << g_LogoHeight << std::endl;
+                } else {
+                    std::cout << "Logo Failed! Path: " << imagePath << std::endl;
+                }
+            }
+            
             g_dx11Init = true;
         }
     }
@@ -511,6 +701,105 @@ HRESULT __stdcall hk_Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT
             }
             ImGui::PopStyleColor();
         }
+        
+        if (Config::Get().show_feature_list) {
+            auto& cfg = Config::Get();
+            
+            struct ActiveFeature {
+                std::string name;
+                float width;
+            };
+            std::vector<ActiveFeature> features;
+            
+            if (g_fontBold) ImGui::PushFont(g_fontBold);
+            
+            auto AddFeature = [&](const char* name, bool enabled) {
+                if (enabled) {
+                    features.push_back({ name, ImGui::CalcTextSize(name).x });
+                }
+            };
+            
+            AddFeature("No FPS Cap", cfg.enable_fps_override);
+            AddFeature("No VSync", cfg.enable_vsync_override);
+            AddFeature("Wide FOV", cfg.enable_fov_override);
+            AddFeature("Mobile UI", cfg.use_touch_screen);
+            AddFeature("No Damage Text", cfg.disable_show_damage_text);
+            AddFeature("No Cam Move", cfg.disable_event_camera_move);
+            AddFeature("No Fog", cfg.disable_fog);
+            AddFeature("No Char Fade", cfg.disable_character_fade);
+            AddFeature("Custom Title", cfg.enable_custom_title);
+            AddFeature("Craft Redirect", cfg.enable_redirect_craft_override);
+            AddFeature("No Team Bar", cfg.enable_remove_team_anim);
+
+            if (g_fontBold) ImGui::PopFont();
+            
+            if (!features.empty() || g_LogoTexture) {
+                
+                std::sort(features.begin(), features.end(), [](const ActiveFeature& a, const ActiveFeature& b) {
+                    return a.width > b.width;
+                });
+
+                ImGuiIO& io = ImGui::GetIO();
+                
+                ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 10.0f, 10.0f), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+                
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+                
+                if (ImGui::Begin("##HackArrayList", nullptr, 
+                    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | 
+                    ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing | 
+                    ImGuiWindowFlags_NoBackground)) 
+                {
+                    float time = (float)ImGui::GetTime();
+                    float rainbowSpeed = 0.5f;
+                    float rainbowScale = 0.05f;
+
+                    if (g_LogoTexture) {
+                        float imgW = (float)g_LogoWidth;
+                        float imgH = (float)g_LogoHeight;
+                        
+                        const float MAX_LOGO_WIDTH = 200.0f; 
+
+                        if (imgW > MAX_LOGO_WIDTH) {
+                            float scale = MAX_LOGO_WIDTH / imgW;
+                            imgW *= scale;
+                            imgH *= scale;
+                        }
+                        
+                        float windowWidth = ImGui::GetWindowSize().x;
+                        
+                        if (windowWidth > imgW) {
+                            ImGui::SetCursorPosX(windowWidth - imgW - 5.0f);
+                        }
+                        
+                        ImGui::Image(g_LogoTexture, ImVec2(imgW, imgH));
+                        
+                        ImGui::Dummy(ImVec2(0, 4.0f)); 
+                    }
+                    
+                    if (g_fontBold) ImGui::PushFont(g_fontBold);
+
+                    for (size_t i = 0; i < features.size(); ++i) {
+                        const auto& feat = features[i];
+
+                        float hue = fmodf(time * rainbowSpeed - (float)i * rainbowScale, 1.0f);
+                        if (hue < 0.0f) hue += 1.0f;
+                        float r, g, b;
+                        ImGui::ColorConvertHSVtoRGB(hue, 0.8f, 1.0f, r, g, b);
+                        
+                        float windowWidth = ImGui::GetWindowSize().x;
+                        ImGui::SetCursorPosX(windowWidth - feat.width - 5.0f);
+                        
+                        ImGui::TextColored(ImVec4(r, g, b, 1.0f), feat.name.c_str());
+                    }
+
+                    if (g_fontBold) ImGui::PopFont();
+
+                    ImGui::End();
+                }
+                ImGui::PopStyleColor();
+            }
+        }
 
         ImGui::Render();
         g_pd3dContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
@@ -520,26 +809,10 @@ HRESULT __stdcall hk_Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT
     return o_Present(pSwapChain, SyncInterval, Flags);
 }
 
-std::string GetOwnDllDir() {
-    char path[MAX_PATH];
-    HMODULE hm = NULL;
-    // 使用 Hooks::Init 的地址来获取当前模块句柄
-    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)Hooks::Init, &hm)) {
-        GetModuleFileNameA(hm, path, sizeof(path));
-        std::string fullPath = path;
-        size_t lastSlash = fullPath.find_last_of("\\/");
-        if (lastSlash != std::string::npos) {
-            return fullPath.substr(0, lastSlash);
-        }
-    }
-    return ".";
-}
-
 void LogOffset(const std::string& name, void* resultAddress, void* instructionAddress = nullptr) {
     if (!Config::Get().dump_offsets || !resultAddress) return;
 
     HMODULE hMod = NULL;
-    // 使用 resultAddress 获取模块基址
     if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)resultAddress, &hMod)) {
         char modPath[MAX_PATH];
         GetModuleFileNameA(hMod, modPath, sizeof(modPath));
@@ -644,7 +917,8 @@ void DoCraftLogic() {
     auto findStr = (tFindString)p_FindString.load();
     auto partner = (tCraftPartner)p_CraftPartner.load();
     if (IsValid(findStr) && IsValid(partner)) {
-        SafeInvoke([&]() {
+        SafeInvoke([&]
+        {
             std::string sPage = XorString::decrypt(EncryptedStrings::SynthesisPage);
             Il2CppString* str = findStr(sPage.c_str());
             if (str) partner(str, nullptr, nullptr, nullptr, nullptr);
@@ -674,15 +948,26 @@ __int64 WINAPI hk_GameUpdate(__int64 a1, const char* a2) {
 int32_t WINAPI hk_ChangeFov(void* __this, float value) {
     if (!g_GameUpdateInit.load()) g_GameUpdateInit.store(true);
     auto& cfg = Config::Get();
+    
+    static ULONGLONG lastQPressTime = 0;
+    ULONGLONG currentTime = GetTickCount64();
+    
+    if ((GetAsyncKeyState(0x51) & 0x8000) && (currentTime - lastQPressTime >= 4000)) {
+        lastQPressTime = currentTime;
+    }
+    
+    bool isWithinQGracePeriod = (currentTime - lastQPressTime < 4000); 
 
     if (g_RequestCraft.load()) {
         g_RequestCraft.store(false);
         DoCraftLogic();
     }
+    
     if (cfg.enable_vsync_override) {
         auto setSync = (tSetSyncCount)o_SetSyncCount.load();
         if (IsValid(setSync)) SafeInvoke([&]() { setSync(false); });
     }
+    
     std::call_once(g_TouchInitOnce, [&]() {
         if (cfg.use_touch_screen) {
             auto sw = (tSwitchInput)p_SwitchInput.load();
@@ -694,8 +979,10 @@ int32_t WINAPI hk_ChangeFov(void* __this, float value) {
         auto setFps = (tSetFrameCount)o_SetFrameCount.load();
         if (IsValid(setFps)) SafeInvoke([&]() { setFps(cfg.selected_fps); });
     }
-
-    if (value > 30.0f && cfg.enable_fov_override) value = cfg.fov_value;
+    
+    if (value > 30.0f && cfg.enable_fov_override && !isWithinQGracePeriod) {
+        value = cfg.fov_value;
+    }
 
     auto orig = (tChangeFov)o_ChangeFov.load();
     return orig ? orig(__this, value) : 0;
@@ -787,7 +1074,6 @@ __int64 hk_DisplayFog(__int64 a1, __int64 a2) {
 }
 
 bool Hooks::Init() {
-    // [新增] 如果开启了导出，先重置文件
     if (Config::Get().dump_offsets) {
         std::string filePath = GetOwnDllDir() + "\\offsets.txt";
         std::ofstream file(filePath, std::ios::trunc);
@@ -817,7 +1103,6 @@ bool Hooks::Init() {
     HOOK_DIR("DisplayFog", EncryptedPatterns::DisplayFog, hk_DisplayFog, o_DisplayFog);
     HOOK_REL("PlayerPerspective", EncryptedPatterns::PlayerPerspective, hk_PlayerPerspective, o_PlayerPerspective);
     SCAN_REL("SetSyncCount", EncryptedPatterns::SetSyncCount, o_SetSyncCount);
-    
     if (Config::Get().enable_dx11_hook) {
         if (!InitDX11Hook()) {
             std::cout << "[FATAL] InitDX11Hook Failed!" << std::endl;
@@ -826,8 +1111,41 @@ bool Hooks::Init() {
         std::cout << "[INFO] DX11 Hook skipped by config." << std::endl;
     }
 
+    {
+        HMODULE hKernel32 = GetModuleHandleA("kernel32.dll"); //
+        if (hKernel32) {
+            void* addrQPC = (void*)GetProcAddress(hKernel32, "QueryPerformanceCounter"); //
+            if (addrQPC) {
+                std::cout << "[SCAN] QueryPerformanceCounter..." << std::endl; //
+                LogOffset("QueryPerformanceCounter", addrQPC, addrQPC);       //
+                std::cout << "   -> Found at: " << addrQPC << std::endl;      //
+                
+                if (MH_CreateHook(addrQPC, &hk_QueryPerformanceCounter, (LPVOID*)&o_QueryPerformanceCounter) == MH_OK) //
+                    std::cout << "   -> Hook Ready." << std::endl;            //
+            }
+            
+            void* addrGTC = (void*)GetProcAddress(hKernel32, "GetTickCount64"); //
+            if (addrGTC) {
+                std::cout << "[SCAN] GetTickCount64..." << std::endl;        //
+                LogOffset("GetTickCount64", addrGTC, addrGTC);                //
+                std::cout << "   -> Found at: " << addrGTC << std::endl;      //
+                
+                if (MH_CreateHook(addrGTC, &hk_GetTickCount64, (LPVOID*)&o_GetTickCount64) == MH_OK) //
+                    std::cout << "   -> Hook Ready." << std::endl;            //
+            }
+        }
+    }
+    
+    if (MH_CreateHookApi(L"ws2_32.dll", "send", (void*)hk_send, (void**)&o_send) == MH_OK) {
+        std::cout << "[SCAN] Hook send Ready." << std::endl;
+    }
+    
+    if (MH_CreateHookApi(L"ws2_32.dll", "sendto", (void*)hk_sendto, (void**)&o_sendto) == MH_OK) {
+        std::cout << "[SCAN] Hook sendto Ready." << std::endl;
+    }
+
     if (MH_EnableHook(MH_ALL_HOOKS) != MH_OK) {
-        std::cout << "[FATAL] MH_EnableHook Failed!" << std::endl;
+        std::cout << "[SCAN] MH_EnableHook Failed!" << std::endl;
         return false;
     }
     return true;
@@ -851,4 +1169,51 @@ void Hooks::RequestOpenCraft() { g_RequestCraft.store(true); }
 
 void Hooks::TriggerReloadPopup() {
     g_RequestReloadPopup.store(true);
+}
+
+void Hooks::InitHSRFps() {
+    if (p_HSRFpsAddr.load()) return; 
+    
+    std::string pat1 = XorString::decrypt(EncryptedPatterns::HSR_FPS_1);
+    if (void* addr = Scanner::ScanMainMod(pat1)) {
+        if (void* target = Scanner::ResolveRelative(addr, 15, 23)) {
+            p_HSRFpsAddr.store(target);
+            std::cout << "[HSR] FPS Pattern 1 found: " << target << std::endl;
+            return;
+        }
+    }
+    
+    std::string pat2 = XorString::decrypt(EncryptedPatterns::HSR_FPS_2);
+    if (void* addr = Scanner::ScanMainMod(pat2)) {
+        if (void* target = Scanner::ResolveRelative(addr, 11, 19)) {
+            p_HSRFpsAddr.store(target);
+            std::cout << "[HSR] FPS Pattern 2 found: " << target << std::endl;
+            return;
+        }
+    }
+    
+    std::string pat3 = XorString::decrypt(EncryptedPatterns::HSR_FPS_3);
+    if (void* addr = Scanner::ScanMainMod(pat3)) {
+        if (void* target = Scanner::ResolveRelative(addr, 9, 17)) {
+            p_HSRFpsAddr.store(target);
+            std::cout << "[HSR] FPS Pattern 3 found: " << target << std::endl;
+            return;
+        }
+    }
+
+    std::cout << "[HSR] FPS Pattern NOT found." << std::endl;
+}
+
+void Hooks::UpdateHSRFps() {
+    void* ptr = p_HSRFpsAddr.load();
+    if (ptr && Config::Get().enable_hsr_fps) {
+        int32_t* pVal = static_cast<int32_t*>(ptr);
+        
+        int32_t targetFps = Config::Get().selected_fps; 
+        if (targetFps < 60) targetFps = 120;
+        
+        if (*pVal != targetFps) {
+            *pVal = targetFps;
+        }
+    }
 }

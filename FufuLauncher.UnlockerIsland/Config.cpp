@@ -147,6 +147,22 @@ namespace Config {
         g_Config.enable_dx11_hook = ReadInt("EnableDX11Hook", 1, file);
 
         g_Config.dump_offsets = ReadInt("DumpOffsets", 0, file);
+        
+        g_Config.enable_hsr_fps = GetPrivateProfileIntA("HSR", "Enable", 0, file);
+        
+        g_Config.hsr_target_fps = GetPrivateProfileIntA("HSR", "FPS", 120, file);
+        
+        g_Config.show_feature_list = ReadInt("ShowFeatureList", 0, file);
+        
+        g_Config.enable_speedhack = ReadInt("SpeedhackEnable", 0, file);
+        
+        g_Config.game_speed = ReadFloat("GameSpeed", 1.0f, file);
+
+        g_Config.block_network = ReadInt("BlockNetwork", 0, file);
+        
+        g_Config.enable_network_toggle = ReadInt("EnableNetworkToggle", 0, file);
+        
+        g_Config.network_toggle_key = ReadInt("NetworkToggleKey", VK_F11, file);
     }
     void SaveOverlayPos(float x, float y) {
         g_Config.overlay_pos_x = x;
