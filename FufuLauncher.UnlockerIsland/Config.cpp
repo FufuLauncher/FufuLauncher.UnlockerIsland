@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <vector>
 #include <Windows.h>
+#include <iostream>
 
 ModConfig g_Config;
 

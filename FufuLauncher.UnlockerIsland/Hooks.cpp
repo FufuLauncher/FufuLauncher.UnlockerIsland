@@ -140,9 +140,11 @@ namespace EncryptedPatterns {
     // 5. QuestBanner
     constexpr auto QuestBanner = XorString::encrypt("41 57 41 56 56 57 55 53 48 81 EC ? ? ? ? 0F 29 BC 24 ? ? ? ? 0F 29 B4 24 ? ? ? ? 48 89 CE 80 3D ? ? ? ? 00 0F 85 ? ? ? ? 48 8B 96");
     // 6. FindGameObject
-    constexpr auto FindGameObject = XorString::encrypt("E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? 48 83 EC ? C7 44 24 ? 00 00 00 00 48 8D 54 24");
+    //constexpr auto FindGameObject = XorString::encrypt("E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? 48 83 EC ? C7 44 24 ? 00 00 00 00 48 8D 54 24");
+    constexpr auto FindGameObject = XorString::encrypt("40 53 48 83 EC ? 48 89 4C 24 ? 48 8D 54 24 ? 48 8D 4C 24 ? E8 ? ? ? ? 48 8B 08 48 85 C9 75 ? 48 8D 48 ? E8 ? ? ? ? 48 8B 4C 24 ? 48 8B D8 48 85 C9 74 ? 48 83 7C 24 ? 00 76");
     // 7. SetActive
-    constexpr auto SetActive = XorString::encrypt("E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? 45 31 C9");
+    //constexpr auto SetActive = XorString::encrypt("E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? E9 ? ? ? ? 66 66 2E 0F 1F 84 00 ? ? ? ? 45 31 C9");
+    constexpr auto SetActive = XorString::encrypt("E8 ? ? ? ? 48 8B 56 ? 48 85 D2 0F 84 ? ? ? ? 80 3D ? ? ? ? 0 0F 85 ? ? ? ? 48 89 D1 E8 ? ? ? ? 48 85 C0 0F 84 ? ? ? ? 48 89 C1");
     // 8. DamageText
     constexpr auto DamageText = XorString::encrypt("41 57 41 56 41 55 41 54 56 57 55 53 48 81 EC ? ? ? ? 44 0F 29 9C 24 ? ? ? ? 44 0F 29 94 24 ? ? ? ? 44 0F 29 8C 24 ? ? ? ? 44 0F 29 84 24 ? ? ? ? 0F 29 BC 24 ? ? ? ? 0F 29 B4 24 ? ? ? ? 44 89 CF 45 89 C4");
     // 9. EventCamera
@@ -262,8 +264,8 @@ namespace {
         if (addr) { \
             void* target = Scanner::ResolveRelative(addr, 1, 5); \
             if (target) { \
-                LogOffset(name, target, addr); \
-                std::cout << "   -> Found at: " << target << std::endl; \
+            LogOffset(name, target, addr); \
+                std::cout << "   -> Found at: 0x" << std::hex << ((long long)target - (long long)GetModuleHandle(nullptr)) << std::endl; \
                 if (MH_CreateHook(target, (void*)hookFn, (void**)&storeOrig) == MH_OK) \
                     std::cout << "   -> Hook Ready." << std::endl; \
                 else std::cout << "   -> [ERR] MH_CreateHook Failed." << std::endl; \
@@ -278,7 +280,7 @@ namespace {
         void* addr = Scanner::ScanMainMod(_dec_pat); \
         if (addr) { \
             LogOffset(name, addr, addr); \
-            std::cout << "   -> Found at: " << addr << std::endl; \
+            std::cout << "   -> Found at: 0x" << std::hex << ((long long)addr - (long long)GetModuleHandle(nullptr)) << std::endl; \
             if (MH_CreateHook(addr, (void*)hookFn, (void**)&storeOrig) == MH_OK) \
                  std::cout << "   -> Hook Ready." << std::endl; \
             else std::cout << "   -> [ERR] MH_CreateHook Failed." << std::endl; \
@@ -292,11 +294,10 @@ namespace {
         void* addr = Scanner::ScanMainMod(_dec_pat); \
         if (addr) { \
             void* target = Scanner::ResolveRelative(addr, 1, 5); \
+            LogOffset(name, target, addr); \
             if (target) { \
-                LogOffset(name, target, addr); \
-                storePtr.store(target); \
-                std::cout << "   -> Found." << std::endl; \
-            } \
+            storePtr.store(target); \
+            std::cout << "   -> Found at: 0x" << std::hex << ((long long)target - (long long)GetModuleHandle(nullptr)) << std::endl; } \
         } else std::cout << "   -> [ERR] Not Found." << std::endl; \
     }
 
@@ -306,10 +307,8 @@ namespace {
         std::string _dec_pat = XorString::decrypt(enc_pat); \
         void* addr = Scanner::ScanMainMod(_dec_pat); \
         if (addr) { \
-            LogOffset(name, addr, addr); \
-            storePtr.store(addr); \
-            std::cout << "   -> Found." << std::endl; \
-        } \
+            storePtr.store(addr); LogOffset(name, addr, addr); \
+            std::cout << "   -> Found at: 0x" << std::hex << ((long long)addr - (long long)GetModuleHandle(nullptr)) << std::endl; } \
         else std::cout << "   -> [ERR] Not Found." << std::endl; \
     }
 
@@ -1150,7 +1149,7 @@ bool Hooks::Init() {
     HOOK_DIR("ChangeFOV", EncryptedPatterns::ChangeFOV, hk_ChangeFov, o_ChangeFov);
     SCAN_DIR("SwitchInput", EncryptedPatterns::SwitchInput, p_SwitchInput);
     HOOK_DIR("QuestBanner", EncryptedPatterns::QuestBanner, hk_SetupQuestBanner, o_SetupQuestBanner);
-    SCAN_REL("FindGameObject", EncryptedPatterns::FindGameObject, p_FindGameObject);
+    SCAN_DIR("FindGameObject", EncryptedPatterns::FindGameObject, p_FindGameObject);
     SCAN_REL("SetActive", EncryptedPatterns::SetActive, p_SetActive);
     HOOK_DIR("DamageText", EncryptedPatterns::DamageText, hk_ShowDamage, o_ShowDamage);
     HOOK_DIR("EventCamera", EncryptedPatterns::EventCamera, hk_EventCamera, o_EventCamera);
