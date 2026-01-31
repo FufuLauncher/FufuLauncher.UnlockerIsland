@@ -170,6 +170,12 @@ namespace Config {
         g_Config.hide_main_ui = ReadInt("HideMainUI", 0, file);
 
         g_Config.display_paimon = ReadInt("DisplayPaimon", 0, file);
+        
+        g_Config.enable_free_cam = ReadInt("EnableFreeCam", 0, file);
+        
+        g_Config.free_cam_key = ReadInt("FreeCamKey", VK_F5, file);
+        
+        g_Config.free_cam_reset_key = ReadInt("FreeCamResetKey", VK_F7, file);
     }
     void SaveOverlayPos(float x, float y) {
         g_Config.overlay_pos_x = x;

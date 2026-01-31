@@ -84,6 +84,12 @@ struct ModConfig {
     bool hide_main_ui = false;
 
     bool display_paimon = false;
+
+    bool enable_free_cam = false;
+    
+    int free_cam_key = VK_F5;
+    
+    int free_cam_reset_key = VK_F7;
 };
 
 namespace Config {

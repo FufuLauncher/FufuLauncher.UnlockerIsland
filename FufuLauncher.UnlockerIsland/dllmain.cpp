@@ -28,6 +28,16 @@ void OpenConsole(const char* title) {
         freopen_s(&f, "CONIN$", "r", stdin);
         SetConsoleTitleA(title);
         SetUnhandledExceptionFilter(CrashHandler);
+        std::cout << R"(
+ __        __  _____   _        ____    ___    __  __   _____ 
+ \ \      / / | ____| | |      / ___|  / _ \  |  \/  | | ____|
+  \ \ /\ / /  |  _|   | |     | |     | | | | | |\/| | |  _|  
+   \ V  V /   | |___  | |___  | |___  | |_| | | |  | | | |___ 
+    \_/\_/    |_____| |_____|  \____|  \___/  |_|  |_| |_____|
+)" << std::endl;
+        std::cout << "有一定几率在加载页面卡死，也有一定几率在退出个人主页时崩溃，重启即可解决" << std::endl;
+        std::cout << "本项目开源地址: https://github.com/CodeCubist/FufuLauncher.UnlockerIsland" << std::endl; 
+        std::cout << "爱来自FufuLauncher" << std::endl;
         std::cout << "[+] Console Allocated." << std::endl;
     }
 }
@@ -125,11 +135,7 @@ void PerformSecurityCheck() {
 
 FAILED:
     if (!isVerified) {
-        std::string msg = "环境验证失败 (" + failReason + ")\n是否强行继续？(不建议)";
-        int result = MessageBoxA(NULL, msg.c_str(), "Security Alert", MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2 | MB_TOPMOST);
-        if (result == IDNO) {
-            TerminateProcess(GetCurrentProcess(), 0);
-        }
+
     }
 }
 
@@ -232,3 +238,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call) {
     }
     return TRUE;
 }
+
+/***
+*   _____            __           _                                      _                         _   _           _                  _                    ___         _                       _ 
+*  |  ___|  _   _   / _|  _   _  | |       __ _   _   _   _ __     ___  | |__     ___   _ __      | | | |  _ __   | |   ___     ___  | | __   ___   _ __  |_ _|  ___  | |   __ _   _ __     __| |
+*  | |_    | | | | | |_  | | | | | |      / _` | | | | | | '_ \   / __| | '_ \   / _ \ | '__|     | | | | | '_ \  | |  / _ \   / __| | |/ /  / _ \ | '__|  | |  / __| | |  / _` | | '_ \   / _` |
+*  |  _|   | |_| | |  _| | |_| | | |___  | (_| | | |_| | | | | | | (__  | | | | |  __/ | |     _  | |_| | | | | | | | | (_) | | (__  |   <  |  __/ | |     | |  \__ \ | | | (_| | | | | | | (_| |
+*  |_|      \__,_| |_|    \__,_| |_____|  \__,_|  \__,_| |_| |_|  \___| |_| |_|  \___| |_|    (_)  \___/  |_| |_| |_|  \___/   \___| |_|\_\  \___| |_|    |___| |___/ |_|  \__,_| |_| |_|  \__,_|
+*                                                                                                                                                                                                
+*/

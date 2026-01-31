@@ -171,7 +171,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="MinHook\libMinHook.x64.lib" />
-    <Content Include="MinHook\libMinHook.x86.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

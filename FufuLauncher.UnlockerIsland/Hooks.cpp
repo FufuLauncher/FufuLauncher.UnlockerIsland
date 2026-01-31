@@ -176,8 +176,20 @@ namespace EncryptedPatterns {
     constexpr auto HSR_FPS_2 = XorString::encrypt("80 B9 ? ? ? ? 00 74 ? C7 05 ? ? ? ? 03 00 00 00 48 83 C4 20 5E C3");
     // 3. FPS 3
     constexpr auto HSR_FPS_3 = XorString::encrypt("75 05 E8 ? ? ? ? C7 05 ? ? ? ? 03 00 00 00 48 83 C4 28 C3");
-
+    // UnityEngine.GameObject.get_active
     constexpr auto GetActiveOffset = XorString::encrypt("15B622E0");
+    // MoleMole.ctor
+    constexpr auto ActorManagerCtorOffset = XorString::encrypt("D2D4EF0");
+    // MoleMole.ActorManager.GetGlobalActor
+    constexpr auto GetGlobalActorOffset = XorString::encrypt("D2CC9E0");
+    // MoleMole.BaseActor.AvatarPaimonAppear
+    constexpr auto AvatarPaimonAppearOffset = XorString::encrypt("107BAC60");
+    // UnityEngine.Camera.get_main
+    constexpr auto GetMainCameraOffset = XorString::encrypt("15B72D80");
+    // UnityEngine.Component.get_transform
+    constexpr auto GetTransformOffset = XorString::encrypt("15B83580");
+    // UnityEngine.Transform.INTERNAL_set_position
+    constexpr auto SetPosOffset = XorString::encrypt("15B7CC70");
 }
 namespace EncryptedStrings {
     constexpr auto SynthesisPage = XorString::encrypt("SynthesisPage");
@@ -214,6 +226,30 @@ typedef int (WSAAPI* tSendTo)(SOCKET s, const char* buf, int len, int flags, con
 typedef HRESULT(__stdcall* tPresent1)(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT PresentFlags, const DXGI_PRESENT_PARAMETERS* pPresentParameters);
 typedef bool (WINAPI *tGetActive)(void*);
 std::atomic<void*> p_GetActive{ nullptr };
+typedef void (WINAPI *tActorManagerCtor)(void*);
+typedef void* (WINAPI *tGetGlobalActor)(void*);
+typedef void (WINAPI *tAvatarPaimonAppear)(void*, void*, bool);
+typedef void (WINAPI *tVoidFunc)(void*);
+struct Vector3 { float x, y, z; };
+
+const float FC_BASE_SPEED = 0.015f;
+const float FC_SHIFT_MULTIPLIER = 4.0f;
+const float FC_CTRL_MULTIPLIER = 0.2f;
+const float FC_ACCELERATION = 0.05f;
+const float FC_FRICTION = 0.94f;
+
+namespace FreeCamState {
+    volatile float camX = 0.0f, camY = 0.0f, camZ = 0.0f;
+    volatile float velX = 0.0f, velY = 0.0f, velZ = 0.0f;
+    float targetVelX = 0.0f, targetVelY = 0.0f, targetVelZ = 0.0f;
+    
+    void* mainCameraTransform = nullptr;
+    bool isActive = false;
+}
+
+typedef void(__fastcall* tSetPos)(void* pTransform, Vector3* pPos);
+typedef void* (__fastcall* tGetMainCamera)();
+typedef void* (__fastcall* tGetTransform)(void* pComponent);
 
 namespace {
     std::atomic<void*> o_GetFrameCount{ nullptr };
@@ -232,49 +268,61 @@ namespace {
     std::atomic<void*> p_SetActive{ nullptr };
     std::atomic<void*> p_CheckCanEnter{ nullptr };
     std::atomic<void*> p_OpenTeamPage{ nullptr };
-    std::atomic g_GameUpdateInit{ false };
-    std::atomic g_RequestCraft{ false };
     std::atomic<void*> o_PlayerPerspective{ nullptr };
-    std::once_flag g_TouchInitOnce;
     std::atomic<void*> o_SetSyncCount{ nullptr };
     std::atomic<void*> o_GameUpdate{ nullptr };
-    std::atomic g_RequestReloadPopup{ false };
     std::atomic<void*> p_HSRFpsAddr{ nullptr };
+    std::atomic<void*> o_ActorManagerCtor{ nullptr };
+    std::atomic<void*> p_GetGlobalActor{ nullptr };
+    std::atomic<void*> p_AvatarPaimonAppear{ nullptr };
+    std::atomic<void*> o_send{ nullptr };
+    std::atomic<void*> o_sendto{ nullptr };
+    std::atomic<void*> o_SetPos{ nullptr };
+    std::atomic g_RequestReloadPopup{ false };
+    std::atomic g_GameUpdateInit{ false };
+    std::atomic g_RequestCraft{ false };
+    std::once_flag g_TouchInitOnce;
+    std::mutex g_TimeMutex;
     tPresent o_Present = nullptr;
     ID3D11Device* g_pd3dDevice = nullptr;
     ID3D11DeviceContext* g_pd3dContext = nullptr;
     ID3D11RenderTargetView* g_mainRenderTargetView = nullptr;
     HWND g_hGameWindow_ImGui = nullptr;
-    bool g_dx11Init = false;
     ID3D11ShaderResourceView* g_LogoTexture = nullptr;
-    int g_LogoWidth = 0;
-    int g_LogoHeight = 0;
     ImFont* g_fontBold = nullptr;
     tQueryPerformanceCounter o_QueryPerformanceCounter = nullptr;
     tGetTickCount64 o_GetTickCount64 = nullptr;
-    std::mutex g_TimeMutex;
     LARGE_INTEGER g_LastRealTimeQPC = { 0 };
-    std::atomic<void*> o_send{ nullptr };
-    std::atomic<void*> o_sendto{ nullptr };
     tResizeBuffers o_ResizeBuffers = nullptr;
     tPresent1 o_Present1 = nullptr;
+    tGetMainCamera call_GetMainCamera = nullptr;
+    tGetTransform call_GetTransform = nullptr;
+    void* g_ActorManagerInstance = nullptr;
+    int g_LogoWidth = 0;
+    int g_LogoHeight = 0;
+    bool g_dx11Init = false;
+    
+}
+
+uintptr_t ResolveAddress(uintptr_t addr) {
+    unsigned char* p = (unsigned char*)addr;
+    if (p[0] == 0xE9) {
+        int32_t offset = *(int32_t*)(p + 1);
+        return addr + 5 + offset;
+    }
+    return addr;
 }
 
 void* GetGetActiveAddr() {
     HMODULE hMod = GetModuleHandle(NULL);
     if (!hMod) return nullptr;
-
     uintptr_t base = (uintptr_t)hMod;
-    
     std::string offsetStr = XorString::decrypt(EncryptedPatterns::GetActiveOffset);
-
     uintptr_t offsetVal = 0;
     std::stringstream ss;
     ss << std::hex << offsetStr;
     ss >> offsetVal;
-    
     void* addr = (void*)(base + offsetVal);
-    
     std::cout << "[SCAN] GetActive resolved via encrypted offset: 0x" 
               << std::hex << offsetVal << std::dec << std::endl;
     return addr;
@@ -340,6 +388,100 @@ struct SafeFogBuffer {
     __declspec(align(16)) uint8_t data[64];
     uint8_t padding[192];
 };
+
+void UpdateFreeCamPhysics() {
+    auto& cfg = Config::Get();
+    
+    static bool lastToggleKey = false;
+    bool currToggleKey = GetAsyncKeyState(cfg.free_cam_key) & 0x8000;
+    if (currToggleKey && !lastToggleKey) {
+        FreeCamState::isActive = !FreeCamState::isActive;
+        FreeCamState::velX = FreeCamState::velY = FreeCamState::velZ = 0.0f;
+    }
+    lastToggleKey = currToggleKey;
+    
+    if (GetAsyncKeyState(cfg.free_cam_reset_key) & 0x8000) {
+        FreeCamState::mainCameraTransform = nullptr;
+    }
+
+    if (!FreeCamState::isActive) return;
+
+    float currentPower = FC_BASE_SPEED;
+    if (GetAsyncKeyState(VK_SHIFT) & 0x8000)   currentPower *= FC_SHIFT_MULTIPLIER;
+    if (GetAsyncKeyState(VK_CONTROL) & 0x8000) currentPower *= FC_CTRL_MULTIPLIER;
+    
+    float targetVelX = 0.0f;
+    float targetVelY = 0.0f;
+    float targetVelZ = 0.0f;
+
+    if (GetAsyncKeyState(VK_UP) & 0x8000)       targetVelZ += currentPower;
+    if (GetAsyncKeyState(VK_DOWN) & 0x8000)     targetVelZ -= currentPower;
+    if (GetAsyncKeyState(VK_LEFT) & 0x8000)     targetVelX -= currentPower;
+    if (GetAsyncKeyState(VK_RIGHT) & 0x8000)    targetVelX += currentPower;
+    if (GetAsyncKeyState(VK_ADD) & 0x8000)      targetVelY += currentPower; //Num+
+    if (GetAsyncKeyState(VK_SUBTRACT) & 0x8000) targetVelY -= currentPower; //Num-
+    
+    //Velocity = Velocity + (Target - Velocity) * Acceleration
+    FreeCamState::velX += (targetVelX - FreeCamState::velX) * FC_ACCELERATION;
+    FreeCamState::velY += (targetVelY - FreeCamState::velY) * FC_ACCELERATION;
+    FreeCamState::velZ += (targetVelZ - FreeCamState::velZ) * FC_ACCELERATION;
+    
+    if (targetVelX == 0.0f && targetVelY == 0.0f && targetVelZ == 0.0f) {
+        FreeCamState::velX *= FC_FRICTION;
+        FreeCamState::velY *= FC_FRICTION;
+        FreeCamState::velZ *= FC_FRICTION;
+        
+        if (abs(FreeCamState::velX) < 0.0001f) FreeCamState::velX = 0.0f;
+        if (abs(FreeCamState::velY) < 0.0001f) FreeCamState::velY = 0.0f;
+        if (abs(FreeCamState::velZ) < 0.0001f) FreeCamState::velZ = 0.0f;
+    }
+
+    FreeCamState::camX += FreeCamState::velX;
+    FreeCamState::camY += FreeCamState::velY;
+    FreeCamState::camZ += FreeCamState::velZ;
+}
+
+void __fastcall hk_SetPos(void* pTransform, Vector3* pPos) {
+    if (!pTransform || !pPos) return;
+
+    static int checkTimer = 0;
+    checkTimer++;
+    if (FreeCamState::mainCameraTransform == nullptr || checkTimer > 100) {
+        checkTimer = 0;
+        if (call_GetMainCamera && call_GetTransform) {
+            void* pCamInfo = call_GetMainCamera();
+            if (pCamInfo) {
+                void* realTrans = call_GetTransform(pCamInfo);
+                if (realTrans) {
+                    FreeCamState::mainCameraTransform = realTrans;
+                }
+            }
+        }
+    }
+    
+    if (pTransform == FreeCamState::mainCameraTransform) {
+        if (!FreeCamState::isActive) {
+            FreeCamState::camX = pPos->x;
+            FreeCamState::camY = pPos->y;
+            FreeCamState::camZ = pPos->z;
+            FreeCamState::velX = FreeCamState::velY = FreeCamState::velZ = 0.0f;
+        }
+
+        if (FreeCamState::isActive) {
+            Vector3 myPos;
+            myPos.x = FreeCamState::camX;
+            myPos.y = FreeCamState::camY;
+            myPos.z = FreeCamState::camZ;
+            
+            auto orig = (tSetPos)o_SetPos.load();
+            if(orig) orig(pTransform, &myPos);
+            return;
+        }
+    }
+
+    auto orig = (tSetPos)o_SetPos.load();
+    if(orig) orig(pTransform, pPos);
+}
 
 void UpdateHideUID() {
     auto& config = Config::Get();
@@ -503,7 +645,6 @@ void HandlePaimon() {
     auto& cfg = Config::Get();
     if (!cfg.display_paimon) return;
     
-    // 检查必要函数是否就绪
     auto _FindString = (tFindString)p_FindString.load();
     auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
     auto _SetActive = (tSetActive)p_SetActive.load();
@@ -553,6 +694,58 @@ void HandlePaimon() {
             _SetActive(cachedPaimonObj, !profileOpen);
         });
     }
+}
+
+void WINAPI hk_ActorManagerCtor(void* pThis) {
+    g_ActorManagerInstance = pThis;
+    auto orig = (tActorManagerCtor)o_ActorManagerCtor.load();
+    if (orig) orig(pThis);
+}
+
+void HandlePaimonV2() {
+    auto& cfg = Config::Get();
+    if (!cfg.display_paimon) return;
+    
+    if (!g_ActorManagerInstance) return;
+    
+    auto _GetGlobalActor = (tGetGlobalActor)p_GetGlobalActor.load();
+    auto _GetActive = (tGetActive)p_GetActive.load();
+    auto _FindString = (tFindString)p_FindString.load();
+    auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
+    auto _AvatarPaimonAppear = (tAvatarPaimonAppear)p_AvatarPaimonAppear.load();
+    
+    if (!_GetGlobalActor || !_GetActive || !_FindString || !_FindGameObject || !_AvatarPaimonAppear) {
+        return;
+    }
+    
+    static float lastCheckTime = 0.0f;
+    float currentTime = (float)clock() / CLOCKS_PER_SEC;
+    if (currentTime - lastCheckTime < 1.0f) {
+        return;
+    }
+    lastCheckTime = currentTime;
+    
+    SafeInvoke([&] {
+        static std::string paimonPath = XorString::decrypt(EncryptedStrings::PaimonPath);
+        const char* beydPath = "/EntityRoot/OtherGadgetRoot/Beyd_NPC_Kanban_Paimon(Clone)";
+        
+        Il2CppString* paimonStr = _FindString(paimonPath.c_str());
+        Il2CppString* beydStr = _FindString(beydPath);
+        
+        if (!paimonStr && !beydStr) return;
+        
+        void* paimonObj = paimonStr ? _FindGameObject(paimonStr) : nullptr;
+        void* beydObj = beydStr ? _FindGameObject(beydStr) : nullptr;
+        
+        if ((paimonObj && _GetActive(paimonObj)) || (beydObj && _GetActive(beydObj))) {
+            return;
+        }
+        
+        void* globalActor = _GetGlobalActor(g_ActorManagerInstance);
+        if (globalActor) {
+            _AvatarPaimonAppear(globalActor, nullptr, true);
+        }
+    });
 }
 
 bool LoadTextureFromFile(const char* filename, ID3D11Device* device, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
@@ -916,6 +1109,7 @@ HRESULT __stdcall hk_Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT
             AddFeature("Custom Title", cfg.enable_custom_title);
             AddFeature("Craft Redirect", cfg.enable_redirect_craft_override);
             AddFeature("No Team Bar", cfg.enable_remove_team_anim);
+            AddFeature("Free Camera", FreeCamState::isActive);
 
             if (g_fontBold) ImGui::PopFont();
             
@@ -1140,14 +1334,15 @@ int32_t WINAPI hk_GetFrameCount() {
     return ret;
 }
 
-__int64 WINAPI hk_GameUpdate(__int64 a1, const char* a2) {
-    // 1. 调用原始的游戏更新函数
+auto WINAPI hk_GameUpdate(__int64 a1, const char* a2) -> __int64
+{
     auto orig = (tGameUpdate)o_GameUpdate.load();
     __int64 result = orig ? orig(a1, a2) : 0;
     
     UpdateHideUID();
     UpdateHideMainUI();
-    HandlePaimon();
+    HandlePaimonV2();
+    UpdateFreeCamPhysics(); 
 
     return result;
 }
@@ -1256,7 +1451,8 @@ void WINAPI hk_OpenTeam() {
     if (orig) orig();
 }
 
-__int64 hk_DisplayFog(__int64 a1, __int64 a2) {
+auto hk_DisplayFog(__int64 a1, __int64 a2) -> __int64
+{
     if (Config::Get().disable_fog && a2) {
         
         memset(&g_fogBuf, 0, sizeof(g_fogBuf));
@@ -1311,6 +1507,83 @@ bool Hooks::Init() {
     HOOK_DIR("DisplayFog", EncryptedPatterns::DisplayFog, hk_DisplayFog, o_DisplayFog);
     HOOK_REL("PlayerPerspective", EncryptedPatterns::PlayerPerspective, hk_PlayerPerspective, o_PlayerPerspective);
     SCAN_REL("SetSyncCount", EncryptedPatterns::SetSyncCount, o_SetSyncCount);
+{
+    HMODULE hMod = GetModuleHandle(NULL);
+    if (hMod) {
+        uintptr_t base = (uintptr_t)hMod;
+        
+        auto decryptOffset = [](const auto& encPattern) -> uintptr_t {
+            std::string hexStr = XorString::decrypt(encPattern);
+            uintptr_t val = 0;
+            std::stringstream ss;
+            ss << std::hex << hexStr;
+            ss >> val;
+            return val;
+        };
+        
+        uintptr_t offsetCtor = decryptOffset(EncryptedPatterns::ActorManagerCtorOffset);
+        void* actorMgrCtor = (void*)(base + offsetCtor);
+        MH_STATUS status1 = MH_CreateHook(actorMgrCtor, (void*)hk_ActorManagerCtor, (void**)&o_ActorManagerCtor);
+        if (status1 == MH_OK) {
+            MH_EnableHook(actorMgrCtor);
+            std::cout << "[SCAN] ActorManager.ctor hooked at: 0x" << std::hex << offsetCtor << std::dec << std::endl;
+        } else {
+            std::cout << "[ERR] Failed to hook ActorManager.ctor. MH_STATUS: " << status1 << std::endl;
+        }
+        
+        uintptr_t offsetGlobal = decryptOffset(EncryptedPatterns::GetGlobalActorOffset);
+        void* getGlobalActorAddr = (void*)(base + offsetGlobal);
+        p_GetGlobalActor.store(getGlobalActorAddr);
+        LogOffset("ActorManager.GetGlobalActor", getGlobalActorAddr, getGlobalActorAddr);
+        std::cout << "[SCAN] GetGlobalActor at: 0x" << std::hex << offsetGlobal << std::dec << std::endl;
+        
+        uintptr_t offsetPaimon = decryptOffset(EncryptedPatterns::AvatarPaimonAppearOffset);
+        void* avatarPaimonAppearAddr = (void*)(base + offsetPaimon);
+        p_AvatarPaimonAppear.store(avatarPaimonAppearAddr);
+        LogOffset("GlobalActor.AvatarPaimonAppear", avatarPaimonAppearAddr, avatarPaimonAppearAddr);
+        std::cout << "[SCAN] AvatarPaimonAppear at: 0x" << std::hex << offsetPaimon << std::dec << std::endl;
+        
+    } else {
+        std::cout << "[ERR] Critical: GetModuleHandle failed!" << std::endl;
+    }
+}
+    {
+        HMODULE hMod = GetModuleHandle(NULL);
+        if (hMod) {
+            uintptr_t base = (uintptr_t)hMod;
+            std::cout << "[SCAN] Initializing Free Camera Hooks..." << std::endl;
+            
+            auto decryptOffset = [](const auto& encPattern) -> uintptr_t {
+                std::string hexStr = XorString::decrypt(encPattern);
+                uintptr_t val = 0;
+                std::stringstream ss;
+                ss << std::hex << hexStr;
+                ss >> val;
+                return val;
+            };
+
+            uintptr_t offsetGetMain = decryptOffset(EncryptedPatterns::GetMainCameraOffset);
+            uintptr_t offsetGetTrans = decryptOffset(EncryptedPatterns::GetTransformOffset);
+            uintptr_t offsetSetPos = decryptOffset(EncryptedPatterns::SetPosOffset);
+
+            uintptr_t addr_GetMain = ResolveAddress(base + offsetGetMain);
+            uintptr_t addr_GetTrans = ResolveAddress(base + offsetGetTrans);
+            uintptr_t addr_SetPos = ResolveAddress(base + offsetSetPos);
+
+            call_GetMainCamera = (tGetMainCamera)addr_GetMain;
+            call_GetTransform = (tGetTransform)addr_GetTrans;
+
+            if (addr_SetPos) {
+                if (MH_CreateHook((void*)addr_SetPos, (void*)hk_SetPos, (void**)&o_SetPos) == MH_OK) {
+                    std::cout << "   -> FreeCam SetPos Hook Ready." << std::endl;
+                } else {
+                    std::cout << "   -> [ERR] FreeCam SetPos Hook Failed." << std::endl;
+                }
+            } else {
+                std::cout << "   -> [ERR] FreeCam Address Invalid." << std::endl;
+            }
+        }
+    }
     if (Config::Get().enable_dx11_hook) {
         if (!InitDX11Hook()) {
             std::cout << "[FATAL] InitDX11Hook Failed!" << std::endl;
