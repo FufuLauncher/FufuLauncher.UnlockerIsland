@@ -193,6 +193,10 @@ namespace EncryptedPatterns {
     constexpr auto SetPosOffset = XorString::encrypt("15B7CC70");
     // UnityEngine.Camera.get_c2w
     constexpr auto CameraGetC2WOffset = XorString::encrypt("15B722D0");
+    // GameObject.GetComponent(String type)
+    constexpr auto GetComponent = XorString::encrypt("15B61F60");
+    // Text.get_text
+    constexpr auto GetText = XorString::encrypt("15C45190");
 }
 namespace EncryptedStrings {
     constexpr auto SynthesisPage = XorString::encrypt("SynthesisPage");
@@ -201,7 +205,6 @@ namespace EncryptedStrings {
     constexpr auto ProfileLayerPath = XorString::encrypt("/Canvas/Pages/PlayerProfilePage");
     constexpr auto UIDPathMain = XorString::encrypt("/Canvas/Pages/PlayerProfilePage/GrpProfile/Right/GrpPlayerCard/UID");
     constexpr auto UIDPathWatermark = XorString::encrypt("/BetaWatermarkCanvas(Clone)/Panel/TxtUID");
-    constexpr auto BtnReport = XorString::encrypt("/Canvas/Dialogs/DialogLayer(Clone)/InLevelOptionsPage/GrpTop/Layout/BtnReport");
 }
 
 typedef int32_t (WINAPI *tGetFrameCount)();
@@ -235,6 +238,8 @@ std::atomic<void*> p_GetActive{ nullptr };
 typedef void (WINAPI *tActorManagerCtor)(void*);
 typedef void* (WINAPI *tGetGlobalActor)(void*);
 typedef void (WINAPI *tAvatarPaimonAppear)(void*, void*, bool);
+typedef void* (*tGetComponent)(void*, Il2CppString*);
+typedef Il2CppString* (*tGetText)(void*);
 typedef void (WINAPI *tVoidFunc)(void*);
 struct Vector3 { float x, y, z; };
 
@@ -888,22 +893,45 @@ void HandlePaimon() {
 }
 
 bool CheckResistInBeyd() {
+    uintptr_t base = (uintptr_t)GetModuleHandle(NULL);
     auto _FindString = (tFindString)p_FindString.load();
     auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
-    auto _SetActive = (tSetActive)p_SetActive.load();
-    auto _GetActive = (tGetActive)p_GetActive.load();
 
-    if (!_FindString || !_FindGameObject || !_SetActive || !_GetActive) {
+    std::string getTextStr = XorString::decrypt(EncryptedPatterns::GetText);
+    std::string getComponentStr = XorString::decrypt(EncryptedPatterns::GetComponent);
+    uintptr_t getTextOffsetVal = 0;
+    uintptr_t getComponentOffsetVal = 0;
+    std::stringstream ss;
+    ss << std::hex << getTextStr;
+    ss >> getTextOffsetVal;
+    ss << std::hex << getComponentStr;
+    ss >> getComponentOffsetVal;
+
+    auto _GetText = (tGetText)(base + getTextOffsetVal);
+    auto _GetComponent = (tGetComponent)(base + getComponentOffsetVal);
+
+    if (!_FindString || !_FindGameObject || !_GetText || !_GetComponent) {
         return;
     }
 
-    Il2CppString* BtnReportStrObj = _FindString(XorString::decrypt(EncryptedStrings::BtnReport).c_str());
-    if (BtnReportStrObj)
+    Il2CppString* uidStrObj = _FindString(XorString::decrypt(EncryptedStrings::UIDPathWatermark).c_str());
+    Il2CppString* textStrObj = _FindString("Text");
+    if (uidStrObj)
     {
-        void* BtnReportObj = _FindGameObject(BtnReportStrObj);
-        if (BtnReportObj)
+        void* uidObj = _FindGameObject(uidStrObj);
+        if (uidObj)
         {
-            return !_GetActive(BtnReportObj);
+            void* textComponent = _GetComponent(uidObj, textStrObj);
+            if (textComponent)
+            {
+                Il2CppString* textValue = _GetText(textComponent);
+                if (textValue)
+                {
+                    const wchar_t* textChars = textValue->chars;
+                    const wchar_t* resistText = L"GUID";
+                    return wcsstr(textChars, resistText) != nullptr;
+                }
+            }
         }
 
         return false;
