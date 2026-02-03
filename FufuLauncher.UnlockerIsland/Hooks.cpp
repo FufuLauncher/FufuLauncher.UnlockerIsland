@@ -201,6 +201,7 @@ namespace EncryptedStrings {
     constexpr auto ProfileLayerPath = XorString::encrypt("/Canvas/Pages/PlayerProfilePage");
     constexpr auto UIDPathMain = XorString::encrypt("/Canvas/Pages/PlayerProfilePage/GrpProfile/Right/GrpPlayerCard/UID");
     constexpr auto UIDPathWatermark = XorString::encrypt("/BetaWatermarkCanvas(Clone)/Panel/TxtUID");
+    constexpr auto BtnReport = XorString::encrypt("/Canvas/Dialogs/DialogLayer(Clone)/InLevelOptionsPage/GrpTop/Layout/BtnReport");
 }
 
 typedef int32_t (WINAPI *tGetFrameCount)();
@@ -884,6 +885,31 @@ void HandlePaimon() {
             _SetActive(cachedPaimonObj, !profileOpen);
         });
     }
+}
+
+bool CheckResistInBeyd() {
+    auto _FindString = (tFindString)p_FindString.load();
+    auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
+    auto _SetActive = (tSetActive)p_SetActive.load();
+    auto _GetActive = (tGetActive)p_GetActive.load();
+
+    if (!_FindString || !_FindGameObject || !_SetActive || !_GetActive) {
+        return;
+    }
+
+    Il2CppString* BtnReportStrObj = _FindString(XorString::decrypt(EncryptedStrings::BtnReport).c_str());
+    if (BtnReportStrObj)
+    {
+        void* BtnReportObj = _FindGameObject(BtnReportStrObj);
+        if (BtnReportObj)
+        {
+            return !_GetActive(BtnReportObj);
+        }
+
+        return false;
+    }
+
+    return false;
 }
 
 void WINAPI hk_ActorManagerCtor(void* pThis) {
@@ -1598,7 +1624,10 @@ int32_t WINAPI hk_ChangeFov(void* __this, float value) {
     
     if (cfg.enable_fps_override) {
         auto setFps = (tSetFrameCount)o_SetFrameCount.load();
-        if (IsValid(setFps)) SafeInvoke([&]() { setFps(cfg.selected_fps); });
+        if (CheckResistInBeyd()) {
+            SafeInvoke([&]() { setFps(60); });
+        }
+        else if (IsValid(setFps)) SafeInvoke([&]() { setFps(cfg.selected_fps); });
     }
     
     bool pass_check = !cfg.enable_fov_limit_check || (value > 30.0f);
