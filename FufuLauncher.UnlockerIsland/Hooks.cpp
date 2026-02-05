@@ -234,7 +234,6 @@ typedef int (WSAAPI* tSend)(SOCKET s, const char* buf, int len, int flags);
 typedef int (WSAAPI* tSendTo)(SOCKET s, const char* buf, int len, int flags, const sockaddr* to, int tolen);
 typedef HRESULT(__stdcall* tPresent1)(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT PresentFlags, const DXGI_PRESENT_PARAMETERS* pPresentParameters);
 typedef bool (WINAPI *tGetActive)(void*);
-std::atomic<void*> p_GetActive{ nullptr };
 typedef void (WINAPI *tActorManagerCtor)(void*);
 typedef void* (WINAPI *tGetGlobalActor)(void*);
 typedef void (WINAPI *tAvatarPaimonAppear)(void*, void*, bool);
@@ -322,11 +321,11 @@ namespace {
     tPresent1 o_Present1 = nullptr;
     tGetMainCamera call_GetMainCamera = nullptr;
     tGetTransform call_GetTransform = nullptr;
+    std::atomic<void*> p_GetActive{ nullptr };
     void* g_ActorManagerInstance = nullptr;
     int g_LogoWidth = 0;
     int g_LogoHeight = 0;
     bool g_dx11Init = false;
-    
 }
 
 uintptr_t ResolveAddress(uintptr_t addr) {
