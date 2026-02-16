@@ -202,6 +202,8 @@ namespace EncryptedStrings {
     constexpr auto SynthesisPage = XorString::encrypt("SynthesisPage");
     constexpr auto QuestBannerPath = XorString::encrypt("Canvas/Pages/InLevelMapPage/GrpMap/GrpPointTips/Layout/QuestBanner");
     constexpr auto PaimonPath = XorString::encrypt("/EntityRoot/OtherGadgetRoot/NPC_Guide_Paimon(Clone)");
+    constexpr auto BeydPaimonPath = XorString::encrypt("/EntityRoot/OtherGadgetRoot/Beyd_NPC_Kanban_Paimon(Clone)");
+    constexpr auto DivePaimonPath = XorString::encrypt("/EntityRoot/OtherGadgetRoot/NPC_Guide_Paimon_Dive(Clone)");
     constexpr auto ProfileLayerPath = XorString::encrypt("/Canvas/Pages/PlayerProfilePage");
     constexpr auto UIDPathMain = XorString::encrypt("/Canvas/Pages/PlayerProfilePage/GrpProfile/Right/GrpPlayerCard/UID");
     constexpr auto UIDPathWatermark = XorString::encrypt("/BetaWatermarkCanvas(Clone)/Panel/TxtUID");
@@ -710,19 +712,13 @@ void UpdateHideUID() {
 void UpdateHideMainUI() {
     auto& config = Config::Get();
     if (!config.hide_main_ui) return;
-
-    static void* cached_ui_obj = nullptr;
+    
     static float last_check_time = 0.0f;
-    float current_time = (float)clock() / CLOCKS_PER_SEC;
 
     auto _SetActive = (tSetActive)p_SetActive.load();
     if (!_SetActive) return;
 
-    if (cached_ui_obj) {
-        _SetActive(cached_ui_obj, false);
-        return;
-    }
-    
+    float current_time = (float)clock() / CLOCKS_PER_SEC;
     if (current_time - last_check_time > 2.0f) {
         last_check_time = current_time;
 
@@ -733,7 +729,10 @@ void UpdateHideMainUI() {
             std::string s = XorString::decrypt(EncryptedStrings::UIDPathMain);
             auto str_obj = _FindString(s.c_str());
             if (str_obj) {
-                cached_ui_obj = _FindGameObject(str_obj);
+                void* foundObj = _FindGameObject(str_obj);
+                if (foundObj) {
+                    _SetActive(foundObj, false);
+                }
             }
         }
     }
@@ -837,55 +836,50 @@ ULONGLONG WINAPI hk_GetTickCount64() {
 void HandlePaimon() {
     auto& cfg = Config::Get();
     if (!cfg.display_paimon) return;
-    
+
     auto _FindString = (tFindString)p_FindString.load();
     auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
     auto _SetActive = (tSetActive)p_SetActive.load();
     auto _GetActive = (tGetActive)p_GetActive.load();
-    
+
     if (!_FindString || !_FindGameObject || !_SetActive || !_GetActive) {
         return;
     }
-    
-    static void* cachedPaimonObj = nullptr;
-    static void* cachedProfileObj = nullptr;
+
     static float lastSearchTime = 0.0f;
     float currentTime = (float)clock() / CLOCKS_PER_SEC;
-    
-    if ((!cachedPaimonObj || !cachedProfileObj) && (currentTime - lastSearchTime > 2.0f)) {
+
+    if (currentTime - lastSearchTime > 2.0f) {
         lastSearchTime = currentTime;
-        
+
         SafeInvoke([&] {
             std::string paimonPath = XorString::decrypt(EncryptedStrings::PaimonPath);
             std::string profilePath = XorString::decrypt(EncryptedStrings::ProfileLayerPath);
-            
+
             Il2CppString* paimonStr = _FindString(paimonPath.c_str());
             Il2CppString* profileStr = _FindString(profilePath.c_str());
-            
+
             if (paimonStr && profileStr) {
-                cachedPaimonObj = _FindGameObject(paimonStr);
-                cachedProfileObj = _FindGameObject(profileStr);
-            }
-        });
-    }
-    
-    if (cachedPaimonObj && cachedProfileObj) {
-        SafeInvoke([&] {
-            bool profileOpen = _GetActive(cachedProfileObj);
-            
-            static bool lastProfileState = !profileOpen;
-            
-            if (profileOpen != lastProfileState) {
-                if (profileOpen) {
-                    std::cout << "[Paimon] State: HIDDEN (Reason: Profile Menu is OPEN)" << std::endl;
-                } else {
-                    std::cout << "[Paimon] State: VISIBLE (Reason: Profile Menu is CLOSED)" << std::endl;
+                void* paimonObj = _FindGameObject(paimonStr);
+                void* profileObj = _FindGameObject(profileStr);
+
+                bool profileOpen = _GetActive(profileObj);
+
+                static bool lastProfileState = !profileOpen;
+
+                if (profileOpen != lastProfileState) {
+                    if (profileOpen) {
+                        std::cout << "[Paimon] State: HIDDEN (Reason: Profile Menu is OPEN)" << std::endl;
+                    }
+                    else {
+                        std::cout << "[Paimon] State: VISIBLE (Reason: Profile Menu is CLOSED)" << std::endl;
+                    }
+                    lastProfileState = profileOpen;
                 }
-                lastProfileState = profileOpen;
+
+                _SetActive(profileObj, !profileOpen);
             }
-            
-            _SetActive(cachedPaimonObj, !profileOpen);
-        });
+            });
     }
 }
 
@@ -898,11 +892,6 @@ bool CheckResistInBeyd() {
     std::string getComponentStr = XorString::decrypt(EncryptedPatterns::GetComponent);
     uintptr_t getTextOffsetVal = 0x15B61F60;
     uintptr_t getComponentOffsetVal = 0x15C45190;
-    //std::stringstream ss;
-    //ss << std::hex << getTextStr;
-    //ss >> getTextOffsetVal;
-    //ss << std::hex << getComponentStr;
-    //ss >> getComponentOffsetVal;
 
     auto _GetText = (tGetText)(base + getTextOffsetVal);
     auto _GetComponent = (tGetComponent)(base + getComponentOffsetVal);
@@ -943,7 +932,7 @@ void WINAPI hk_ActorManagerCtor(void* pThis) {
     if (orig) orig(pThis);
 }
 
-void HandlePaimonV2() {
+void UpdatePaimonV2() {
     auto& cfg = Config::Get();
     if (!cfg.display_paimon) return;
     
@@ -968,17 +957,20 @@ void HandlePaimonV2() {
     
     SafeInvoke([&] {
         static std::string paimonPath = XorString::decrypt(EncryptedStrings::PaimonPath);
-        const char* beydPath = "/EntityRoot/OtherGadgetRoot/Beyd_NPC_Kanban_Paimon(Clone)";
+        static std::string divePath = XorString::decrypt(EncryptedStrings::DivePaimonPath);
+        static std::string beydPath = XorString::decrypt(EncryptedStrings::BeydPaimonPath);
         
         Il2CppString* paimonStr = _FindString(paimonPath.c_str());
-        Il2CppString* beydStr = _FindString(beydPath);
+        Il2CppString* diveStr = _FindString(divePath.c_str());
+        Il2CppString* beydStr = _FindString(beydPath.c_str());
         
         if (!paimonStr && !beydStr) return;
         
         void* paimonObj = paimonStr ? _FindGameObject(paimonStr) : nullptr;
+        void* diveObj = diveStr ? _FindGameObject(diveStr) : nullptr;
         void* beydObj = beydStr ? _FindGameObject(beydStr) : nullptr;
         
-        if ((paimonObj && _GetActive(paimonObj)) || (beydObj && _GetActive(beydObj))) {
+        if ((paimonObj && _GetActive(paimonObj)) || (diveObj && _GetActive(diveObj)) || (beydObj && _GetActive(beydObj))) {
             return;
         }
         
@@ -1619,7 +1611,7 @@ auto WINAPI hk_GameUpdate(__int64 a1, const char* a2) -> __int64
     
     UpdateHideUID();
     UpdateHideMainUI();
-    HandlePaimonV2();
+    UpdatePaimonV2();
     UpdateFreeCamPhysics(); 
 
     return result;
