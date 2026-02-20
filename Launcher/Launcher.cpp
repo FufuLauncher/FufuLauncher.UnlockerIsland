@@ -13,13 +13,29 @@
 
 const wchar_t* PLUGINS_SUBDIR_NAME = L"Plugins"; 
 
+std::wstring GetCurrentDllDirectory() {
+    HMODULE hModule = NULL;
+    GetModuleHandleExW(
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        (LPCWSTR)&GetCurrentDllDirectory, 
+        &hModule);
+    
+    if (hModule != NULL) {
+        wchar_t modulePath[MAX_PATH];
+        if (GetModuleFileNameW(hModule, modulePath, MAX_PATH) > 0) {
+            std::wstring path(modulePath);
+            size_t lastSlash = path.find_last_of(L"\\/");
+            if (lastSlash != std::wstring::npos) {
+                return path.substr(0, lastSlash);
+            }
+        }
+    }
+    return L".";
+}
+
 std::wstring GetLogFilePath() {
-    wchar_t modulePath[MAX_PATH];
-    if (GetModuleFileNameW(nullptr, modulePath, MAX_PATH) == 0) return L"Launcher.log";
-    std::wstring moduleDir = modulePath;
-    size_t lastSlash = moduleDir.find_last_of(L"\\/");
-    if (lastSlash == std::wstring::npos) return L"Launcher.log";
-    return moduleDir.substr(0, lastSlash) + L"\\Launcher.log";
+    std::wstring dllDir = GetCurrentDllDirectory();
+    return dllDir + L"\\Launcher.log";
 }
 
 void WriteLog(const std::string& message) {
@@ -109,17 +125,11 @@ void RecursiveScanAndInject(HANDLE hProcess, const std::wstring& directory, int&
 }
 
 void InjectPlugins(HANDLE hProcess) {
-    wchar_t modulePath[MAX_PATH];
-    if (GetModuleFileNameW(nullptr, modulePath, MAX_PATH) == 0) return;
-    
-    std::wstring moduleDir = modulePath;
-    size_t lastSlash = moduleDir.find_last_of(L"\\/");
-    if (lastSlash == std::wstring::npos) return;
-    
-    std::wstring pluginsDir = moduleDir.substr(0, lastSlash) + L"\\" + PLUGINS_SUBDIR_NAME;
+    std::wstring dllDir = GetCurrentDllDirectory();
+    std::wstring pluginsDir = dllDir + L"\\" + PLUGINS_SUBDIR_NAME;
 
     if (GetFileAttributesW(pluginsDir.c_str()) == INVALID_FILE_ATTRIBUTES) {
-        WriteLog("未找到 Plugins 目录，跳过插件加载。");
+        WriteLog("未找到 Plugins 目录，跳过插件加载。查找路径: " + std::string(pluginsDir.begin(), pluginsDir.end()));
         return;
     }
 
