@@ -195,6 +195,8 @@ namespace {
     std::atomic<void*> o_ActorManagerCtor{ nullptr };
     std::atomic<void*> p_GetGlobalActor{ nullptr };
     std::atomic<void*> p_AvatarPaimonAppear{ nullptr };
+    std::atomic<void*> p_CheckCanOpenMap{ nullptr };
+    static unsigned char originalCheckCanOpenMapBytes[5];
     std::atomic<void*> o_send{ nullptr };
     std::atomic<void*> o_sendto{ nullptr };
     std::atomic<void*> o_SetPos{ nullptr };
@@ -910,6 +912,37 @@ void UpdateGamepadHotSwitch() {
     }
 }
 
+void UpdateOpenMap() {
+	auto cfg = Config::Get();
+    if (!p_CheckCanOpenMap.load()) {
+        return;
+    }
+
+    unsigned char* patchBytes = (unsigned char*)p_CheckCanOpenMap.load();
+    if (patchBytes[0] == 0xE8) {
+        originalCheckCanOpenMapBytes[0] = patchBytes[0];
+        originalCheckCanOpenMapBytes[1] = patchBytes[1];
+        originalCheckCanOpenMapBytes[2] = patchBytes[2];
+        originalCheckCanOpenMapBytes[3] = patchBytes[3];
+        originalCheckCanOpenMapBytes[4] = patchBytes[4];
+    }
+
+    if (cfg.enable_redirect_craft_override && !CheckResistInBeyd()) {
+        patchBytes[0] = 0xB8;
+        patchBytes[1] = 0x00;
+        patchBytes[2] = 0x00;
+        patchBytes[3] = 0x00;
+        patchBytes[4] = 0x00;
+    }
+    else {
+        patchBytes[0] = originalCheckCanOpenMapBytes[0];
+        patchBytes[1] = originalCheckCanOpenMapBytes[1];
+        patchBytes[2] = originalCheckCanOpenMapBytes[2];
+        patchBytes[3] = originalCheckCanOpenMapBytes[3];
+        patchBytes[4] = originalCheckCanOpenMapBytes[4];
+    }
+}
+
 bool LoadTextureFromFile(const char* filename, ID3D11Device* device, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
 {
     HRESULT coResult = CoInitialize(NULL);
@@ -1535,14 +1568,23 @@ int32_t WINAPI hk_GetFrameCount() {
 
 auto WINAPI hk_GameUpdate(__int64 a1, const char* a2) -> __int64
 {
+    static int frameCounter = 0;
+    frameCounter++;
+
     auto orig = (tGameUpdate)o_GameUpdate.load();
     __int64 result = orig ? orig(a1, a2) : 0;
+
+    UpdateFreeCamPhysics();
     
-    UpdateHideUID();
-    UpdateHideMainUI();
-    UpdatePaimonV2();
-    UpdateFreeCamPhysics(); 
-    UpdateGamepadHotSwitch();
+    if (frameCounter >= 100) {
+        frameCounter = 0;
+
+        UpdateHideUID();
+        UpdateHideMainUI();
+        UpdatePaimonV2();
+        UpdateGamepadHotSwitch();
+        UpdateOpenMap();
+    }
 
     return result;
 }
@@ -1710,6 +1752,10 @@ bool Hooks::Init() {
     HOOK_DIR("DisplayFog", EncryptedPatterns::DisplayFog, hk_DisplayFog, o_DisplayFog);
     HOOK_REL("PlayerPerspective", EncryptedPatterns::PlayerPerspective, hk_PlayerPerspective, o_PlayerPerspective);
     SCAN_REL("SetSyncCount", EncryptedPatterns::SetSyncCount, o_SetSyncCount);
+    SCAN_DIR("CheckCanOpenMap", EncryptedPatterns::CheckCanOpenMap, p_CheckCanOpenMap);
+
+    DWORD oldProtect;
+    VirtualProtect(p_CheckCanOpenMap.load(), 5, PAGE_EXECUTE_READWRITE, &oldProtect);
 {
     HMODULE hMod = GetModuleHandle(NULL);
     if (hMod) {
