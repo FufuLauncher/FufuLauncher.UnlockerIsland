@@ -94,6 +94,8 @@ struct ModConfig {
     bool enable_free_cam_movement_fix = true;
 
     bool enable_gamepad_hot_switch = false;
+
+    bool hide_grass = false;
 };
 
 namespace Config {

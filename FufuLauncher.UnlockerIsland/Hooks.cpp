@@ -136,6 +136,8 @@ typedef void (WINAPI *tAvatarPaimonAppear)(void*, void*, bool);
 typedef void* (*tGetComponent)(void*, Il2CppString*);
 typedef Il2CppString* (*tGetText)(void*);
 typedef void (WINAPI *tVoidFunc)(void*);
+typedef void (*tSetActive)(void*, bool);
+typedef Il2CppString* (*tGetName)(void*);
 struct Vector3 { float x, y, z; };
 
 struct __declspec(align(16)) Matrix4x4 {
@@ -186,7 +188,7 @@ namespace {
     std::atomic<void*> p_FindString{ nullptr };
     std::atomic<void*> p_CraftPartner{ nullptr };
     std::atomic<void*> p_FindGameObject{ nullptr };
-    std::atomic<void*> p_SetActive{ nullptr };
+    std::atomic<void*> o_SetActive{ nullptr };
     std::atomic<void*> p_CheckCanEnter{ nullptr };
     std::atomic<void*> p_OpenTeamPage{ nullptr };
     std::atomic<void*> o_PlayerPerspective{ nullptr };
@@ -197,6 +199,7 @@ namespace {
     std::atomic<void*> p_GetGlobalActor{ nullptr };
     std::atomic<void*> p_AvatarPaimonAppear{ nullptr };
     std::atomic<void*> p_CheckCanOpenMap{ nullptr };
+	std::atomic<void*> p_GetName{ nullptr };
     static unsigned char originalCheckCanOpenMapBytes[5];
     std::atomic<void*> o_send{ nullptr };
     std::atomic<void*> o_sendto{ nullptr };
@@ -585,7 +588,7 @@ void UpdateHideUID() {
     static float last_check_time = 0.0f;
     float current_time = (float)clock() / CLOCKS_PER_SEC;
 
-    auto _SetActive = (tSetActive)p_SetActive.load();
+    auto _SetActive = (tSetActive)o_SetActive.load();
     if (!_SetActive) return;
     
 
@@ -613,7 +616,7 @@ void UpdateHideMainUI() {
     
     static float last_check_time = 0.0f;
 
-    auto _SetActive = (tSetActive)p_SetActive.load();
+    auto _SetActive = (tSetActive)o_SetActive.load();
     if (!_SetActive) return;
 
     float current_time = (float)clock() / CLOCKS_PER_SEC;
@@ -737,7 +740,7 @@ void HandlePaimon() {
 
     auto _FindString = (tFindString)p_FindString.load();
     auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
-    auto _SetActive = (tSetActive)p_SetActive.load();
+    auto _SetActive = (tSetActive)o_SetActive.load();
     auto _GetActive = (tGetActive)p_GetActive.load();
 
     if (!_FindString || !_FindGameObject || !_SetActive || !_GetActive) {
@@ -1641,7 +1644,7 @@ void WINAPI hk_SetupQuestBanner(void* __this) {
     auto& cfg = Config::Get();
     auto findStr = (tFindString)p_FindString.load();
     auto findGO = (tFindGameObject)p_FindGameObject.load();
-    auto setActive = (tSetActive)p_SetActive.load();
+    auto setActive = (tSetActive)o_SetActive.load();
 
     if (IsValid(findStr) && IsValid(findGO) && IsValid(setActive)) {
         bool hide = false;
@@ -1704,6 +1707,23 @@ void WINAPI hk_OpenTeam() {
     if (orig) orig();
 }
 
+void WINAPI hk_SetActive(void* pThis, bool active) {
+	tSetActive orig = (tSetActive)o_SetActive.load();
+	auto cfg = Config::Get();
+	auto getName = (tGetName)p_GetName.load();
+
+    if (cfg.hide_grass && !CheckResistInBeyd() && active && getName) {
+        Il2CppString* name = getName(pThis);
+        if (name) {
+            if (wcsstr(name->chars, L"Grass") && !wcsstr(name->chars, L"Eff") && !wcsstr(name->chars, L"Monster")) {
+                return;
+            }
+        }
+    }
+
+	orig(pThis, active);
+}
+
 auto hk_DisplayFog(__int64 a1, __int64 a2) -> __int64
 {
     if (Config::Get().disable_fog && a2) {
@@ -1748,7 +1768,8 @@ bool Hooks::Init() {
     SCAN_DIR("SwitchInputDeviceToTouchScreen", EncryptedPatterns::SwitchInputDeviceToTouchScreen, p_SwitchInput);
     HOOK_DIR("QuestBanner", EncryptedPatterns::QuestBanner, hk_SetupQuestBanner, o_SetupQuestBanner);
     SCAN_DIR("FindGameObject", EncryptedPatterns::FindGameObject, p_FindGameObject);
-    SCAN_REL("SetActive", EncryptedPatterns::SetActive, p_SetActive);
+    HOOK_REL("SetActive", EncryptedPatterns::SetActive, hk_SetActive, o_SetActive);
+	SCAN_DIR("GetName", EncryptedPatterns::GetName, p_GetName);
     HOOK_DIR("DamageText", EncryptedPatterns::DamageText, hk_ShowDamage, o_ShowDamage);
     HOOK_DIR("EventCamera", EncryptedPatterns::EventCamera, hk_EventCamera, o_EventCamera);
     SCAN_DIR("FindString", EncryptedPatterns::FindString, p_FindString);
