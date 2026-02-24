@@ -170,6 +170,7 @@ typedef void* (__fastcall* tGetMainCamera)();
 typedef void* (__fastcall* tGetTransform)(void* pComponent);
 
 bool g_ShowCoordWindow = false;
+bool g_ResistInBeyd = false;
 
 namespace {
     std::atomic<void*> o_GetFrameCount{ nullptr };
@@ -780,7 +781,13 @@ void HandlePaimon() {
     }
 }
 
-bool CheckResistInBeyd() {
+bool CheckResistInBeyd(bool cache = true) {
+    return false;
+
+    if (cache) {
+		return g_ResistInBeyd;
+    }
+
     uintptr_t base = (uintptr_t)GetModuleHandle(NULL);
     auto _FindString = (tFindString)p_FindString.load();
     auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
@@ -1584,6 +1591,7 @@ auto WINAPI hk_GameUpdate(__int64 a1, const char* a2) -> __int64
         UpdatePaimonV2();
         UpdateGamepadHotSwitch();
         UpdateOpenMap();
+        g_ResistInBeyd = CheckResistInBeyd(false);
     }
 
     return result;
