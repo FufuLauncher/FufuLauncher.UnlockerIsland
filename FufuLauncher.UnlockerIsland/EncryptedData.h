@@ -57,25 +57,25 @@ namespace EncryptedPatterns {
     // 3. FPS 3
     inline constexpr auto HSR_FPS_3 = XorString::encrypt("75 05 E8 ? ? ? ? C7 05 ? ? ? ? 03 00 00 00 48 83 C4 28 C3");
     // UnityEngine.GameObject.get_active
-    inline constexpr auto GetActiveOffset = XorString::encrypt("15B622E0");
-    // MoleMole.ctor
-    inline constexpr auto ActorManagerCtorOffset = XorString::encrypt("D2D4EF0");
+    inline constexpr auto GetActiveOffset = XorString::encrypt("15F932F0");
+    // MoleMole.ActorManager.ctor
+    inline constexpr auto ActorManagerCtorOffset = XorString::encrypt("D71C150");
     // MoleMole.ActorManager.GetGlobalActor
-    inline constexpr auto GetGlobalActorOffset = XorString::encrypt("D2CC9E0");
+    inline constexpr auto GetGlobalActorOffset = XorString::encrypt("D721300");
     // MoleMole.BaseActor.AvatarPaimonAppear
-    inline constexpr auto AvatarPaimonAppearOffset = XorString::encrypt("107BAC60");
+    inline constexpr auto AvatarPaimonAppearOffset = XorString::encrypt("109A4F00");
     // UnityEngine.Camera.get_main
-    inline constexpr auto GetMainCameraOffset = XorString::encrypt("15B72D80");
+    inline constexpr auto GetMainCameraOffset = XorString::encrypt("15FA3C20");
     // UnityEngine.Component.get_transform
-    inline constexpr auto GetTransformOffset = XorString::encrypt("15B83580");
+    inline constexpr auto GetTransformOffset = XorString::encrypt("15FB4540");
     // UnityEngine.Transform.INTERNAL_set_position
-    inline constexpr auto SetPosOffset = XorString::encrypt("15B7CC70");
-    // UnityEngine.Camera.get_c2w
-    inline constexpr auto CameraGetC2WOffset = XorString::encrypt("15B722D0");
+    inline constexpr auto SetPosOffset = XorString::encrypt("15FADC00");
+    // UnityEngine.Camera.get_cameraToWorldMatrix
+    inline constexpr auto CameraGetC2WOffset = XorString::encrypt("15FA3170");
     // GameObject.GetComponent(String type)
-    inline constexpr auto GetComponent = XorString::encrypt("15B61F60");
+    inline constexpr auto GetComponent = XorString::encrypt("15F92F70");
     // Text.get_text
-    inline constexpr auto GetText = XorString::encrypt("15C45190");
+    inline constexpr auto GetText = XorString::encrypt("1608F960");
 }
 namespace EncryptedStrings {
     inline constexpr auto SynthesisPage = XorString::encrypt("SynthesisPage");
