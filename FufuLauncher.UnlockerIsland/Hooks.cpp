@@ -200,7 +200,7 @@ namespace {
     std::atomic<void*> p_AvatarPaimonAppear{ nullptr };
     std::atomic<void*> p_CheckCanOpenMap{ nullptr };
 	std::atomic<void*> p_GetName{ nullptr };
-    static unsigned char originalCheckCanOpenMapBytes[5];
+    unsigned char originalCheckCanOpenMapBytes[5];
     std::atomic<void*> o_send{ nullptr };
     std::atomic<void*> o_sendto{ nullptr };
     std::atomic<void*> o_SetPos{ nullptr };
@@ -588,23 +588,23 @@ void UpdateHideUID() {
     static float last_check_time = 0.0f;
     float current_time = (float)clock() / CLOCKS_PER_SEC;
 
-    auto _SetActive = (tSetActive)o_SetActive.load();
-    if (!_SetActive) return;
+    auto SetActive = (tSetActive)o_SetActive.load();
+    if (!SetActive) return;
     
 
     if (current_time - last_check_time > 2.0f) {
         last_check_time = current_time;
 
-        auto _FindString = (tFindString)p_FindString.load();
-        auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
+        auto FindString = (tFindString)p_FindString.load();
+        auto FindGameObject = (tFindGameObject)p_FindGameObject.load();
 
-        if (_FindString && _FindGameObject) {
+        if (FindString && FindGameObject) {
             static const std::string s_uidPath = XorString::decrypt(EncryptedStrings::UIDPathWatermark);
-            auto str_obj = _FindString(s_uidPath.c_str());
+            auto str_obj = FindString(s_uidPath.c_str());
             if (str_obj) {
-                void* foundObj = _FindGameObject(str_obj);
+                void* foundObj = FindGameObject(str_obj);
                 if (foundObj) {
-                    _SetActive(foundObj, false);
+                    SetActive(foundObj, false);
                 }
             }
         }
@@ -616,23 +616,23 @@ void UpdateHideMainUI() {
     
     static float last_check_time = 0.0f;
 
-    auto _SetActive = (tSetActive)o_SetActive.load();
-    if (!_SetActive) return;
+    auto SetActive = (tSetActive)o_SetActive.load();
+    if (!SetActive) return;
 
     float current_time = (float)clock() / CLOCKS_PER_SEC;
     if (current_time - last_check_time > 2.0f) {
         last_check_time = current_time;
 
-        auto _FindString = (tFindString)p_FindString.load();
-        auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
+        auto FindString = (tFindString)p_FindString.load();
+        auto FindGameObject = (tFindGameObject)p_FindGameObject.load();
 
-        if (_FindString && _FindGameObject) {
+        if (FindString && FindGameObject) {
             std::string s = XorString::decrypt(EncryptedStrings::UIDPathMain);
-            auto str_obj = _FindString(s.c_str());
+            auto str_obj = FindString(s.c_str());
             if (str_obj) {
-                void* foundObj = _FindGameObject(str_obj);
+                void* foundObj = FindGameObject(str_obj);
                 if (foundObj) {
-                    _SetActive(foundObj, false);
+                    SetActive(foundObj, false);
                 }
             }
         }
@@ -738,12 +738,12 @@ void HandlePaimon() {
     auto& cfg = Config::Get();
     if (!cfg.display_paimon) return;
 
-    auto _FindString = (tFindString)p_FindString.load();
-    auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
-    auto _SetActive = (tSetActive)o_SetActive.load();
-    auto _GetActive = (tGetActive)p_GetActive.load();
+    auto FindString = (tFindString)p_FindString.load();
+    auto FindGameObject = (tFindGameObject)p_FindGameObject.load();
+    auto SetActive = (tSetActive)o_SetActive.load();
+    auto GetActive = (tGetActive)p_GetActive.load();
 
-    if (!_FindString || !_FindGameObject || !_SetActive || !_GetActive) {
+    if (!FindString || !FindGameObject || !SetActive || !GetActive) {
         return;
     }
 
@@ -757,14 +757,14 @@ void HandlePaimon() {
             std::string paimonPath = XorString::decrypt(EncryptedStrings::PaimonPath);
             std::string profilePath = XorString::decrypt(EncryptedStrings::ProfileLayerPath);
 
-            Il2CppString* paimonStr = _FindString(paimonPath.c_str());
-            Il2CppString* profileStr = _FindString(profilePath.c_str());
+            Il2CppString* paimonStr = FindString(paimonPath.c_str());
+            Il2CppString* profileStr = FindString(profilePath.c_str());
 
             if (paimonStr && profileStr) {
-                void* paimonObj = _FindGameObject(paimonStr);
-                void* profileObj = _FindGameObject(profileStr);
+                void* paimonObj = FindGameObject(paimonStr);
+                void* profileObj = FindGameObject(profileStr);
 
-                bool profileOpen = _GetActive(profileObj);
+                bool profileOpen = GetActive(profileObj);
 
                 static bool lastProfileState = !profileOpen;
 
@@ -778,7 +778,7 @@ void HandlePaimon() {
                     lastProfileState = profileOpen;
                 }
 
-                _SetActive(profileObj, !profileOpen);
+                SetActive(profileObj, !profileOpen);
             }
             });
     }
@@ -845,13 +845,13 @@ void UpdatePaimonV2() {
     
     if (!g_ActorManagerInstance) return;
     
-    auto _GetGlobalActor = (tGetGlobalActor)p_GetGlobalActor.load();
-    auto _GetActive = (tGetActive)p_GetActive.load();
-    auto _FindString = (tFindString)p_FindString.load();
-    auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
-    auto _AvatarPaimonAppear = (tAvatarPaimonAppear)p_AvatarPaimonAppear.load();
+    auto GetGlobalActor = (tGetGlobalActor)p_GetGlobalActor.load();
+    auto GetActive = (tGetActive)p_GetActive.load();
+    auto FindString = (tFindString)p_FindString.load();
+    auto FindGameObject = (tFindGameObject)p_FindGameObject.load();
+    auto AvatarPaimonAppear = (tAvatarPaimonAppear)p_AvatarPaimonAppear.load();
     
-    if (!_GetGlobalActor || !_GetActive || !_FindString || !_FindGameObject || !_AvatarPaimonAppear) {
+    if (!GetGlobalActor || !GetActive || !FindString || !FindGameObject || !AvatarPaimonAppear) {
         return;
     }
     
@@ -867,23 +867,23 @@ void UpdatePaimonV2() {
         static std::string divePath = XorString::decrypt(EncryptedStrings::DivePaimonPath);
         static std::string beydPath = XorString::decrypt(EncryptedStrings::BeydPaimonPath);
         
-        Il2CppString* paimonStr = _FindString(paimonPath.c_str());
-        Il2CppString* diveStr = _FindString(divePath.c_str());
-        Il2CppString* beydStr = _FindString(beydPath.c_str());
+        Il2CppString* paimonStr = FindString(paimonPath.c_str());
+        Il2CppString* diveStr = FindString(divePath.c_str());
+        Il2CppString* beydStr = FindString(beydPath.c_str());
         
         if (!paimonStr && !beydStr) return;
         
-        void* paimonObj = paimonStr ? _FindGameObject(paimonStr) : nullptr;
-        void* diveObj = diveStr ? _FindGameObject(diveStr) : nullptr;
-        void* beydObj = beydStr ? _FindGameObject(beydStr) : nullptr;
+        void* paimonObj = paimonStr ? FindGameObject(paimonStr) : nullptr;
+        void* diveObj = diveStr ? FindGameObject(diveStr) : nullptr;
+        void* beydObj = beydStr ? FindGameObject(beydStr) : nullptr;
         
-        if ((paimonObj && _GetActive(paimonObj)) || (diveObj && _GetActive(diveObj)) || (beydObj && _GetActive(beydObj))) {
+        if ((paimonObj && GetActive(paimonObj)) || (diveObj && GetActive(diveObj)) || (beydObj && GetActive(beydObj))) {
             return;
         }
         
-        void* globalActor = _GetGlobalActor(g_ActorManagerInstance);
+        void* globalActor = GetGlobalActor(g_ActorManagerInstance);
         if (globalActor) {
-            _AvatarPaimonAppear(globalActor, nullptr, true);
+            AvatarPaimonAppear(globalActor, nullptr, true);
         }
     });
 }
@@ -897,7 +897,7 @@ void UpdateGamepadHotSwitch() {
 
         if (!hotSwitch.Initialize())
         {
-            std::cout << "[GamepadHotSwitch] Failed to initialize" << std::endl;
+            std::cout << "[GamepadHotSwitch] Failed to initialize" << '\n';
             return;
         }
 
@@ -905,14 +905,14 @@ void UpdateGamepadHotSwitch() {
 
         InitializeWndProcHooks();
 
-        std::cout << "[GamepadHotSwitch] Initialized and enabled" << std::endl;
+        std::cout << "[GamepadHotSwitch] Initialized and enabled" << '\n';
     }
     else if (g_GamepadHotSwitchInitialized && !cfg.enable_gamepad_hot_switch)
     {
         GamepadHotSwitch& hotSwitch = GamepadHotSwitch::GetInstance();
         hotSwitch.SetEnabled(false);
         g_GamepadHotSwitchInitialized = false;
-        std::cout << "[GamepadHotSwitch] Disabled" << std::endl;
+        std::cout << "[GamepadHotSwitch] Disabled" << '\n';
     }
 
     if (g_GamepadHotSwitchInitialized)
@@ -961,7 +961,7 @@ bool LoadTextureFromFile(const char* filename, ID3D11Device* device, ID3D11Shade
     HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&iwicFactory));
     
     if (FAILED(hr)) {
-        std::cout << "[Error] WIC Factory Create Failed: " << std::hex << hr << std::endl;
+        std::cout << "[Error] WIC Factory Create Failed: " << std::hex << hr << '\n';
         if (coResult == S_OK || coResult == S_FALSE) CoUninitialize();
         return false;
     }
@@ -972,7 +972,7 @@ bool LoadTextureFromFile(const char* filename, ID3D11Device* device, ID3D11Shade
 
     hr = iwicFactory->CreateDecoderFromFilename(wFilename, NULL, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder);
     if (FAILED(hr)) {
-        std::cout << "[Error] Image File Not Found or Locked: " << filename << std::endl;
+        std::cout << "[Error] Image File Not Found or Locked: " << filename << '\n';
         iwicFactory->Release();
         if (coResult == S_OK || coResult == S_FALSE) CoUninitialize();
         return false;
@@ -1123,9 +1123,9 @@ HRESULT __stdcall hk_Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT
                 bool loaded = LoadTextureFromFile(imagePath.c_str(), g_pd3dDevice, &g_LogoTexture, &g_LogoWidth, &g_LogoHeight);
             
                 if (loaded) {
-                    std::cout << "Logo Loaded: " << g_LogoWidth << "x" << g_LogoHeight << std::endl;
+                    std::cout << "Logo Loaded: " << g_LogoWidth << "x" << g_LogoHeight << '\n';
                 } else {
-                    std::cout << "Logo Failed! Path: " << imagePath << std::endl;
+                    std::cout << "Logo Failed! Path: " << imagePath << '\n';
                 }
             }
             
@@ -1274,7 +1274,8 @@ HRESULT __stdcall hk_Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT
                         std::vector<float> sortedTimes = frameTimes;
                         std::sort(sortedTimes.begin(), sortedTimes.end());
                         
-                        size_t index = sortedTimes.size() * 0.99f;
+                        size_t index;
+                        index = sortedTimes.size() * 0.99f;
                         if (index >= sortedTimes.size()) index = sortedTimes.size() - 1;
                         
                         float worstFrameTime = sortedTimes[index];
@@ -1454,7 +1455,7 @@ void LogOffset(const std::string& name, void* resultAddress, void* instructionAd
         if (file.is_open()) {
             file << std::left << std::setw(25) << name 
                  << " = " << modName << "+" << std::hex << std::uppercase << "0x" << offset 
-                 << extraInfo << std::dec << std::endl;
+                 << extraInfo << std::dec << '\n';
         }
     }
 }
@@ -1492,24 +1493,24 @@ bool InitDX11Hook() {
     void* resizeAddr = vTable[13];
     void* present1Addr = vTable[22];
 
-    std::cout << "[DX11] Found Present at: " << presentAddr << std::endl;
+    std::cout << "[DX11] Found Present at: " << presentAddr << '\n';
     if (MH_CreateHook(presentAddr, (void*)hk_Present, (void**)&o_Present) != MH_OK) {
-        std::cout << "[DX11] Hook Failed!" << std::endl;
+        std::cout << "[DX11] Hook Failed!" << '\n';
     } else {
-        std::cout << "[DX11] Hook Ready." << std::endl;
+        std::cout << "[DX11] Hook Ready." << '\n';
     }
 
-    std::cout << "[DX11] Found ResizeBuffers at: " << resizeAddr << std::endl;
+    std::cout << "[DX11] Found ResizeBuffers at: " << resizeAddr << '\n';
     if (MH_CreateHook(resizeAddr, (void*)hk_ResizeBuffers, (void**)&o_ResizeBuffers) != MH_OK) {
-        std::cout << "[DX11] Hook ResizeBuffers Failed!" << std::endl;
+        std::cout << "[DX11] Hook ResizeBuffers Failed!" << '\n';
     } else {
-        std::cout << "[DX11] Hook ResizeBuffers Ready." << std::endl;
+        std::cout << "[DX11] Hook ResizeBuffers Ready." << '\n';
     }
 
     if (MH_CreateHook(present1Addr, (void*)hk_Present1_Detect, (void**)&o_Present1) != MH_OK) {
-        std::cout << "[DX11] Hook Present1 Failed" << std::endl;
+        std::cout << "[DX11] Hook Present1 Failed" << '\n';
     } else {
-        std::cout << "[DX11] Hook Present1 Ready." << std::endl;
+        std::cout << "[DX11] Hook Present1 Ready." << '\n';
     }
 
     swapChain->Release();
@@ -1576,19 +1577,22 @@ int32_t WINAPI hk_GetFrameCount() {
     return ret;
 }
 
-auto WINAPI hk_GameUpdate(__int64 a1, const char* a2) -> __int64
-{
+auto WINAPI hk_GameUpdate(__int64 a1, const char* a2) -> __int64 {
+    auto orig = (tGameUpdate)o_GameUpdate.load();
+    return orig ? orig(a1, a2) : 0;
+}
+
+int32_t WINAPI hk_ChangeFov(void* __this, float value) {
+    if (!g_GameUpdateInit.load()) g_GameUpdateInit.store(true);
+    auto& cfg = Config::Get();
+    
     static int frameCounter = 0;
     frameCounter++;
-
-    auto orig = (tGameUpdate)o_GameUpdate.load();
-    __int64 result = orig ? orig(a1, a2) : 0;
-
+    
     UpdateFreeCamPhysics();
     
     if (frameCounter >= 100) {
         frameCounter = 0;
-
         UpdateHideUID();
         UpdateHideMainUI();
         UpdatePaimonV2();
@@ -1597,14 +1601,6 @@ auto WINAPI hk_GameUpdate(__int64 a1, const char* a2) -> __int64
         g_ResistInBeyd = CheckResistInBeyd(false);
     }
 
-    return result;
-}
-
-int32_t WINAPI hk_ChangeFov(void* __this, float value) {
-    if (!g_GameUpdateInit.load()) g_GameUpdateInit.store(true);
-    
-    auto& cfg = Config::Get();
-    
     if (g_RequestCraft.load()) {
         g_RequestCraft.store(false);
         DoCraftLogic();
@@ -1626,12 +1622,10 @@ int32_t WINAPI hk_ChangeFov(void* __this, float value) {
         auto setFps = (tSetFrameCount)o_SetFrameCount.load();
         if (CheckResistInBeyd()) {
             SafeInvoke([&]() { setFps(60); });
-        }
-        else if (IsValid(setFps)) SafeInvoke([&]() { setFps(cfg.selected_fps); });
+        } else if (IsValid(setFps)) SafeInvoke([&]() { setFps(cfg.selected_fps); });
     }
-    
-    bool pass_check = !cfg.enable_fov_limit_check || (value > 30.0f);
 
+    bool pass_check = !cfg.enable_fov_limit_check || (value > 30.0f);
     if (pass_check && cfg.enable_fov_override) {
         value = cfg.fov_value;
     }
@@ -1681,13 +1675,13 @@ bool WINAPI hk_EventCamera(void* a, void* b) {
     return orig ? orig(a, b) : true;
 }
 
-void WINAPI hk_CraftEntry(void* __this) {
+void WINAPI hk_CraftEntry(void* _this) {
     if (Config::Get().enable_redirect_craft_override) {
         DoCraftLogic();
         return;
     }
     auto orig = (tCraftEntry)o_CraftEntry.load();
-    if (orig) orig(__this);
+    if (orig) orig(_this);
 }
 
 void WINAPI hk_OpenTeam() {
@@ -1736,7 +1730,7 @@ auto hk_DisplayFog(__int64 a1, __int64 a2) -> __int64
         
         auto orig = (tDisplayFog)o_DisplayFog.load();
         
-        if (orig) return orig(a1, (__int64)g_fogBuf.data);
+        if (orig) return orig(a1, reinterpret_cast<__int64>(g_fogBuf.data));
     }
     
     auto orig = (tDisplayFog)o_DisplayFog.load();
@@ -1744,24 +1738,38 @@ auto hk_DisplayFog(__int64 a1, __int64 a2) -> __int64
 }
 
 bool Hooks::Init() {
+    char szFileName[MAX_PATH];
+    GetModuleFileNameA(NULL, szFileName, MAX_PATH);
+    std::string path(szFileName);
+    
+    std::transform(path.begin(), path.end(), path.begin(), ::tolower);
+    
+    if (path.find("genshinimpact.exe") != std::string::npos) {
+        MessageBoxA(NULL, 
+            "本工具仅针对国服版本设计，如需使用，请下载稳定版，我们可能会在以后适配\n"
+            "详情见: https://fu1.fun/docs.html#23.md", 
+            "不受支持的游戏", 
+            MB_OK | MB_ICONSTOP | MB_TOPMOST);
+        return false;
+    }
     void* getActiveAddr = GetGetActiveAddr();
     if (getActiveAddr) {
         p_GetActive.store(getActiveAddr);
         LogOffset("GameObject.get_active", getActiveAddr, getActiveAddr);
     } else {
-        std::cout << "[ERR] Failed to resolve GetActive address" << std::endl;
+        std::cout << "[ERR] Failed to resolve GetActive address" << '\n';
     }
     if (Config::Get().dump_offsets) {
         std::string filePath = GetOwnDllDir() + "\\offsets.txt";
         std::ofstream file(filePath, std::ios::trunc);
         if (file.is_open()) {
-            file << "Feature Offsets Dump" << std::endl;
-            file << "====================" << std::endl;
-            file << "Generated on module init." << std::endl << std::endl;
+            file << "Feature Offsets Dump" << '\n';
+            file << "====================" << '\n';
+            file << "Generated on module init." << '\n' << '\n';
         }
     }
     if (MH_Initialize() != MH_OK) return false;
-    HOOK_REL("GameUpdate", EncryptedPatterns::GameUpdate, hk_GameUpdate, o_GameUpdate);
+ //   HOOK_REL("GameUpdate", EncryptedPatterns::GameUpdate, hk_GameUpdate, o_GameUpdate);
     HOOK_REL("GetFrameCount", EncryptedPatterns::GetFrameCount, hk_GetFrameCount, o_GetFrameCount);
     SCAN_REL("SetFrameCount", EncryptedPatterns::SetFrameCount, o_SetFrameCount);
     HOOK_DIR("ChangeFOV", EncryptedPatterns::ChangeFOV, hk_ChangeFov, o_ChangeFov);
@@ -1804,25 +1812,25 @@ bool Hooks::Init() {
         MH_STATUS status1 = MH_CreateHook(actorMgrCtor, (void*)hk_ActorManagerCtor, (void**)&o_ActorManagerCtor);
         if (status1 == MH_OK) {
             MH_EnableHook(actorMgrCtor);
-            std::cout << "[SCAN] ActorManager.ctor hooked at: 0x" << std::hex << offsetCtor << std::dec << std::endl;
+            std::cout << "[SCAN] ActorManager.ctor hooked at: 0x" << std::hex << offsetCtor << std::dec << '\n';
         } else {
-            std::cout << "[ERR] Failed to hook ActorManager.ctor. MH_STATUS: " << status1 << std::endl;
+            std::cout << "[ERR] Failed to hook ActorManager.ctor. MH_STATUS: " << status1 << '\n';
         }
         
         uintptr_t offsetGlobal = decryptOffset(EncryptedPatterns::GetGlobalActorOffset);
         void* getGlobalActorAddr = (void*)(base + offsetGlobal);
         p_GetGlobalActor.store(getGlobalActorAddr);
         LogOffset("ActorManager.GetGlobalActor", getGlobalActorAddr, getGlobalActorAddr);
-        std::cout << "[SCAN] GetGlobalActor at: 0x" << std::hex << offsetGlobal << std::dec << std::endl;
+        std::cout << "[SCAN] GetGlobalActor at: 0x" << std::hex << offsetGlobal << std::dec << '\n';
         
         uintptr_t offsetPaimon = decryptOffset(EncryptedPatterns::AvatarPaimonAppearOffset);
         void* avatarPaimonAppearAddr = (void*)(base + offsetPaimon);
         p_AvatarPaimonAppear.store(avatarPaimonAppearAddr);
         LogOffset("GlobalActor.AvatarPaimonAppear", avatarPaimonAppearAddr, avatarPaimonAppearAddr);
-        std::cout << "[SCAN] AvatarPaimonAppear at: 0x" << std::hex << offsetPaimon << std::dec << std::endl;
+        std::cout << "[SCAN] AvatarPaimonAppear at: 0x" << std::hex << offsetPaimon << std::dec << '\n';
         
     } else {
-        std::cout << "[ERR] Critical: GetModuleHandle failed!" << std::endl;
+        std::cout << "[ERR] Critical: GetModuleHandle failed!" << '\n';
     }
 }
     {
@@ -1851,27 +1859,27 @@ bool Hooks::Init() {
             call_GetTransform = (tGetTransform)addr_GetTrans;
 
             if (Config::Get().enable_free_cam) {
-                std::cout << "[Camera] Initializing Free Camera Hooks..." << std::endl;
+                std::cout << "[Camera] Initializing Free Camera Hooks..." << '\n';
             
                 if (addr_SetPos) {
                     if (MH_CreateHook((void*)addr_SetPos, (void*)hk_SetPos, (void**)&o_SetPos) == MH_OK) {
-                        std::cout << "   -> FreeCam SetPos Hook Ready." << std::endl;
+                        std::cout << "   -> FreeCam SetPos Hook Ready." << '\n';
                         MH_EnableHook((void*)addr_SetPos); 
                     } else {
-                        std::cout << "   -> [ERR] FreeCam SetPos Hook Failed." << std::endl;
+                        std::cout << "   -> [ERR] FreeCam SetPos Hook Failed." << '\n';
                     }
                 } else {
-                    std::cout << "   -> [ERR] FreeCam Address Invalid." << std::endl;
+                    std::cout << "   -> [ERR] FreeCam Address Invalid." << '\n';
                 }
             }
         }
     }
     if (Config::Get().enable_dx11_hook) {
         if (!InitDX11Hook()) {
-            std::cout << "[FATAL] InitDX11Hook Failed!" << std::endl;
+            std::cout << "[FATAL] InitDX11Hook Failed!" << '\n';
         }
     } else {
-        std::cout << "[INFO] DX11 Hook skipped by config." << std::endl;
+        std::cout << "[INFO] DX11 Hook skipped by config." << '\n';
     }
 
     {
@@ -1900,15 +1908,15 @@ bool Hooks::Init() {
     }
     
     if (MH_CreateHookApi(L"ws2_32.dll", "send", (void*)hk_send, (void**)&o_send) == MH_OK) {
-        std::cout << "[SCAN] Hook send Ready." << std::endl;
+        std::cout << "[SCAN] Hook send Ready." << '\n';
     }
     
     if (MH_CreateHookApi(L"ws2_32.dll", "sendto", (void*)hk_sendto, (void**)&o_sendto) == MH_OK) {
-        std::cout << "[SCAN] Hook sendto Ready." << std::endl;
+        std::cout << "[SCAN] Hook sendto Ready." << '\n';
     }
 
     if (MH_EnableHook(MH_ALL_HOOKS) != MH_OK) {
-        std::cout << "[SCAN] MH_EnableHook Failed!" << std::endl;
+        std::cout << "[SCAN] MH_EnableHook Failed!" << '\n';
         return false;
     }
     return true;
@@ -1941,7 +1949,7 @@ void Hooks::InitHSRFps() {
     if (void* addr = Scanner::ScanMainMod(pat1)) {
         if (void* target = Scanner::ResolveRelative(addr, 15, 23)) {
             p_HSRFpsAddr.store(target);
-            std::cout << "[HSR] FPS Pattern 1 found: " << target << std::endl;
+            std::cout << "[HSR] FPS Pattern 1 found: " << target << '\n';
             return;
         }
     }
@@ -1950,7 +1958,7 @@ void Hooks::InitHSRFps() {
     if (void* addr = Scanner::ScanMainMod(pat2)) {
         if (void* target = Scanner::ResolveRelative(addr, 11, 19)) {
             p_HSRFpsAddr.store(target);
-            std::cout << "[HSR] FPS Pattern 2 found: " << target << std::endl;
+            std::cout << "[HSR] FPS Pattern 2 found: " << target << '\n';
             return;
         }
     }
@@ -1959,12 +1967,12 @@ void Hooks::InitHSRFps() {
     if (void* addr = Scanner::ScanMainMod(pat3)) {
         if (void* target = Scanner::ResolveRelative(addr, 9, 17)) {
             p_HSRFpsAddr.store(target);
-            std::cout << "[HSR] FPS Pattern 3 found: " << target << std::endl;
+            std::cout << "[HSR] FPS Pattern 3 found: " << target << '\n';
             return;
         }
     }
 
-    std::cout << "[HSR] FPS Pattern NOT found." << std::endl;
+    std::cout << "[HSR] FPS Pattern NOT found." << '\n';
 }
 
 void Hooks::UpdateHSRFps() {

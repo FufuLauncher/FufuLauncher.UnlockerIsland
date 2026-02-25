@@ -56,7 +56,7 @@ void HandleSwitchToGamepad()
         __try
         {
             if (Config::Get().debug_console)
-                std::cout << "[HookWndProc] Switched to gamepad input" << std::endl;
+                std::cout << "[HookWndProc] Switched to gamepad input" << '\n';
             switchInput(nullptr);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -67,7 +67,7 @@ void HandleSwitchToGamepad()
     else
     {
         if (Config::Get().debug_console)
-            std::cout << "[HookWndProc] switchInputDeviceToJoypad function not available" << std::endl;
+            std::cout << "[HookWndProc] switchInputDeviceToJoypad function not available" << '\n';
     }
 }
 
@@ -81,7 +81,7 @@ void HandleSwitchToKeyboardMouse()
         __try
         {
             if (Config::Get().debug_console)
-                std::cout << "[HookWndProc] Switched to keyboard/mouse input" << std::endl;
+                std::cout << "[HookWndProc] Switched to keyboard/mouse input" << '\n';
             switchInput(nullptr);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -92,7 +92,7 @@ void HandleSwitchToKeyboardMouse()
     else
     {
         if (Config::Get().debug_console)
-            std::cout << "[HookWndProc] switchInputDeviceToTouchScreen function not available" << std::endl;
+            std::cout << "[HookWndProc] switchInputDeviceToTouchScreen function not available" << '\n';
     }
 }
  
@@ -107,13 +107,13 @@ bool InstallWindowSubclass()
     {
         g_subclassInstalled = true;
         if (Config::Get().debug_console)
-            std::cout << "[HookWndProc] Window subclass installed successfully" << std::endl;
+            std::cout << "[HookWndProc] Window subclass installed successfully" << '\n';
         return true;
     }
     
     DWORD error = GetLastError();
     if (Config::Get().debug_console)
-        std::cout << "[HookWndProc] Failed to install window subclass: " << error << std::endl;
+        std::cout << "[HookWndProc] Failed to install window subclass: " << error << '\n';
     return false;
 }
 
@@ -128,13 +128,13 @@ bool RemoveWindowSubclass()
     {
         g_subclassInstalled = false;
         if (Config::Get().debug_console)
-            std::cout << "[HookWndProc] Window subclass removed successfully" << std::endl;
+            std::cout << "[HookWndProc] Window subclass removed successfully" << '\n';
         return true;
     }
     
     DWORD error = GetLastError();
     if (Config::Get().debug_console)
-        std::cout << "[HookWndProc] Failed to remove window subclass: " << error << std::endl;
+        std::cout << "[HookWndProc] Failed to remove window subclass: " << error << '\n';
     return false;
 }
 
@@ -170,9 +170,9 @@ void InitializeWndProcHooks()
         if (Config::Get().debug_console)
         {
             if (switchInputDeviceToJoypad)
-                std::cout << "[HookWndProc] Found SwitchInputDeviceToJoypad at: " << switchInputDeviceToJoypad << std::endl;
+                std::cout << "[HookWndProc] Found SwitchInputDeviceToJoypad at: " << switchInputDeviceToJoypad << '\n';
             else
-                std::cout << "[HookWndProc] Failed to find SwitchInputDeviceToJoypad" << std::endl;
+                std::cout << "[HookWndProc] Failed to find SwitchInputDeviceToJoypad" << '\n';
         }
     }
     
@@ -183,9 +183,10 @@ void InitializeWndProcHooks()
         if (Config::Get().debug_console)
         {
             if (switchInputDeviceToKeyboard)
-                std::cout << "[HookWndProc] Found SwitchInputDeviceToKeyboard at: " << switchInputDeviceToKeyboard << std::endl;
+                std::cout << "[HookWndProc] Found SwitchInputDeviceToKeyboard at: " << switchInputDeviceToKeyboard <<
+                    '\n';
             else
-                std::cout << "[HookWndProc] Failed to find SwitchInputDeviceToKeyboard" << std::endl;
+                std::cout << "[HookWndProc] Failed to find SwitchInputDeviceToKeyboard" << '\n';
         }
     }
     
@@ -197,7 +198,7 @@ void InitializeWndProcHooks()
     else
     {
         if (Config::Get().debug_console)
-            std::cout << "[HookWndProc] Unity main window not found during initialization" << std::endl;
+            std::cout << "[HookWndProc] Unity main window not found during initialization" << '\n';
     }
 }
 

@@ -184,7 +184,7 @@ extern "C" {
             PAGE_READWRITE,
             0,
             sizeof(AuthPacket),
-            SHARED_MEM_NAME
+            shared_mem_name
         );
 
         if (hMapFile == NULL) {

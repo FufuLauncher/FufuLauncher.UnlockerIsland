@@ -209,8 +209,8 @@ namespace LicenseSystem {
 }
 
 LONG WINAPI CrashHandler(EXCEPTION_POINTERS* pExceptionInfo) {
-    std::cout << "\n\n[!] CRASH DETECTED" << std::endl;
-    std::cout << "Exception Code: 0x" << std::hex << pExceptionInfo->ExceptionRecord->ExceptionCode << std::endl;
+    std::cout << "\n\n[!] CRASH DETECTED" << '\n';
+    std::cout << "Exception Code: 0x" << std::hex << pExceptionInfo->ExceptionRecord->ExceptionCode << '\n';
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
@@ -228,11 +228,11 @@ void OpenConsole(const char* title) {
   \ \ /\ / /  |  _|   | |     | |     | | | | | |\/| | |  _|  
    \ V  V /   | |___  | |___  | |___  | |_| | | |  | | | |___ 
     \_/\_/    |_____| |_____|  \____|  \___/  |_|  |_| |_____|
-)" << std::endl;
-        std::cout << "有一定几率在加载页面卡死，也有一定几率在退出个人主页时崩溃，重启即可解决" << std::endl;
-        std::cout << "本项目开源地址: https://github.com/CodeCubist/FufuLauncher.UnlockerIsland" << std::endl; 
-        std::cout << "爱来自FufuLauncher" << std::endl;
-        std::cout << "[+] Console Allocated." << std::endl;
+)" << '\n';
+        std::cout << "有一定几率在加载页面卡死，也有一定几率在退出个人主页时崩溃，重启即可解决" << '\n';
+        std::cout << "本项目开源地址: https://github.com/CodeCubist/FufuLauncher.UnlockerIsland" << '\n'; 
+        std::cout << "爱来自FufuLauncher" << '\n';
+        std::cout << "[+] Console Allocated." << '\n';
     }
 }
 
@@ -282,7 +282,7 @@ void PerformSecurityCheck() {
     std::string sPath;
     std::string sName;
 
-    hMapFile = OpenFileMappingW(FILE_MAP_READ, FALSE, SHARED_MEM_NAME);
+    hMapFile = OpenFileMappingW(FILE_MAP_READ, FALSE, shared_mem_name);
     if (hMapFile == NULL) {
         failReason = "无法连接通道 (Code: " + std::to_string(GetLastError()) + ")";
         goto FAILED;
@@ -341,9 +341,9 @@ void MainWorker(HMODULE hMod) {
         OpenConsole("Unlocker Heartbeat System");
     }
     
-    std::cout << Config::Get().hide_quest_banner << std::endl;
+    std::cout << Config::Get().hide_quest_banner << '\n';
     
-    std::cout << "[*] Initializing local security..." << std::endl;
+    std::cout << "[*] Initializing local security..." << '\n';
     PerformSecurityCheck();
     
     std::thread([]
@@ -354,35 +354,35 @@ void MainWorker(HMODULE hMod) {
             if (res == AuthResult::FAILED) {
                 
                 if (Config::Get().debug_console)
-                    std::cout << "[!] Access Revoked! Terminating..." << std::endl;
+                    std::cout << "[!] Access Revoked! Terminating..." << '\n';
                 
                 TerminateProcess(GetCurrentProcess(), 0);
                 _exit(0);
             } 
             else if (res == AuthResult::NET_ERROR) {
                 if (Config::Get().debug_console)
-                    std::cout << "[!] Server unreachable." << std::endl;
+                    std::cout << "[!] Server unreachable." << '\n';
                 
                 Sleep(5 * 60 * 1000); 
             } 
             else {
                 if (Config::Get().debug_console)
-                    std::cout << "[+] Heartbeat OK." << std::endl;
+                    std::cout << "[+] Heartbeat OK." << '\n';
                 
                 Sleep(60 * 1000);
             }
         }
     }).detach();
 
-    std::cout << "[*] Initializing Hooks..." << std::endl;
+    std::cout << "[*] Initializing Hooks..." << '\n';
     if (!Hooks::Init()) {
-        std::cout << "[!] Hooks::Init Failed!" << std::endl;
+        std::cout << "[!] Hooks::Init Failed!" << '\n';
         return;
     }
     
     Hooks::InitHSRFps();
     
-    std::cout << "[*] Waiting for GameUpdate..." << std::endl;
+    std::cout << "[*] Waiting for GameUpdate..." << '\n';
     while (!Hooks::IsGameUpdateInit()) {
         Sleep(1000);
     }
@@ -398,10 +398,10 @@ void MainWorker(HMODULE hMod) {
             
             if (cfg.is_currently_blocking) {
                 Beep(300, 500); 
-                std::cout << "[Network] >>> STATUS: DISCONNECTED (Blocking)" << std::endl;
+                std::cout << "[Network] >>> STATUS: DISCONNECTED (Blocking)" << '\n';
             } else {
                 Beep(1000, 200); 
-                std::cout << "[Network] >>> STATUS: CONNECTED (Normal)" << std::endl;
+                std::cout << "[Network] >>> STATUS: CONNECTED (Normal)" << '\n';
             }
         }
         net_was_pressed = net_is_pressed;
