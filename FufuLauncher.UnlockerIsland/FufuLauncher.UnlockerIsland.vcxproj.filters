@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="头文件\il2cpp">
+      <UniqueIdentifier>{b9d823e8-470d-4203-b906-bb55f692d5e3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utils.h">
@@ -68,6 +71,15 @@
     </ClInclude>
     <ClInclude Include="XorString.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="il2cpp\Il2CppArray.h">
+      <Filter>头文件\il2cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="il2cpp\Il2CppList.h">
+      <Filter>头文件\il2cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="il2cpp\Il2CppObject.h">
+      <Filter>头文件\il2cpp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

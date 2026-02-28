@@ -29,6 +29,7 @@
 #include <map>
 #include "GamepadHotSwitch.h"
 #include "HookWndProc.h"
+#include "il2cpp/Il2CppList.h"
 
 #pragma comment(lib, "windowscodecs.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -170,6 +171,7 @@ namespace FreeCamState {
 typedef void(__fastcall* tSetPos)(void* pTransform, Vector3* pPos);
 typedef void* (__fastcall* tGetMainCamera)();
 typedef void* (__fastcall* tGetTransform)(void* pComponent);
+typedef void(__fastcall* tSetupResinList)(void* pThis);
 
 bool g_ShowCoordWindow = false;
 bool g_ResistInBeyd = false;
@@ -194,6 +196,7 @@ namespace {
     std::atomic<void*> o_PlayerPerspective{ nullptr };
     std::atomic<void*> o_SetSyncCount{ nullptr };
     std::atomic<void*> o_GameUpdate{ nullptr };
+    std::atomic<void*> o_SetupResinList{ nullptr };
     std::atomic<void*> p_HSRFpsAddr{ nullptr };
     std::atomic<void*> o_ActorManagerCtor{ nullptr };
     std::atomic<void*> p_GetGlobalActor{ nullptr };
@@ -1737,21 +1740,44 @@ auto hk_DisplayFog(__int64 a1, __int64 a2) -> __int64
     return orig ? orig(a1, a2) : 0;
 }
 
+void hk_SetupResinList(void* pThis) {
+    auto cfg = Config::Get();
+
+    tSetupResinList original = (tSetupResinList)o_SetupResinList.load();
+    original(pThis);
+
+    Il2CppList<ULONG64>* resinList = *(Il2CppList<ULONG64>**)((intptr_t)pThis + 0x1F0);
+    std::vector<ULONG64> toRemove(5);
+
+    for (int i = 0; i < resinList->Count(); i++) {
+        ULONG64 item = resinList->Get(i);
+
+        UINT32 hight = (UINT32)(item >> 32);
+        UINT32 low = (UINT32)(item & 0xFFFFFFFF);
+
+        if ((hight == 106 || low == 106) && !cfg.ResinItem000106
+            || (hight == 201 || low == 201) && !cfg.ResinItem000201
+            || (hight == 107009 || low == 107009) && !cfg.ResinItem107009
+            || (hight == 107012 || low == 107012) && !cfg.ResinItem107012
+            || (hight == 220007 || low == 220007) && !cfg.ResinItem220007)
+        {
+            toRemove.push_back(item);
+        }
+    }
+
+    for (ULONG64 item : toRemove) {
+        if (item == 0) continue;
+        resinList->Remove(item);
+    }
+}
+
 bool Hooks::Init() {
     char szFileName[MAX_PATH];
     GetModuleFileNameA(NULL, szFileName, MAX_PATH);
     std::string path(szFileName);
     
     std::transform(path.begin(), path.end(), path.begin(), ::tolower);
-    
-    if (path.find("genshinimpact.exe") != std::string::npos) {
-        MessageBoxA(NULL, 
-            "本工具仅针对国服版本设计，如需使用，请下载稳定版，我们可能会在以后适配\n"
-            "详情见: https://fu1.fun/docs.html#23.md", 
-            "不受支持的游戏", 
-            MB_OK | MB_ICONSTOP | MB_TOPMOST);
-        return false;
-    }
+  
     void* getActiveAddr = GetGetActiveAddr();
     if (getActiveAddr) {
         p_GetActive.store(getActiveAddr);
@@ -1790,6 +1816,7 @@ bool Hooks::Init() {
     HOOK_REL("PlayerPerspective", EncryptedPatterns::PlayerPerspective, hk_PlayerPerspective, o_PlayerPerspective);
     SCAN_REL("SetSyncCount", EncryptedPatterns::SetSyncCount, o_SetSyncCount);
     SCAN_DIR("CheckCanOpenMap", EncryptedPatterns::CheckCanOpenMap, p_CheckCanOpenMap);
+    HOOK_REL("SetupResinList", EncryptedPatterns::SetupResinList, hk_SetupResinList, o_SetupResinList);
 
     DWORD oldProtect;
     VirtualProtect(p_CheckCanOpenMap.load(), 5, PAGE_EXECUTE_READWRITE, &oldProtect);

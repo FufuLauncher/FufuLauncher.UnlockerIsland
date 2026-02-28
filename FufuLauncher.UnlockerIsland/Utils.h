@@ -1,11 +1,7 @@
 ﻿#pragma once
 #include <functional>
 #include <iostream>
-
-struct Il2CppObject {
-    void* klass;
-    void* monitor;
-};
+#include "il2cpp/Il2CppObject.h"
 
 struct Il2CppString {
     Il2CppObject object;

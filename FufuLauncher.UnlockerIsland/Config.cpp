@@ -182,6 +182,12 @@ namespace Config {
         g_Config.enable_gamepad_hot_switch = ReadInt("EnableGamepadHotSwitch", 1, file);
 
         g_Config.hide_grass = ReadInt("HideGrass", 0, file);
+
+        g_Config.ResinItem000106 = ReadInt("ResinItem000106", 1, file);
+        g_Config.ResinItem000201 = ReadInt("ResinItem000201", 1, file);
+        g_Config.ResinItem107009 = ReadInt("ResinItem107009", 1, file);
+        g_Config.ResinItem107012 = ReadInt("ResinItem107012", 1, file);
+        g_Config.ResinItem220007 = ReadInt("ResinItem220007", 1, file);
     }
     void SaveOverlayPos(float x, float y) {
         g_Config.overlay_pos_x = x;

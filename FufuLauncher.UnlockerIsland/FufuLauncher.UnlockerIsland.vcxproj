@@ -146,6 +146,9 @@
     <ClInclude Include="GamepadHotSwitch.h" />
     <ClInclude Include="Hooks.h" />
     <ClInclude Include="HookWndProc.h" />
+    <ClInclude Include="il2cpp\Il2CppArray.h" />
+    <ClInclude Include="il2cpp\Il2CppList.h" />
+    <ClInclude Include="il2cpp\Il2CppObject.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
     <ClInclude Include="ImGui\imgui_impl_dx11.h" />

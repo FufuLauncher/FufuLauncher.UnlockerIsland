@@ -96,6 +96,12 @@ struct ModConfig {
     bool enable_gamepad_hot_switch = false;
 
     bool hide_grass = false;
+
+    bool  ResinItem000106;
+    bool  ResinItem000201;
+    bool  ResinItem107009;
+    bool  ResinItem107012;
+    bool  ResinItem220007;
 };
 
 namespace Config {
