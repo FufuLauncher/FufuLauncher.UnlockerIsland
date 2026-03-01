@@ -149,17 +149,8 @@
     <ClInclude Include="il2cpp\Il2CppArray.h" />
     <ClInclude Include="il2cpp\Il2CppList.h" />
     <ClInclude Include="il2cpp\Il2CppObject.h" />
-    <ClInclude Include="ImGui\imconfig.h" />
-    <ClInclude Include="ImGui\imgui.h" />
-    <ClInclude Include="ImGui\imgui_impl_dx11.h" />
-    <ClInclude Include="ImGui\imgui_impl_win32.h" />
-    <ClInclude Include="ImGui\imgui_internal.h" />
-    <ClInclude Include="ImGui\imstb_rectpack.h" />
-    <ClInclude Include="ImGui\imstb_textedit.h" />
-    <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="MinHook\MinHook.h" />
     <ClInclude Include="Scanner.h" />
-    <ClInclude Include="SecurityUtils.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="XorString.h" />
   </ItemGroup>
@@ -169,13 +160,6 @@
     <ClCompile Include="GamepadHotSwitch.cpp" />
     <ClCompile Include="Hooks.cpp" />
     <ClCompile Include="HookWndProc.cpp" />
-    <ClCompile Include="ImGui\imgui.cpp" />
-    <ClCompile Include="ImGui\imgui_demo.cpp" />
-    <ClCompile Include="ImGui\imgui_draw.cpp" />
-    <ClCompile Include="ImGui\imgui_impl_dx11.cpp" />
-    <ClCompile Include="ImGui\imgui_impl_win32.cpp" />
-    <ClCompile Include="ImGui\imgui_tables.cpp" />
-    <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Scanner.cpp" />
   </ItemGroup>
   <ItemGroup>

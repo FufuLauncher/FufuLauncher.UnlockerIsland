@@ -26,10 +26,6 @@ namespace Scanner {
     void* ScanMainMod(const std::string& signature) {
         HMODULE hModule = nullptr;
         
-        if (Config::Get().enable_hsr_fps) {
-            hModule = GetModuleHandleA("GameAssembly.dll");
-        }
-        
         if (!hModule) {
             hModule = GetModuleHandleA(nullptr);
         }

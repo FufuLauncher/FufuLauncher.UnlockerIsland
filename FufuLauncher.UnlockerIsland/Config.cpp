@@ -119,45 +119,14 @@ namespace Config {
         
         g_Config.craft_key = ReadInt("CraftKey", 0, file);
         
-        g_Config.show_fps_window = ReadInt("ShowFPS", 0, file);
-        
         g_Config.enable_custom_title = ReadInt("EnableCustomTitle", 0, file);
         
         char titleBuf[256] = {};
         ReadString("CustomTitleText", "FufuLauncher", titleBuf, sizeof(titleBuf), file);
         g_Config.custom_title_text = titleBuf;
 
-        g_Config.show_cpu_usage = ReadInt("ShowCPU", 1, file);
-        
-        g_Config.show_gpu_time = ReadInt("ShowGPU", 1, file);
-    
-        g_Config.show_custom_text = ReadInt("ShowCustomText", 0, file);
-
-        g_Config.show_custom_text = ReadInt("ShowCustomText", 0, file);
-        
-        char overlayBuf[256] = { 0 };
-        ReadString("CustomOverlayText", "FufuLauncher", overlayBuf, sizeof(overlayBuf), file);
-        g_Config.custom_overlay_text = std::string(overlayBuf);
-
-        g_Config.overlay_pos_x = ReadFloat("OverlayX", 30.0f, file);
-        
-        g_Config.overlay_pos_y = ReadFloat("OverlayY", 30.0f, file);
-
-        g_Config.show_time = ReadInt("ShowTime", 0, file);
-
-        g_Config.enable_dx11_hook = ReadInt("EnableDX11Hook", 1, file);
-
         g_Config.dump_offsets = ReadInt("DumpOffsets", 0, file);
         
-        g_Config.enable_hsr_fps = GetPrivateProfileIntA("HSR", "Enable", 0, file);
-        
-        g_Config.hsr_target_fps = GetPrivateProfileIntA("HSR", "FPS", 120, file);
-        
-        g_Config.show_feature_list = ReadInt("ShowFeatureList", 0, file);
-        
-        g_Config.enable_speedhack = ReadInt("SpeedhackEnable", 0, file);
-        
-        g_Config.game_speed = ReadFloat("GameSpeed", 1.0f, file);
 
         g_Config.block_network = ReadInt("BlockNetwork", 0, file);
         
@@ -188,13 +157,5 @@ namespace Config {
         g_Config.ResinItem107009 = ReadInt("ResinItem107009", 1, file);
         g_Config.ResinItem107012 = ReadInt("ResinItem107012", 1, file);
         g_Config.ResinItem220007 = ReadInt("ResinItem220007", 1, file);
-    }
-    void SaveOverlayPos(float x, float y) {
-        g_Config.overlay_pos_x = x;
-        g_Config.overlay_pos_y = y;
-        
-        std::string cfgPath = GetConfigPath();
-        WriteFloat("OverlayX", x, cfgPath.c_str());
-        WriteFloat("OverlayY", y, cfgPath.c_str());
     }
 }

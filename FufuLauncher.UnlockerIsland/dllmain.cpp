@@ -14,7 +14,6 @@
 
 #include "Config.h"
 #include "Hooks.h"
-#include "SecurityUtils.h"
 
 #pragma comment(lib, "psapi.lib")
 #pragma comment(lib, "wininet.lib") 
@@ -126,86 +125,6 @@ namespace LicenseSystem {
 
         return finalData;
     }
-    
-    void CheckAndVerify() {
-        char currentPath[MAX_PATH];
-        GetModuleFileNameA(NULL, currentPath, MAX_PATH);
-        std::string pathStr = currentPath;
-        std::string dir = pathStr.substr(0, pathStr.find_last_of("\\/"));
-        
-        bool found = false;
-        namespace fs = std::filesystem;
-
-        try {
-            for (const auto& entry : fs::directory_iterator(dir)) {
-                if (entry.is_regular_file()) {
-                    std::string filename = entry.path().filename().string();
-                    if (filename.length() == 64) {
-                        std::ifstream f(entry.path(), std::ios::binary);
-                        if (!f.is_open()) continue;
-
-                        std::stringstream buffer;
-                        buffer << f.rdbuf();
-                        std::string content = buffer.str();
-                        f.close();
-                        
-                        std::string calculatedHash = CalculateSHA256(content);
-
-                        if (calculatedHash == filename) {
-                            found = true;
-                            break;
-                        }
-                        try {
-                            fs::remove(entry.path());
-                        } catch (...) {
-                            
-                        }
-                    }
-                }
-            }
-        } catch (...) {
-            
-        }
-
-        if (found) {
-            return;
-        }
-        
-        const char* disclaimer = 
-            "【风险警告与免责声明】\n\n"
-            "! ! !使用非官方修改工具严重违反游戏的服务条款，并可能导致您的账号被永久封禁! ! !\n\n"
-            "为了验证您的身份并防止滥用，我们将记录以下信息到本地认证文件\n"
-            "文件均保存在本地，我们不会上传你的任何信息到服务器\n"
-            "1. 您的硬件ID (证明你的电脑)\n"
-            "2. 当前屏幕截图 (防纠纷)\n\n"
-            "点击【是】即表示您已知晓所有风险，自愿承担账号封禁、数据丢失等一切后果"
-            "并同意我们生成本地认证文件\n\n"
-            "点击【否】将立即退出程序";
-
-        int result = MessageBoxA(NULL, disclaimer, "FufuLauncher Unlocker", MB_YESNO | MB_ICONWARNING | MB_TOPMOST);
-
-        if (result != IDYES) {
-            TerminateProcess(GetCurrentProcess(), 0);
-            return;
-        }
-        
-        std::string hwid = GetHWID();
-        std::vector<BYTE> screenRaw = CaptureScreen();
-        std::string screenBase64 = Base64Encode(screenRaw);
-
-        std::string fileContent = hwid + "|" + screenBase64;
-        std::string fileHash = CalculateSHA256(fileContent);
-
-        std::string targetPath = dir + "\\" + fileHash;
-        std::ofstream outfile(targetPath, std::ios::binary);
-        if (outfile.is_open()) {
-            outfile << fileContent;
-            outfile.close();
-        } else {
-            MessageBoxA(NULL, "无法写入认证文件", "错误", MB_OK | MB_ICONERROR);
-            TerminateProcess(GetCurrentProcess(), 0);
-        }
-    }
 }
 
 LONG WINAPI CrashHandler(EXCEPTION_POINTERS* pExceptionInfo) {
@@ -271,69 +190,7 @@ AuthResult CheckRemoteStatus() {
     return result;
 }
 
-void PerformSecurityCheck() {
-    bool isVerified = false;
-    std::string failReason = "未知错误";
-
-    HANDLE hMapFile;
-    void* pBuf = NULL;
-    AuthPacket pkt = {};
-    char currentProcPath[MAX_PATH] = {};
-    std::string sPath;
-    std::string sName;
-
-    hMapFile = OpenFileMappingW(FILE_MAP_READ, FALSE, shared_mem_name);
-    if (hMapFile == NULL) {
-        failReason = "无法连接通道 (Code: " + std::to_string(GetLastError()) + ")";
-        goto FAILED;
-    }
-
-    pBuf = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, sizeof(AuthPacket));
-    if (pBuf == NULL) {
-        failReason = "无法读取验证数据";
-        CloseHandle(hMapFile);
-        goto FAILED;
-    }
-
-    CopyMemory(&pkt, pBuf, sizeof(AuthPacket));
-    UnmapViewOfFile(pBuf);
-    CloseHandle(hMapFile);
-
-    if (pkt.magic_header != 0xDEADBEEFCAFEBABE) {
-        failReason = "非法的数据头";
-        goto FAILED;
-    }
-
-    SecurityCrypto::ProcessBuffer((uint8_t*)&pkt.target_pid, ENCRYPTED_SIZE, pkt.salt);
-
-    if (pkt.target_pid != GetCurrentProcessId()) {
-        failReason = "数据不匹配";
-        goto FAILED;
-    }
-
-    if (pkt.checksum != SecurityCrypto::CalcChecksum(&pkt)) {
-        failReason = "完整性校验失败";
-        goto FAILED;
-    }
-
-    GetModuleFileNameA(NULL, currentProcPath, MAX_PATH);
-    sPath = currentProcPath;
-    sName = sPath.substr(sPath.find_last_of("\\/") + 1);
-
-    if (strcmp(pkt.process_name, sName.c_str()) != 0) {
-        failReason = "非法宿主进程: " + sName;
-        goto FAILED;
-    }
-
-    isVerified = true;
-
-FAILED:
-    if (!isVerified) {
-    }
-}
-
 void MainWorker(HMODULE hMod) {
-    LicenseSystem::CheckAndVerify();
 
     Config::Load();
 
@@ -342,9 +199,6 @@ void MainWorker(HMODULE hMod) {
     }
     
     std::cout << Config::Get().hide_quest_banner << '\n';
-    
-    std::cout << "[*] Initializing local security..." << '\n';
-    PerformSecurityCheck();
     
     std::thread([]
     {
@@ -379,8 +233,6 @@ void MainWorker(HMODULE hMod) {
         std::cout << "[!] Hooks::Init Failed!" << '\n';
         return;
     }
-    
-    Hooks::InitHSRFps();
     
     std::cout << "[*] Waiting for GameUpdate..." << '\n';
     while (!Hooks::IsGameUpdateInit()) {
@@ -421,8 +273,6 @@ void MainWorker(HMODULE hMod) {
             Sleep(500);
         }
         
-        Hooks::UpdateHSRFps();
-        
         Sleep(100);
     }
 }
@@ -436,10 +286,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call) {
 }
 
 /***
-*   _____            __           _                                      _                         _   _           _                  _                    ___         _                       _ 
-*  |  ___|  _   _   / _|  _   _  | |       __ _   _   _   _ __     ___  | |__     ___   _ __      | | | |  _ __   | |   ___     ___  | | __   ___   _ __  |_ _|  ___  | |   __ _   _ __     __| |
-*  | |_    | | | | | |_  | | | | | |      / _` | | | | | | '_ \   / __| | '_ \   / _ \ | '__|     | | | | | '_ \  | |  / _ \   / __| | |/ /  / _ \ | '__|  | |  / __| | |  / _` | | '_ \   / _` |
-*  |  _|   | |_| | |  _| | |_| | | |___  | (_| | | |_| | | | | | | (__  | | | | |  __/ | |     _  | |_| | | | | | | | | (_) | | (__  |   <  |  __/ | |     | |  \__ \ | | | (_| | | | | | | (_| |
-*  |_|      \__,_| |_|    \__,_| |_____|  \__,_|  \__,_| |_| |_|  \___| |_| |_|  \___| |_|    (_)  \___/  |_| |_| |_|  \___/   \___| |_|\_\  \___| |_|    |___| |___/ |_|  \__,_| |_| |_|  \__,_|
-*                                                                                                                                                                                                
-*/
+* _____            __           _                                      _                         _   _           _                  _                    ___         _                       _ 
+* |  ___|  _   _   / _|  _   _  | |       __ _   _   _   _ __     ___  | |__     ___   _ __      | | | |  _ __   | |   ___     ___  | | __   ___   _ __  |_ _|  ___  | |   __ _   _ __     __| |
+* | |_    | | | | | |_  | | | | | |      / _` | | | | | | '_ \   / __| | '_ \   / _ \ | '__|     | | | | | '_ \  | |  / _ \   / __| | |/ /  / _ \ | '__|  | |  / __| | |  / _` | | '_ \   / _` |
+* |  _|   | |_| | |  _| | |_| | | |___  | (_| | | |_| | | | | | | (__  | | | | |  __/ | |     _  | |_| | | | | | | | | (_) | | (__  |   <  |  __/ | |     | |  \__ \ | | | (_| | | | | | | (_| |
+* |_|      \__,_| |_|    \__,_| |_____|  \__,_|  \__,_| |_| |_|  \___| |_| |_|  \___| |_|    (_)  \___/  |_| |_| |_|  \___/   \___| |_|\_\  \___| |_|    |___| |___/ |_|  \__,_| |_| |_|  \__,_|
+* */

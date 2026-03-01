@@ -40,36 +40,8 @@ struct ModConfig {
     int toggle_key = VK_HOME;
     
     int craft_key = 0;
-    
-    bool show_fps_window = false;
-    
-    bool show_cpu_usage = true;
-    
-    bool show_gpu_time = true;
-    
-    bool show_custom_text = false;
-    
-    std::string custom_overlay_text = "";
-
-    float overlay_pos_x = 30.0f;
-    
-    float overlay_pos_y = 30.0f;
-
-    bool show_time = false;
-
-    bool enable_dx11_hook = true;
 
     bool dump_offsets = false;
-
-    bool enable_hsr_fps = false;
-    
-    int hsr_target_fps = 120;
-    
-    bool show_feature_list = false;
-
-    bool enable_speedhack = false;
-    
-    float game_speed = 1.0f;
 
     bool block_network = false;
 

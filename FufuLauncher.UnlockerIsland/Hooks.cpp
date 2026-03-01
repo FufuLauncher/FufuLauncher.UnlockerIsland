@@ -8,9 +8,6 @@
 #include "Config.h"
 #include "Utils.h"
 #include "MinHook/MinHook.h"
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_dx11.h"
-#include "imgui/imgui_impl_win32.h"
 #include <iostream>
 #include <atomic>
 #include <mutex>
@@ -35,8 +32,6 @@
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "MinHook/libMinHook.x64.lib")
 #pragma comment(lib, "ws2_32.lib")
-
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 const char* GetRegName(int index) {
     static const char* regs[] = { "RAX", "RCX", "RDX", "RBX", "RSP", "RBP", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15" };
@@ -147,10 +142,10 @@ struct __declspec(align(16)) Matrix4x4 {
 
 typedef void (*tCamera_GetC2W)(Matrix4x4* out_result, void* _this, void* method_info);
 
-const float FC_BASE_SPEED = 0.015f;
-const float FC_SHIFT_MULTIPLIER = 4.0f;
+const float FC_BASE_SPEED = 0.045f;
+const float FC_SHIFT_MULTIPLIER = 6.0f;
 const float FC_CTRL_MULTIPLIER = 0.2f;
-const float FC_ACCELERATION = 0.05f;
+const float FC_ACCELERATION = 0.10f;
 const float FC_FRICTION = 0.94f;
 
 namespace FreeCamState {
@@ -197,7 +192,6 @@ namespace {
     std::atomic<void*> o_SetSyncCount{ nullptr };
     std::atomic<void*> o_GameUpdate{ nullptr };
     std::atomic<void*> o_SetupResinList{ nullptr };
-    std::atomic<void*> p_HSRFpsAddr{ nullptr };
     std::atomic<void*> o_ActorManagerCtor{ nullptr };
     std::atomic<void*> p_GetGlobalActor{ nullptr };
     std::atomic<void*> p_AvatarPaimonAppear{ nullptr };
@@ -211,26 +205,15 @@ namespace {
     std::atomic g_GameUpdateInit{ false };
     std::atomic g_RequestCraft{ false };
     std::once_flag g_TouchInitOnce;
-    std::mutex g_TimeMutex;
-    tPresent o_Present = nullptr;
-    ID3D11Device* g_pd3dDevice = nullptr;
     ID3D11DeviceContext* g_pd3dContext = nullptr;
     ID3D11RenderTargetView* g_mainRenderTargetView = nullptr;
     HWND g_hGameWindow_ImGui = nullptr;
-    ID3D11ShaderResourceView* g_LogoTexture = nullptr;
-    ImFont* g_fontBold = nullptr;
-    tQueryPerformanceCounter o_QueryPerformanceCounter = nullptr;
-    tGetTickCount64 o_GetTickCount64 = nullptr;
-    LARGE_INTEGER g_LastRealTimeQPC = { 0 };
     tResizeBuffers o_ResizeBuffers = nullptr;
     tPresent1 o_Present1 = nullptr;
     tGetMainCamera call_GetMainCamera = nullptr;
     tGetTransform call_GetTransform = nullptr;
     std::atomic<void*> p_GetActive{ nullptr };
     void* g_ActorManagerInstance = nullptr;
-    int g_LogoWidth = 0;
-    int g_LogoHeight = 0;
-    bool g_dx11Init = false;
     bool g_GamepadHotSwitchInitialized = false;
 }
 
@@ -688,55 +671,6 @@ int WSAAPI hk_sendto(SOCKET s, const char* buf, int len, int flags, const struct
     return ((tSendTo)o_sendto.load())(s, buf, len, flags, to, tolen);
 }
 
-BOOL WINAPI hk_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount) {
-    if (!o_QueryPerformanceCounter(&g_LastRealTimeQPC)) return FALSE; 
-
-    static LARGE_INTEGER s_LastReal = { 0 };
-    static LARGE_INTEGER s_LastFake = { 0 };
-
-    std::lock_guard lock(g_TimeMutex);
-
-    if (s_LastReal.QuadPart == 0) {
-        s_LastReal = g_LastRealTimeQPC;
-        s_LastFake = g_LastRealTimeQPC;
-    }
-
-    if (Config::Get().enable_speedhack) {
-        double delta = (double)(g_LastRealTimeQPC.QuadPart - s_LastReal.QuadPart);
-        s_LastFake.QuadPart += (LONGLONG)(delta * Config::Get().game_speed);
-    } else {
-        s_LastFake.QuadPart += (g_LastRealTimeQPC.QuadPart - s_LastReal.QuadPart);
-    }
-
-    s_LastReal = g_LastRealTimeQPC;
-    lpPerformanceCount->QuadPart = s_LastFake.QuadPart;
-    return TRUE;
-}
-
-ULONGLONG WINAPI hk_GetTickCount64() {
-    ULONGLONG current_real = o_GetTickCount64();
-
-    static ULONGLONG s_LastRealTick = 0;
-    static ULONGLONG s_LastFakeTick = 0;
-
-    std::lock_guard lock(g_TimeMutex);
-
-    if (s_LastRealTick == 0) {
-        s_LastRealTick = current_real;
-        s_LastFakeTick = current_real;
-    }
-
-    if (Config::Get().enable_speedhack) {
-        double delta = (double)(current_real - s_LastRealTick);
-        s_LastFakeTick += (ULONGLONG)(delta * Config::Get().game_speed);
-    } else {
-        s_LastFakeTick += (current_real - s_LastRealTick);
-    }
-
-    s_LastRealTick = current_real;
-    return s_LastFakeTick;
-}
-
 void HandlePaimon() {
     auto& cfg = Config::Get();
     if (!cfg.display_paimon) return;
@@ -1089,352 +1023,6 @@ void* WINAPI hk_PlayerPerspective(void* a1, float a2, void* a3) {
     return orig ? orig(a1, a2, a3) : nullptr;
 }
 
-HRESULT __stdcall hk_Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags) {
-    if (!g_dx11Init) {
-        if (SUCCEEDED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&g_pd3dDevice))) {
-            g_pd3dDevice->GetImmediateContext(&g_pd3dContext);
-            DXGI_SWAP_CHAIN_DESC sd;
-            pSwapChain->GetDesc(&sd);
-            g_hGameWindow_ImGui = sd.OutputWindow;
-            
-            ImGui::CreateContext();
-            ImGuiIO& io = ImGui::GetIO(); 
-            io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-            io.IniFilename = nullptr; 
-            
-            io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 18.0f, nullptr, io.Fonts->GetGlyphRangesChineseFull());
-            g_fontBold = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyhbd.ttc", 18.0f, nullptr, io.Fonts->GetGlyphRangesChineseFull());
-            
-            ImGui::StyleColorsDark();
-            ImGuiStyle& style = ImGui::GetStyle();
-            style.WindowRounding = 10.0f;     
-            style.WindowBorderSize = 0.0f;    
-            style.Colors[ImGuiCol_WindowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.6f); 
-            
-            ImGui_ImplWin32_Init(g_hGameWindow_ImGui);
-            ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dContext);
-            
-            ID3D11Texture2D* pBackBuffer;
-            pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-            g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
-            pBackBuffer->Release();
-            
-            std::string dllDir = GetOwnDllDir();
-            
-            if (g_LogoTexture == nullptr) {
-                std::string imagePath = dllDir + "\\logo_banner.png";
-                bool loaded = LoadTextureFromFile(imagePath.c_str(), g_pd3dDevice, &g_LogoTexture, &g_LogoWidth, &g_LogoHeight);
-            
-                if (loaded) {
-                    std::cout << "Logo Loaded: " << g_LogoWidth << "x" << g_LogoHeight << '\n';
-                } else {
-                    std::cout << "Logo Failed! Path: " << imagePath << '\n';
-                }
-            }
-            
-            g_dx11Init = true;
-        }
-    }
-
-    if (g_mainRenderTargetView == nullptr && g_pd3dDevice != nullptr) {
-        ID3D11Texture2D* pBackBuffer = nullptr;
-        pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-        if (pBackBuffer) {
-            g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
-            pBackBuffer->Release();
-        }
-    }
-    
-    if (g_mainRenderTargetView) {
-        ImGui_ImplDX11_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-
-        ImGuiIO& io = ImGui::GetIO();
-        
-        if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
-            io.MouseDown[0] = true;
-        } else {
-            io.MouseDown[0] = false;
-        }
-
-        ImGui::NewFrame();
-        
-        if (g_ShowCoordWindow) {
-            ImGui::SetNextWindowSize(ImVec2(320, 180), ImGuiCond_FirstUseEver);
-        
-            if (ImGui::Begin("Object Debugger", &g_ShowCoordWindow)) {
-                void* currentObj = FreeCamState::currentTargetTransform 
-                                   ? FreeCamState::currentTargetTransform 
-                                   : FreeCamState::mainCameraTransform;
-
-                ImGui::TextColored(ImVec4(0, 1, 0, 1), "Target Base Address:");
-                ImGui::SameLine();
-                ImGui::Text("0x%p", currentObj);
-            
-                ImGui::Separator();
-                
-                float pos[3] = { FreeCamState::camX, FreeCamState::camY, FreeCamState::camZ };
-            
-                ImGui::Text("Current Coordinates:");
-                if (ImGui::InputFloat3("##Coords", pos)) {
-                    FreeCamState::camX = pos[0];
-                    FreeCamState::camY = pos[1];
-                    FreeCamState::camZ = pos[2];
-                    
-                    FreeCamState::velX = 0; 
-                    FreeCamState::velY = 0; 
-                    FreeCamState::velZ = 0;
-                }
-                
-                if (ImGui::Button("Copy to Clipboard")) {
-                    char buf[128];
-                    sprintf_s(buf, "X:%.2f Y:%.2f Z:%.2f", pos[0], pos[1], pos[2]);
-                    ImGui::SetClipboardText(buf);
-                }
-            
-                ImGui::End();
-            }
-        }
-        
-        {
-            ImGuiIO& io = ImGui::GetIO();
-            
-            ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 10.0f, io.DisplaySize.y - 10.0f), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
-            
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-            
-            if (ImGui::Begin("##PermanentWatermark", nullptr, 
-                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | 
-                ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing | 
-                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground)) 
-            {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 0.3f));
-                
-                ImGui::Text(" ");
-                
-                ImGui::PopStyleColor();
-                ImGui::End();
-            }
-            ImGui::PopStyleVar();
-            ImGui::PopStyleColor();
-        }
-
-        static DWORD s_popupStartTime = 0;
-        
-        if (g_RequestReloadPopup.load()) {
-            g_RequestReloadPopup.store(false);
-            s_popupStartTime = GetTickCount();
-        }
-        
-        if (s_popupStartTime != 0) {
-            if (GetTickCount() - s_popupStartTime > 2000) {
-                s_popupStartTime = 0;
-            }
-            else {
-                ImGuiIO& io = ImGui::GetIO();
-                ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, 100.0f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-                
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
-                
-                if (ImGui::Begin("##ReloadNotify", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing)) {
-                    ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "Configuration Reloaded");
-                    ImGui::End();
-                }
-                
-                ImGui::PopStyleVar();
-                ImGui::PopStyleColor();
-            }
-        }
-
-        if (Config::Get().show_fps_window) {
-            auto& cfg = Config::Get();
-            ImGui::SetNextWindowPos(ImVec2(cfg.overlay_pos_x, cfg.overlay_pos_y), ImGuiCond_FirstUseEver);
-            ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | 
-                                     ImGuiWindowFlags_AlwaysAutoResize | 
-                                     ImGuiWindowFlags_NoFocusOnAppearing;
-            
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.6f));
-            
-            if (ImGui::Begin("InfoOverlay", nullptr, flags)) {
-                auto& cfg = Config::Get();
-                
-                static std::vector<float> frameTimes;
-                static float low1PercentFps = 0.0f;
-                static float calcTimer = 0.0f;
-                
-                if (io.DeltaTime > 0.0f) {
-                    frameTimes.push_back(io.DeltaTime);
-                    if (frameTimes.size() > 1000) {
-                        frameTimes.erase(frameTimes.begin());
-                    }
-                }
-                
-                calcTimer += io.DeltaTime;
-                if (calcTimer >= 0.5f) {
-                    if (!frameTimes.empty()) {
-                        std::vector<float> sortedTimes = frameTimes;
-                        std::sort(sortedTimes.begin(), sortedTimes.end());
-                        
-                        size_t index;
-                        index = sortedTimes.size() * 0.99f;
-                        if (index >= sortedTimes.size()) index = sortedTimes.size() - 1;
-                        
-                        float worstFrameTime = sortedTimes[index];
-                        if (worstFrameTime > 0.0f) {
-                            low1PercentFps = 1.0f / worstFrameTime;
-                        }
-                    }
-                    calcTimer = 0.0f;
-                }
-                
-                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "FPS: %.1f | Low 1%%: %.1f", io.Framerate, low1PercentFps);
-                
-                if (cfg.show_gpu_time) {
-                    float frameTime = 1000.0f / (io.Framerate > 0 ? io.Framerate : 1.0f);
-                    ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "GPU: %.2f ms", frameTime);
-                }
-                
-                if (cfg.show_cpu_usage) {
-                    float cpu = GetProcessCpuUsage();
-                    ImGui::TextColored(ImVec4(0.0f, 0.8f, 1.0f, 1.0f), "CPU: %.1f %%", cpu);
-                }
-
-                if (cfg.show_time) {
-                    time_t now = time(0);
-                    tm tstruct;
-                    localtime_s(&tstruct, &now);
-                    ImGui::TextColored(ImVec4(0.8f, 0.6f, 1.0f, 1.0f), "Time: %02d:%02d:%02d", 
-                        tstruct.tm_hour, tstruct.tm_min, tstruct.tm_sec);
-                }
-                
-                if (cfg.show_custom_text && !cfg.custom_overlay_text.empty()) {
-                    ImGui::Separator();
-                    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%s", cfg.custom_overlay_text.c_str());
-                }
-
-                ImVec2 currentPos = ImGui::GetWindowPos();
-                
-                if (currentPos.x != cfg.overlay_pos_x || currentPos.y != cfg.overlay_pos_y) {
-                    if (!ImGui::IsMouseDown(0)) {
-                        Config::SaveOverlayPos(currentPos.x, currentPos.y);
-                    }
-                }
-
-                ImGui::End();
-            }
-            ImGui::PopStyleColor();
-        }
-        
-        if (Config::Get().show_feature_list) {
-            auto& cfg = Config::Get();
-            
-            struct ActiveFeature {
-                std::string name;
-                float width;
-            };
-            std::vector<ActiveFeature> features;
-            
-            if (g_fontBold) ImGui::PushFont(g_fontBold);
-            
-            auto AddFeature = [&](const char* name, bool enabled) {
-                if (enabled) {
-                    features.push_back({ name, ImGui::CalcTextSize(name).x });
-                }
-            };
-            
-            AddFeature("No FPS Cap", cfg.enable_fps_override);
-            AddFeature("No VSync", cfg.enable_vsync_override);
-            AddFeature("Wide FOV", cfg.enable_fov_override);
-            AddFeature("Mobile UI", cfg.use_touch_screen);
-            AddFeature("No Damage Text", cfg.disable_show_damage_text);
-            AddFeature("No Cam Move", cfg.disable_event_camera_move);
-            AddFeature("No Fog", cfg.disable_fog);
-            AddFeature("No Char Fade", cfg.disable_character_fade);
-            AddFeature("Custom Title", cfg.enable_custom_title);
-            AddFeature("Craft Redirect", cfg.enable_redirect_craft_override);
-            AddFeature("No Team Bar", cfg.enable_remove_team_anim);
-            AddFeature("Free Camera", FreeCamState::isActive);
-
-            if (g_fontBold) ImGui::PopFont();
-            
-            if (!features.empty() || g_LogoTexture) {
-                
-                std::sort(features.begin(), features.end(), [](const ActiveFeature& a, const ActiveFeature& b) {
-                    return a.width > b.width;
-                });
-
-                ImGuiIO& io = ImGui::GetIO();
-                
-                ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 10.0f, 10.0f), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
-                
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-                
-                if (ImGui::Begin("##HackArrayList", nullptr, 
-                    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | 
-                    ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing | 
-                    ImGuiWindowFlags_NoBackground)) 
-                {
-                    float time = (float)ImGui::GetTime();
-                    float rainbowSpeed = 0.5f;
-                    float rainbowScale = 0.05f;
-
-                    if (g_LogoTexture) {
-                        float imgW = (float)g_LogoWidth;
-                        float imgH = (float)g_LogoHeight;
-                        
-                        const float MAX_LOGO_WIDTH = 200.0f; 
-
-                        if (imgW > MAX_LOGO_WIDTH) {
-                            float scale = MAX_LOGO_WIDTH / imgW;
-                            imgW *= scale;
-                            imgH *= scale;
-                        }
-                        
-                        float windowWidth = ImGui::GetWindowSize().x;
-                        
-                        if (windowWidth > imgW) {
-                            ImGui::SetCursorPosX(windowWidth - imgW - 5.0f);
-                        }
-                        
-                        ImGui::Image(g_LogoTexture, ImVec2(imgW, imgH));
-                        
-                        ImGui::Dummy(ImVec2(0, 4.0f)); 
-                    }
-                    
-                    if (g_fontBold) ImGui::PushFont(g_fontBold);
-
-                    for (size_t i = 0; i < features.size(); ++i) {
-                        const auto& feat = features[i];
-
-                        float hue = fmodf(time * rainbowSpeed - (float)i * rainbowScale, 1.0f);
-                        if (hue < 0.0f) hue += 1.0f;
-                        float r, g, b;
-                        ImGui::ColorConvertHSVtoRGB(hue, 0.8f, 1.0f, r, g, b);
-                        
-                        float windowWidth = ImGui::GetWindowSize().x;
-                        ImGui::SetCursorPosX(windowWidth - feat.width - 5.0f);
-                        
-                        ImGui::TextColored(ImVec4(r, g, b, 1.0f), feat.name.c_str());
-                    }
-
-                    if (g_fontBold) ImGui::PopFont();
-
-                    ImGui::End();
-                }
-                ImGui::PopStyleColor();
-            }
-        }
-
-        ImGui::Render();
-        g_pd3dContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
-        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-    }
-
-    return o_Present(pSwapChain, SyncInterval, Flags);
-}
-
 void LogOffset(const std::string& name, void* resultAddress, void* instructionAddress = nullptr) {
     if (!Config::Get().dump_offsets || !resultAddress) return;
 
@@ -1461,68 +1049,6 @@ void LogOffset(const std::string& name, void* resultAddress, void* instructionAd
                  << extraInfo << std::dec << '\n';
         }
     }
-}
-
-bool InitDX11Hook() {
-    WNDCLASSEXA wc = { sizeof(WNDCLASSEXA), CS_CLASSDC, DefWindowProcA, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, "DX11Dummy", NULL };
-    
-    RegisterClassExA(&wc);
-    
-    HWND hWnd = CreateWindowA("DX11Dummy", NULL, WS_OVERLAPPEDWINDOW, 100, 100, 300, 300, NULL, NULL, wc.hInstance, NULL);
-
-    D3D_FEATURE_LEVEL featureLevel;
-    const D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1 };
-    DXGI_SWAP_CHAIN_DESC sd;
-    ZeroMemory(&sd, sizeof(sd));
-    sd.BufferCount = 1;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.OutputWindow = hWnd;
-    sd.SampleDesc.Count = 1;
-    sd.Windowed = TRUE;
-
-    IDXGISwapChain* swapChain = nullptr;
-    ID3D11Device* device = nullptr;
-    ID3D11DeviceContext* context = nullptr;
-
-    if (FAILED(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, featureLevels, 2, D3D11_SDK_VERSION, &sd, &swapChain, &device, &featureLevel, &context))) {
-        DestroyWindow(hWnd);
-        UnregisterClassA("DX11Dummy", wc.hInstance);
-        return false;
-    }
-    
-    void** vTable = *reinterpret_cast<void***>(swapChain);
-    void* presentAddr = vTable[8];
-    void* resizeAddr = vTable[13];
-    void* present1Addr = vTable[22];
-
-    std::cout << "[DX11] Found Present at: " << presentAddr << '\n';
-    if (MH_CreateHook(presentAddr, (void*)hk_Present, (void**)&o_Present) != MH_OK) {
-        std::cout << "[DX11] Hook Failed!" << '\n';
-    } else {
-        std::cout << "[DX11] Hook Ready." << '\n';
-    }
-
-    std::cout << "[DX11] Found ResizeBuffers at: " << resizeAddr << '\n';
-    if (MH_CreateHook(resizeAddr, (void*)hk_ResizeBuffers, (void**)&o_ResizeBuffers) != MH_OK) {
-        std::cout << "[DX11] Hook ResizeBuffers Failed!" << '\n';
-    } else {
-        std::cout << "[DX11] Hook ResizeBuffers Ready." << '\n';
-    }
-
-    if (MH_CreateHook(present1Addr, (void*)hk_Present1_Detect, (void**)&o_Present1) != MH_OK) {
-        std::cout << "[DX11] Hook Present1 Failed" << '\n';
-    } else {
-        std::cout << "[DX11] Hook Present1 Ready." << '\n';
-    }
-
-    swapChain->Release();
-    device->Release();
-    context->Release();
-    DestroyWindow(hWnd);
-    
-    UnregisterClassA("DX11Dummy", wc.hInstance);
-    return true;
 }
 
 static HWND g_hGameWindow = NULL;
@@ -1777,6 +1303,15 @@ bool Hooks::Init() {
     std::string path(szFileName);
     
     std::transform(path.begin(), path.end(), path.begin(), ::tolower);
+    
+    if (path.find("genshinimpact.exe") != std::string::npos) {
+        MessageBoxA(NULL, 
+            "本工具仅针对国服版本设计，如需使用，请下载稳定版，我们可能会在以后适配\n"
+            "详情见: https://fu1.fun/docs.html#23.md", 
+            "不受支持的游戏", 
+            MB_OK | MB_ICONSTOP | MB_TOPMOST);
+        return false;
+    }
   
     void* getActiveAddr = GetGetActiveAddr();
     if (getActiveAddr) {
@@ -1901,38 +1436,6 @@ bool Hooks::Init() {
             }
         }
     }
-    if (Config::Get().enable_dx11_hook) {
-        if (!InitDX11Hook()) {
-            std::cout << "[FATAL] InitDX11Hook Failed!" << '\n';
-        }
-    } else {
-        std::cout << "[INFO] DX11 Hook skipped by config." << '\n';
-    }
-
-    {
-        HMODULE hKernel32 = GetModuleHandleA("kernel32.dll"); //
-        if (hKernel32) {
-            void* addrQPC = (void*)GetProcAddress(hKernel32, "QueryPerformanceCounter"); //
-            if (addrQPC) {
-                std::cout << "[SCAN] QueryPerformanceCounter..." << std::endl; //
-                LogOffset("QueryPerformanceCounter", addrQPC, addrQPC);       //
-                std::cout << "   -> Found at: " << addrQPC << std::endl;      //
-                
-                if (MH_CreateHook(addrQPC, &hk_QueryPerformanceCounter, (LPVOID*)&o_QueryPerformanceCounter) == MH_OK) //
-                    std::cout << "   -> Hook Ready." << std::endl;            //
-            }
-            
-            void* addrGTC = (void*)GetProcAddress(hKernel32, "GetTickCount64"); //
-            if (addrGTC) {
-                std::cout << "[SCAN] GetTickCount64..." << std::endl;        //
-                LogOffset("GetTickCount64", addrGTC, addrGTC);                //
-                std::cout << "   -> Found at: " << addrGTC << std::endl;      //
-                
-                if (MH_CreateHook(addrGTC, &hk_GetTickCount64, (LPVOID*)&o_GetTickCount64) == MH_OK) //
-                    std::cout << "   -> Hook Ready." << std::endl;            //
-            }
-        }
-    }
     
     if (MH_CreateHookApi(L"ws2_32.dll", "send", (void*)hk_send, (void**)&o_send) == MH_OK) {
         std::cout << "[SCAN] Hook send Ready." << '\n';
@@ -1949,69 +1452,9 @@ bool Hooks::Init() {
     return true;
 }
 
-void Hooks::Uninit() { 
-    if (g_dx11Init) {
-        ImGui_ImplDX11_Shutdown();
-        ImGui_ImplWin32_Shutdown();
-        ImGui::DestroyContext();
-        if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = nullptr; }
-        if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = nullptr; }
-        if (g_pd3dContext) { g_pd3dContext->Release(); g_pd3dContext = nullptr; }
-    }
-    MH_DisableHook(MH_ALL_HOOKS); 
-    MH_Uninitialize(); 
-}
-
 bool Hooks::IsGameUpdateInit() { return o_GetFrameCount.load() != nullptr; }
 void Hooks::RequestOpenCraft() { g_RequestCraft.store(true); }
 
 void Hooks::TriggerReloadPopup() {
     g_RequestReloadPopup.store(true);
-}
-
-void Hooks::InitHSRFps() {
-    if (p_HSRFpsAddr.load()) return; 
-    
-    std::string pat1 = XorString::decrypt(EncryptedPatterns::HSR_FPS_1);
-    if (void* addr = Scanner::ScanMainMod(pat1)) {
-        if (void* target = Scanner::ResolveRelative(addr, 15, 23)) {
-            p_HSRFpsAddr.store(target);
-            std::cout << "[HSR] FPS Pattern 1 found: " << target << '\n';
-            return;
-        }
-    }
-    
-    std::string pat2 = XorString::decrypt(EncryptedPatterns::HSR_FPS_2);
-    if (void* addr = Scanner::ScanMainMod(pat2)) {
-        if (void* target = Scanner::ResolveRelative(addr, 11, 19)) {
-            p_HSRFpsAddr.store(target);
-            std::cout << "[HSR] FPS Pattern 2 found: " << target << '\n';
-            return;
-        }
-    }
-    
-    std::string pat3 = XorString::decrypt(EncryptedPatterns::HSR_FPS_3);
-    if (void* addr = Scanner::ScanMainMod(pat3)) {
-        if (void* target = Scanner::ResolveRelative(addr, 9, 17)) {
-            p_HSRFpsAddr.store(target);
-            std::cout << "[HSR] FPS Pattern 3 found: " << target << '\n';
-            return;
-        }
-    }
-
-    std::cout << "[HSR] FPS Pattern NOT found." << '\n';
-}
-
-void Hooks::UpdateHSRFps() {
-    void* ptr = p_HSRFpsAddr.load();
-    if (ptr && Config::Get().enable_hsr_fps) {
-        int32_t* pVal = static_cast<int32_t*>(ptr);
-        
-        int32_t targetFps = Config::Get().selected_fps; 
-        if (targetFps < 60) targetFps = 120;
-        
-        if (*pVal != targetFps) {
-            *pVal = targetFps;
-        }
-    }
 }

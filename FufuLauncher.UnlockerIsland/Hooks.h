@@ -8,6 +8,4 @@ namespace Hooks {
     void RequestOpenCraft();
     void TriggerReloadPopup();
     void UpdateVisuals();
-    void InitHSRFps();   
-    void UpdateHSRFps();
 }
