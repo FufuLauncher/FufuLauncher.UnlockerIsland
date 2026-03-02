@@ -24,6 +24,15 @@
 #define CALG_SHA256 0x0000800C
 #endif
 
+inline FILETIME GetFileLastWriteTime(const std::string& path) {
+    FILETIME lastWriteTime = { 0, 0 };
+    WIN32_FILE_ATTRIBUTE_DATA fileInfo;
+    if (GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &fileInfo)) {
+        lastWriteTime = fileInfo.ftLastWriteTime;
+    }
+    return lastWriteTime;
+}
+
 const char* AUTH_URL = "https://philia093.cyou/Unlock.json";
 
 namespace LicenseSystem {
@@ -148,10 +157,9 @@ void OpenConsole(const char* title) {
    \ V  V /   | |___  | |___  | |___  | |_| | | |  | | | |___ 
     \_/\_/    |_____| |_____|  \____|  \___/  |_|  |_| |_____|
 )" << '\n';
-        std::cout << "有一定几率在加载页面卡死，也有一定几率在退出个人主页时崩溃，重启即可解决" << '\n';
-        std::cout << "本项目开源地址: https://github.com/CodeCubist/FufuLauncher.UnlockerIsland" << '\n'; 
-        std::cout << "爱来自FufuLauncher" << '\n';
-        std::cout << "[+] Console Allocated." << '\n';
+        std::cout << "GitHub: https://github.com/CodeCubist/FufuLauncher.UnlockerIsland" << '\n'; 
+        std::cout << "FufuLauncher Project. Built with Love" << '\n';
+        std::cout << "[+] Console Allocated" << '\n';
     }
 }
 
@@ -212,8 +220,8 @@ void MainWorker(HMODULE hMod) {
                 
                 TerminateProcess(GetCurrentProcess(), 0);
                 _exit(0);
-            } 
-            else if (res == AuthResult::NET_ERROR) {
+            }
+            if (res == AuthResult::NET_ERROR) {
                 if (Config::Get().debug_console)
                     std::cout << "[!] Server unreachable." << '\n';
                 
@@ -238,6 +246,9 @@ void MainWorker(HMODULE hMod) {
     while (!Hooks::IsGameUpdateInit()) {
         Sleep(1000);
     }
+
+    std::string configPath = Config::GetConfigPath();
+    FILETIME lastConfigWriteTime = GetFileLastWriteTime(configPath);
 
     while (true) {
         auto& cfg = Config::Get();
@@ -264,13 +275,23 @@ void MainWorker(HMODULE hMod) {
             Sleep(500);
         }
         
-        if (GetAsyncKeyState(cfg.toggle_key) & 0x8000) {
-            Config::Load();
-            Sleep(500);
-        }
         if (cfg.craft_key != 0 && (GetAsyncKeyState(cfg.craft_key) & 0x8000)) {
             Hooks::RequestOpenCraft();
             Sleep(500);
+        }
+        FILETIME currentWriteTime = GetFileLastWriteTime(configPath);
+        if (CompareFileTime(&lastConfigWriteTime, &currentWriteTime) != 0) {
+            
+            Sleep(100); 
+            
+            Config::Load();
+            Hooks::TriggerReloadPopup();
+            
+            if (Config::Get().debug_console) {
+                std::cout << "[*] Automatic reload" << '\n';
+            }
+            
+            lastConfigWriteTime = GetFileLastWriteTime(configPath);
         }
         
         Sleep(100);

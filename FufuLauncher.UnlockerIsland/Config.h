@@ -80,4 +80,6 @@ namespace Config {
     ModConfig& Get();
     void Load();
     void SaveOverlayPos(float x, float y);
+
+    std::string GetConfigPath();
 }
