@@ -217,6 +217,47 @@ namespace {
     bool g_GamepadHotSwitchInitialized = false;
 }
 
+namespace Offsets {
+    std::string GetActiveOffset;
+    std::string ActorManagerCtorOffset;
+    std::string GetGlobalActorOffset;
+    std::string AvatarPaimonAppearOffset;
+    std::string GetMainCameraOffset;
+    std::string GetTransformOffset;
+    std::string SetPosOffset;
+    std::string CameraGetC2WOffset;
+    std::string GetComponent;
+    std::string GetText;
+
+    void InitOffsets(bool isOS) {
+        if (isOS) {
+            GetActiveOffset = XorString::decrypt(EncryptedPatterns::OS::GetActiveOffset);
+            ActorManagerCtorOffset = XorString::decrypt(EncryptedPatterns::OS::ActorManagerCtorOffset);
+            GetGlobalActorOffset = XorString::decrypt(EncryptedPatterns::OS::GetGlobalActorOffset);
+            AvatarPaimonAppearOffset = XorString::decrypt(EncryptedPatterns::OS::AvatarPaimonAppearOffset);
+            GetMainCameraOffset = XorString::decrypt(EncryptedPatterns::OS::GetMainCameraOffset);
+            GetTransformOffset = XorString::decrypt(EncryptedPatterns::OS::GetTransformOffset);
+            SetPosOffset = XorString::decrypt(EncryptedPatterns::OS::SetPosOffset);
+            CameraGetC2WOffset = XorString::decrypt(EncryptedPatterns::OS::CameraGetC2WOffset);
+            GetComponent = XorString::decrypt(EncryptedPatterns::OS::GetComponent);
+            GetText = XorString::decrypt(EncryptedPatterns::OS::GetText);
+            std::cout << "[INFO] Initialized Global (OS) Offsets." << std::endl;
+        } else {
+            GetActiveOffset = XorString::decrypt(EncryptedPatterns::CN::GetActiveOffset);
+            ActorManagerCtorOffset = XorString::decrypt(EncryptedPatterns::CN::ActorManagerCtorOffset);
+            GetGlobalActorOffset = XorString::decrypt(EncryptedPatterns::CN::GetGlobalActorOffset);
+            AvatarPaimonAppearOffset = XorString::decrypt(EncryptedPatterns::CN::AvatarPaimonAppearOffset);
+            GetMainCameraOffset = XorString::decrypt(EncryptedPatterns::CN::GetMainCameraOffset);
+            GetTransformOffset = XorString::decrypt(EncryptedPatterns::CN::GetTransformOffset);
+            SetPosOffset = XorString::decrypt(EncryptedPatterns::CN::SetPosOffset);
+            CameraGetC2WOffset = XorString::decrypt(EncryptedPatterns::CN::CameraGetC2WOffset);
+            GetComponent = XorString::decrypt(EncryptedPatterns::CN::GetComponent);
+            GetText = XorString::decrypt(EncryptedPatterns::CN::GetText);
+            std::cout << "[INFO] Initialized China (CN) Offsets." << std::endl;
+        }
+    }
+}
+
 uintptr_t ResolveAddress(uintptr_t addr) {
     unsigned char* p = (unsigned char*)addr;
     if (p[0] == 0xE9) {
@@ -230,7 +271,7 @@ void* GetGetActiveAddr() {
     HMODULE hMod = GetModuleHandle(NULL);
     if (!hMod) return nullptr;
     uintptr_t base = (uintptr_t)hMod;
-    std::string offsetStr = XorString::decrypt(EncryptedPatterns::GetActiveOffset);
+    std::string offsetStr = Offsets::GetActiveOffset;
     uintptr_t offsetVal = 0;
     std::stringstream ss;
     ss << std::hex << offsetStr;
@@ -420,7 +461,7 @@ void UpdateFreeCamPhysics() {
     if (!isAddrInitialized) {
         uintptr_t base = (uintptr_t)GetModuleHandle(NULL);
         if (base) {
-            std::string offsetStr = XorString::decrypt(EncryptedPatterns::CameraGetC2WOffset);
+            std::string offsetStr = Offsets::CameraGetC2WOffset;
             uintptr_t offsetVal = 0;
             std::stringstream ss;
             ss << std::hex << offsetStr;
@@ -732,8 +773,8 @@ bool CheckResistInBeyd(bool cache = true) {
     auto _FindString = (tFindString)p_FindString.load();
     auto _FindGameObject = (tFindGameObject)p_FindGameObject.load();
 
-    std::string getTextStr = XorString::decrypt(EncryptedPatterns::GetText);
-    std::string getComponentStr = XorString::decrypt(EncryptedPatterns::GetComponent);
+    std::string getTextStr = Offsets::GetText;
+    std::string getComponentStr = Offsets::GetComponent;
     uintptr_t getTextOffsetVal = 0x15B61F60;
     uintptr_t getComponentOffsetVal = 0x15C45190;
 
@@ -1298,21 +1339,23 @@ void hk_SetupResinList(void* pThis) {
 }
 
 bool Hooks::Init() {
+    auto StringToAddr = [](const std::string& hexStr) -> uintptr_t {
+        if (hexStr.empty()) return 0;
+        uintptr_t addr = 0;
+        std::stringstream ss;
+        ss << std::hex << hexStr;
+        ss >> addr;
+        return addr;
+    };
     char szFileName[MAX_PATH];
     GetModuleFileNameA(NULL, szFileName, MAX_PATH);
     std::string path(szFileName);
     
     std::transform(path.begin(), path.end(), path.begin(), ::tolower);
     
-    if (path.find("genshinimpact.exe") != std::string::npos) {
-        MessageBoxA(NULL, 
-            "本工具仅针对国服版本设计，如需使用，请下载稳定版，我们可能会在以后适配\n"
-            "详情见: https://fu1.fun/docs.html#23.md", 
-            "不受支持的游戏", 
-            MB_OK | MB_ICONSTOP | MB_TOPMOST);
-        return false;
-    }
-  
+    bool isOS = (path.find("genshinimpact.exe") != std::string::npos);
+    Offsets::InitOffsets(isOS);
+    
     void* getActiveAddr = GetGetActiveAddr();
     if (getActiveAddr) {
         p_GetActive.store(getActiveAddr);
@@ -1369,7 +1412,7 @@ bool Hooks::Init() {
             return val;
         };
         
-        uintptr_t offsetCtor = decryptOffset(EncryptedPatterns::ActorManagerCtorOffset);
+        uintptr_t offsetCtor     = StringToAddr(Offsets::ActorManagerCtorOffset);
         void* actorMgrCtor = (void*)(base + offsetCtor);
         MH_STATUS status1 = MH_CreateHook(actorMgrCtor, (void*)hk_ActorManagerCtor, (void**)&o_ActorManagerCtor);
         if (status1 == MH_OK) {
@@ -1379,13 +1422,13 @@ bool Hooks::Init() {
             std::cout << "[ERR] Failed to hook ActorManager.ctor. MH_STATUS: " << status1 << '\n';
         }
         
-        uintptr_t offsetGlobal = decryptOffset(EncryptedPatterns::GetGlobalActorOffset);
+        uintptr_t offsetGlobal   = StringToAddr(Offsets::GetGlobalActorOffset);
         void* getGlobalActorAddr = (void*)(base + offsetGlobal);
         p_GetGlobalActor.store(getGlobalActorAddr);
         LogOffset("ActorManager.GetGlobalActor", getGlobalActorAddr, getGlobalActorAddr);
         std::cout << "[SCAN] GetGlobalActor at: 0x" << std::hex << offsetGlobal << std::dec << '\n';
         
-        uintptr_t offsetPaimon = decryptOffset(EncryptedPatterns::AvatarPaimonAppearOffset);
+        uintptr_t offsetPaimon   = StringToAddr(Offsets::AvatarPaimonAppearOffset);
         void* avatarPaimonAppearAddr = (void*)(base + offsetPaimon);
         p_AvatarPaimonAppear.store(avatarPaimonAppearAddr);
         LogOffset("GlobalActor.AvatarPaimonAppear", avatarPaimonAppearAddr, avatarPaimonAppearAddr);
@@ -1409,9 +1452,9 @@ bool Hooks::Init() {
                 return val;
             };
 
-            uintptr_t offsetGetMain = decryptOffset(EncryptedPatterns::GetMainCameraOffset);
-            uintptr_t offsetGetTrans = decryptOffset(EncryptedPatterns::GetTransformOffset);
-            uintptr_t offsetSetPos = decryptOffset(EncryptedPatterns::SetPosOffset);
+            uintptr_t offsetGetMain  = StringToAddr(Offsets::GetMainCameraOffset);
+            uintptr_t offsetGetTrans = StringToAddr(Offsets::GetTransformOffset);
+            uintptr_t offsetSetPos   = StringToAddr(Offsets::SetPosOffset);
 
             uintptr_t addr_GetMain = ResolveAddress(base + offsetGetMain);
             uintptr_t addr_GetTrans = ResolveAddress(base + offsetGetTrans);

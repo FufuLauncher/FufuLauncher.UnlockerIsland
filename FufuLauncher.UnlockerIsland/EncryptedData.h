@@ -50,27 +50,69 @@ namespace EncryptedPatterns {
 	inline constexpr auto GetName = XorString::encrypt("40 53 48 81 EC ?? ?? ?? ?? 48 8B D9 48 85 C9 0F 84 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 85 C0 0F 84 ?? ?? ?? ?? 48 8B 10 48 8B C8 FF 52 ?? 48 85 C0 0F 85 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ??");
     // 22. SetupResinList
     inline constexpr auto SetupResinList = XorString::encrypt("E8 ?? ?? ?? ?? 84 DB 74 ?? 4C 89 F1 E8 ?? ?? ?? ?? 49 8B 86 ?? ?? ?? ?? 48 85 C0 75 ?? E9 ?? ?? ?? ??");
-    // UnityEngine.GameObject.get_active
-    inline constexpr auto GetActiveOffset = XorString::encrypt("15F932F0");
-    // MoleMole.ActorManager.ctor
-    inline constexpr auto ActorManagerCtorOffset = XorString::encrypt("D71C150");
-    // MoleMole.ActorManager.GetGlobalActor
-    inline constexpr auto GetGlobalActorOffset = XorString::encrypt("D721300");
-    // MoleMole.BaseActor.AvatarPaimonAppear
-    inline constexpr auto AvatarPaimonAppearOffset = XorString::encrypt("109A4F00");
-    // UnityEngine.Camera.get_main
-    inline constexpr auto GetMainCameraOffset = XorString::encrypt("15FA3C20");
-    // UnityEngine.Component.get_transform
-    inline constexpr auto GetTransformOffset = XorString::encrypt("15FB4540");
-    // UnityEngine.Transform.INTERNAL_set_position
-    inline constexpr auto SetPosOffset = XorString::encrypt("15FADC00");
-    // UnityEngine.Camera.get_cameraToWorldMatrix
-    inline constexpr auto CameraGetC2WOffset = XorString::encrypt("15FA3170");
-    // GameObject.GetComponent(String type)
-    inline constexpr auto GetComponent = XorString::encrypt("15F92F70");
-    // Text.get_text
-    inline constexpr auto GetText = XorString::encrypt("1608F960");
+
+    namespace CN {
+        // UnityEngine.GameObject.get_active
+        inline constexpr auto GetActiveOffset = XorString::encrypt("15F932F0");
+        // MoleMole.ActorManager.ctor
+        inline constexpr auto ActorManagerCtorOffset = XorString::encrypt("D71C150");
+        // MoleMole.ActorManager.GetGlobalActor
+        inline constexpr auto GetGlobalActorOffset = XorString::encrypt("D721300");
+        // MoleMole.BaseActor.AvatarPaimonAppear
+        inline constexpr auto AvatarPaimonAppearOffset = XorString::encrypt("109A4F00");
+        // UnityEngine.Camera.get_main
+        inline constexpr auto GetMainCameraOffset = XorString::encrypt("15FA3C20");
+        // UnityEngine.Component.get_transform
+        inline constexpr auto GetTransformOffset = XorString::encrypt("15FB4540");
+        // UnityEngine.Transform.INTERNAL_set_position
+        inline constexpr auto SetPosOffset = XorString::encrypt("15FADC00");
+        // UnityEngine.Camera.get_cameraToWorldMatrix
+        inline constexpr auto CameraGetC2WOffset = XorString::encrypt("15FA3170");
+        // GameObject.GetComponent(String type)
+        inline constexpr auto GetComponent = XorString::encrypt("15F92F70");
+        // Text.get_text
+        inline constexpr auto GetText = XorString::encrypt("1608F960");
+    }
+    
+    namespace OS {
+        // UnityEngine.GameObject.get_active
+        inline constexpr auto GetActiveOffset = XorString::encrypt("15F4C7D0");
+        // MoleMole.ActorManager.ctor
+        inline constexpr auto ActorManagerCtorOffset = XorString::encrypt("D713E30");
+        // MoleMole.ActorManager.GetGlobalActor
+        inline constexpr auto GetGlobalActorOffset = XorString::encrypt("D711190");
+        // MoleMole.BaseActor.AvatarPaimonAppear
+        inline constexpr auto AvatarPaimonAppearOffset = XorString::encrypt("10975A50");
+        // UnityEngine.Camera.get_main
+        inline constexpr auto GetMainCameraOffset = XorString::encrypt("15F5D0C0");
+        // UnityEngine.Component.get_transform
+        inline constexpr auto GetTransformOffset = XorString::encrypt("15F6D9C0");
+        // UnityEngine.Transform.INTERNAL_set_position
+        inline constexpr auto SetPosOffset = XorString::encrypt("15F67080");
+        // UnityEngine.Camera.get_cameraToWorldMatrix
+        inline constexpr auto CameraGetC2WOffset = XorString::encrypt("15F5C610");
+        // GameObject.GetComponent(String type)
+        inline constexpr auto GetComponent = XorString::encrypt("15F92F70");
+        // Text.get_text
+        inline constexpr auto GetText = XorString::encrypt("160489A0");
+    }
 }
+
+namespace Offsets {
+    extern std::string GetActiveOffset;
+    extern std::string ActorManagerCtorOffset;
+    extern std::string GetGlobalActorOffset;
+    extern std::string AvatarPaimonAppearOffset;
+    extern std::string GetMainCameraOffset;
+    extern std::string GetTransformOffset;
+    extern std::string SetPosOffset;
+    extern std::string CameraGetC2WOffset;
+    extern std::string GetComponent;
+    extern std::string GetText;
+
+    void InitOffsets(bool isOS);
+}
+
 namespace EncryptedStrings {
     inline constexpr auto SynthesisPage = XorString::encrypt("SynthesisPage");
     inline constexpr auto QuestBannerPath = XorString::encrypt("Canvas/Pages/InLevelMapPage/GrpMap/GrpPointTips/Layout/QuestBanner");
