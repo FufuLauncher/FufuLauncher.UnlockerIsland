@@ -6,16 +6,11 @@ Licensed under the AGPL-3.0 License.
 #include "../Core/SharedState.h"
 
 void UpdateHideUID();
-void UpdateHideMainUI();
-bool UpdateHideProfileUID();
-void UpdateHideProfileBirthday();
-void UpdateProfilePrivacyUI();
-bool IsProfilePrivacyUIActive();
-void BeginProfilePrivacyUI();
-void EndProfilePrivacyUI();
-void NotifyProfileUIDBlocked();
-void NotifyProfilePrivacyConfigReload();
-void UpdatePendingProfilePrivacyUI();
+// Event-driven profile privacy: invoked right after the game has set up /
+// refreshed the player profile page, and after a config hot-reload. The
+// page opens normally (origin runs first), then the UID/birthday objects
+// are hidden when their config flags are on; UID is restored when off.
+void ApplyProfilePrivacyState();
 void UpdateTitleWatermark();
 void WINAPI hk_SetupQuestBanner(void* __this);
 void WINAPI hk_ShowDamage(void* a, int b, int c, int d, float e, Il2CppString* f, void* g, void* h, int i, char j, float k);
