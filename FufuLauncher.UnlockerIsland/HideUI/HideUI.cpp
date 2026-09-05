@@ -61,60 +61,67 @@ void UpdateHideUID() {
     }
 }
 
-void UpdateHideMainUI() {
-    auto& config = Config::Get();
-    if (!config.hide_main_ui) return;
+// Disabled: HideMainUI duplicated ProfileUIDPath (same profile UID element)
+// and conflicted with the new event-driven HideProfileUID hook. Kept for
+// reference only.
+// void UpdateHideMainUI() {
+//     auto& config = Config::Get();
+//     if (!config.hide_main_ui) return;
+// 
+//     static float last_check_time = 0.0f;
+// 
+//     auto SetActive = (tSetActive)o_SetActive.load();
+//     if (!SetActive) return;
+// 
+//     float current_time = (float)clock() / CLOCKS_PER_SEC;
+//     if (current_time - last_check_time > 2.0f) {
+//         last_check_time = current_time;
+// 
+//         auto FindString = (tFindString)p_FindString.load();
+//         auto FindGameObject = (tFindGameObject)p_FindGameObject.load();
+// 
+//         if (FindString && FindGameObject) {
+//             auto str_obj = FindString(GameStrings::UIDPathMain);
+//             if (str_obj) {
+//                 void* foundObj = FindGameObject(str_obj);
+//                 if (foundObj) {
+//                     SetActive(foundObj, false);
+//                 }
+//             }
+//         }
+//     }
+// }
 
-    static float last_check_time = 0.0f;
-
-    auto SetActive = (tSetActive)o_SetActive.load();
-    if (!SetActive) return;
-
-    float current_time = (float)clock() / CLOCKS_PER_SEC;
-    if (current_time - last_check_time > 2.0f) {
-        last_check_time = current_time;
-
-        auto FindString = (tFindString)p_FindString.load();
-        auto FindGameObject = (tFindGameObject)p_FindGameObject.load();
-
-        if (FindString && FindGameObject) {
-            auto str_obj = FindString(GameStrings::UIDPathMain);
-            if (str_obj) {
-                void* foundObj = FindGameObject(str_obj);
-                if (foundObj) {
-                    SetActive(foundObj, false);
-                }
-            }
-        }
-    }
-}
-
-static bool SetProfileUIDActive(bool active) {
-    auto SetActive = (tSetActive)o_SetActive.load();
-    if (!SetActive) return false;
-
-    auto FindString = (tFindString)p_FindString.load();
-    auto FindGameObject = (tFindGameObject)p_FindGameObject.load();
-    if (!FindString || !FindGameObject) return false;
-
-    bool updated = false;
-    SafeInvoke([&] {
-        auto str_obj = FindString(GameStrings::ProfileUIDPath);
-        if (str_obj) {
-            void* foundObj = FindGameObject(str_obj);
-            if (foundObj) {
-                SetActive(foundObj, active);
-                updated = true;
-            }
-        }
-    });
-    return updated;
-}
+// Disabled: redundant with the event-driven profile page refresh hook
+// (hk_ProfilePageRefresh) + the hk_SetActive name blocker. Kept for
+// reference only.
+// static bool SetProfileUIDActive(bool active) {
+//     auto SetActive = (tSetActive)o_SetActive.load();
+//     if (!SetActive) return false;
+// 
+//     auto FindString = (tFindString)p_FindString.load();
+//     auto FindGameObject = (tFindGameObject)p_FindGameObject.load();
+//     if (!FindString || !FindGameObject) return false;
+// 
+//     bool updated = false;
+//     SafeInvoke([&] {
+//         auto str_obj = FindString(GameStrings::ProfileUIDPath);
+//         if (str_obj) {
+//             void* foundObj = FindGameObject(str_obj);
+//             if (foundObj) {
+//                 SetActive(foundObj, active);
+//                 updated = true;
+//             }
+//         }
+//     });
+//     return updated;
+// }
 
 bool UpdateHideProfileUID() {
-    auto& config = Config::Get();
-    if (!config.hide_profile_uid) return true;
-    return SetProfileUIDActive(false);
+    // Old path disabled (see SetProfileUIDActive above); always report
+    // success so the retry/reload machinery stays dormant. UID hiding and
+    // restoring are handled by the profile page refresh event hook.
+    return true;
 }
 
 static bool SetProfileBirthdayActive(bool active) {
@@ -261,7 +268,8 @@ static void ApplyPendingProfilePrivacyConfigReload() {
         g_profile_uid_retry_started = GetTickCount64();
         g_profile_uid_retry_pending = !UpdateHideProfileUID();
     } else if (g_profile_uid_last_enabled) {
-        SetProfileUIDActive(true);
+        // SetProfileUIDActive(true); // disabled: restore happens on the next
+        // profile page refresh event (hk_ProfilePageRefresh).
     }
 
     if (config.hide_profile_birthday) {
@@ -394,4 +402,93 @@ void WINAPI hk_ShowDamage(void* a, int b, int c, int d, float e, Il2CppString* f
     if (g_ShowDamageParamsValid.load()) return;
 
     if (orig) orig(a, b, c, d, e, f, g, h, i, j, k);
+}
+
+// ===================================================================
+// Event-driven profile UID hiding (Hutao-style, non-polling).
+//
+// The hooked function is the player profile page refresh entry
+// (PJJKFBCHLKF.POGFHKOPOGP, RVA 0x11B39290). It runs every time the
+// profile page is opened or refreshed, so it doubles as a precise
+// "UID is (re)shown" event source. We call the original first so the
+// page fully refreshes (no page short-circuit), then apply the UID
+// state once via a cached GameObject pointer + direct SetActive:
+//   config HideProfileUID = 1 -> SetActive(false) (hide)
+//   config HideProfileUID = 0 -> SetActive(true)  (restore, once)
+// ===================================================================
+
+static void* g_cachedProfileUidGo = nullptr;
+static bool g_pluginHiddenUid = false;
+
+static bool IsUnityWrapperAlive(void* go) {
+    if (!go || (uintptr_t)go <= 0x10000) return false;
+    __try {
+        // UnityEngine.Object wrapper: native pointer (m_CachedPtr) lives at
+        // +0x10 and is cleared by the engine when the object is destroyed.
+        void* native = *(void**)((uintptr_t)go + 0x10);
+        return native && (uintptr_t)native > 0x10000;
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        return false;
+    }
+}
+
+// Separate helper: SafeInvoke builds a std::function, which must not share a
+// function with __try (C2712). Re-find only when the cached object is gone.
+static void* FindProfileUidObject() {
+    auto findString = (tFindString)p_FindString.load();
+    auto findGO = (tFindGameObject)p_FindGameObject.load();
+    if (!IsValid(findString) || !IsValid(findGO)) return nullptr;
+
+    void* found = nullptr;
+    SafeInvoke([&] {
+        if (auto str_obj = findString(GameStrings::ProfileUIDPath)) {
+            found = findGO(str_obj);
+        }
+    });
+    return found;
+}
+
+// Separate helper: only pointers here, so __try is allowed (no unwinding).
+static void ApplyProfileUidState(void* go, bool active, tSetActive setActive) {
+    __try {
+        setActive(go, active);
+        if (!active && !g_pluginHiddenUid && Config::Get().debug_console) {
+            std::cout << "[HideUI] Profile UID hidden on page refresh event." << std::endl;
+        }
+        g_pluginHiddenUid = !active;
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        g_cachedProfileUidGo = nullptr;
+    }
+}
+
+// Runs on every profile page refresh event (after the original).
+// Straight state application: config on  -> hide UID once per event;
+// config off -> if we had hidden it, restore (SetActive true) once.
+static void SyncProfileUidOnRefresh() {
+    const bool shouldHide = Config::Get().hide_profile_uid != 0;
+
+    if (!shouldHide && !g_pluginHiddenUid) return;
+
+    auto setActive = (tSetActive)o_SetActive.load(); // trampoline: calls the real SetActive, bypasses hk_SetActive
+    if (!IsValid(setActive)) return;
+
+    if (!g_cachedProfileUidGo || !IsUnityWrapperAlive(g_cachedProfileUidGo)) {
+        g_cachedProfileUidGo = FindProfileUidObject();
+    }
+
+    void* go = g_cachedProfileUidGo;
+    if (!go) return;
+
+    ApplyProfileUidState(go, !shouldHide, setActive);
+}
+
+__int64 __fastcall hk_ProfilePageRefresh(void* pThis, __int64 a2) {
+    auto orig = (tProfilePageRefresh)o_ProfilePageRefresh.load();
+    __int64 ret = orig ? orig(pThis, a2) : 0;
+
+    // Let the page refresh run above, then apply the profile UID state
+    // once: hide when configured, restore when disabled.
+    SyncProfileUidOnRefresh();
+
+    return ret;
 }

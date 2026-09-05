@@ -36,6 +36,7 @@ std::atomic<void*> p_AvatarPaimonAppear{ nullptr };
 std::atomic<void*> p_StringNew{ nullptr };
 std::atomic<void*> p_ShowDialog{ nullptr };
 std::atomic<void*> o_UpdateInnerTarget{ nullptr };
+std::atomic<void*> o_ProfilePageRefresh{ nullptr };
 
 std::atomic<bool> g_RequestReloadPopup{ false };
 std::atomic<bool> g_GameUpdateInit{ false };

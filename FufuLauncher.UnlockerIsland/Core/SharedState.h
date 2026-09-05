@@ -61,6 +61,7 @@ typedef void (__fastcall *tButtonClicked)(void*);
 typedef void (__fastcall *tClockPageBack)(void*, void*);
 
 typedef __int64 (__fastcall *tUpdateInnerTarget)(void*, void*, double);
+typedef __int64 (__fastcall *tProfilePageRefresh)(void*, __int64);
 
 extern std::atomic<void*> o_GetFrameCount;
 extern std::atomic<void*> o_SetFrameCount;
@@ -94,6 +95,7 @@ extern std::atomic<void*> p_AvatarPaimonAppear;
 extern std::atomic<void*> p_StringNew;
 extern std::atomic<void*> p_ShowDialog;
 extern std::atomic<void*> o_UpdateInnerTarget;
+extern std::atomic<void*> o_ProfilePageRefresh;
 
 extern std::atomic<bool> g_RequestReloadPopup;
 extern std::atomic<bool> g_GameUpdateInit;

@@ -13,6 +13,7 @@ namespace Patterns {
     inline constexpr const char* QuestBanner = "41 57 41 56 56 57 55 53 48 81 EC E8 00 00 00 0F 29 BC 24 ? ? ? ? 0F 29 B4 24 ? ? ? ? 48 89 CE 0F 57 C0 0F 29 84 24 ? ? ? ? 0F 29 84 24 ? ? ? ? 0F 29 84 24";
     inline constexpr const char* FindGameObject = "40 53 48 83 EC ? 48 89 4C 24 ? 48 8D 54 24 ? 48 8D 4C 24 ? E8 ? ? ? ? 48 8B 08 48 85 C9 75 ? 48 8D 48 ? E8 ? ? ? ? 48 8B 4C 24 ? 48 8B D8 48 85 C9 74 ? 48 83 7C 24 ? 00 76";
     inline constexpr const char* SetActive = ""; //removed, use offset
+    inline constexpr const char* ProfilePageRefresh = "55 41 57 41 56 41 55 41 54 56 57 53 48 81 EC A8 00 00 00 48 8D AC 24 80 00 00 00 0F 29 75 10 48 C7 45 F8 FE FF FF FF 49 89 CC 80 3D ?? ?? ?? ?? 00 0F 84 ?? ?? ?? ?? 80 3D ?? ?? ?? ?? 00 48 8B 05 ?? ?? ?? ?? 0F 85 ?? ?? ?? ??";
     inline constexpr const char* DamageText = "41 57 41 56 41 55 41 54 56 57 55 53 48 81 EC E8 01 00 00 44 0F 29 AC 24 D0 01 00 00 44 0F 29 A4 24 C0 01 00 00 44 0F 29 9C 24 B0 01 00 00 44 0F 29 94 24 A0 01 00 00 44 0F 29 8C 24 90 01 00 00 44 0F 29 84 24 80 01 00 00 0F 29 BC 24 70 01 00 00 0F 29 B4 24 60 01 00 00 44 89 CF 44 89 44 24 7C 89 D5 48 89 CE F3 44 0F 10 94 24 80 02 00 00 44 0F B6 A4 24 78 02 00 00"; 
     inline constexpr const char* EventCamera = "41 57 41 56 56 57 55 53 48 83 EC 48 48 89 D7 49 89 CE 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 80";
     inline constexpr const char* FindString = "56 48 83 ec 20 48 89 ce e8 ? ? ? ? 48 89 f1 89 c2 48 83 c4 20 5e e9 ? ? ? ? cc cc cc cc";
@@ -113,6 +114,7 @@ namespace Patterns {
         inline constexpr const char* DamageColor4 = "1309C270";
         inline constexpr const char* UpdateInnerTargetOffset = "6DE13F0";
         inline constexpr const char* SetActiveOffset = "13D8580";
+        inline constexpr const char* ProfilePageRefreshOffset = "11B39290";
     }
 
     namespace OS {
@@ -226,6 +228,7 @@ namespace Offsets {
     extern std::string DamageColor4Offset;
     extern std::string UpdateInnerTargetOffset;
     extern std::string SetActiveOffset;
+    extern std::string ProfilePageRefreshOffset;
 
     void InitOffsets(bool isOS);
 }

@@ -365,7 +365,7 @@ int32_t WINAPI hk_ChangeFov(void* __this, float value) {
     if (frameCounter >= 100) {
         frameCounter = 0;
         UpdateHideUID();
-        UpdateHideMainUI();
+        // UpdateHideMainUI(); // disabled: duplicated ProfileUIDPath (see HideUI.cpp)
         UpdateOpenMap();
         PaimonFollow::Tick();
     }
@@ -538,6 +538,36 @@ bool Hooks::Init() {
                 std::cout << "   -> [ERR] SetActive MH_CreateHook Failed." << std::endl;
         } else {
             std::cout << "   -> [ERR] SetActive offset is missing." << std::endl;
+        }
+    }
+    {
+        // Player profile page refresh entry (PJJKFBCHLKF.POGFHKOPOGP).
+        // Event source for profile UID hiding: page refresh implies the
+        // UID element was (re)shown; the detour hides it right after the
+        // original runs. Non-polling, non-short-circuiting.
+        // Signature scan first (version-resilient), hardcoded RVA as fallback.
+        void* profileRefreshAddr = Scanner::ScanMainMod(Patterns::ProfilePageRefresh);
+        if (profileRefreshAddr) {
+            LogOffset("ProfilePageRefresh", profileRefreshAddr, profileRefreshAddr);
+            std::cout << "[SCAN] ProfilePageRefresh resolved via signature.\n";
+        } else {
+            HMODULE hMod = GetModuleHandle(NULL);
+            uintptr_t offsetProfileRefresh = StringToAddr(Offsets::ProfilePageRefreshOffset);
+            if (hMod && offsetProfileRefresh) {
+                profileRefreshAddr = (void*)((uintptr_t)hMod + offsetProfileRefresh);
+                LogOffset("ProfilePageRefresh", profileRefreshAddr, profileRefreshAddr);
+                std::cout << "[SCAN] ProfilePageRefresh via offset fallback: 0x"
+                          << std::hex << offsetProfileRefresh << std::dec << '\n';
+            }
+        }
+
+        if (profileRefreshAddr) {
+            if (MH_CreateHook(profileRefreshAddr, (void*)hk_ProfilePageRefresh, (void**)&o_ProfilePageRefresh) == MH_OK)
+                std::cout << "   -> ProfilePageRefresh Hook Ready." << std::endl;
+            else
+                std::cout << "   -> [ERR] ProfilePageRefresh MH_CreateHook Failed." << std::endl;
+        } else {
+            std::cout << "   -> [ERR] ProfilePageRefresh not found (signature + offset)." << std::endl;
         }
     }
     SCAN_DIR("GetName", Patterns::GetName, p_GetName);

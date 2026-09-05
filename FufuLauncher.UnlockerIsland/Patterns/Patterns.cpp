@@ -26,6 +26,7 @@ namespace Offsets {
     std::string DamageColor4Offset;
     std::string UpdateInnerTargetOffset;
     std::string SetActiveOffset;
+    std::string ProfilePageRefreshOffset;
 
     void InitOffsets(bool isOS) {
         if (isOS) {
@@ -67,6 +68,7 @@ namespace Offsets {
             DamageColor4Offset = Patterns::CN::DamageColor4;
             UpdateInnerTargetOffset = Patterns::CN::UpdateInnerTargetOffset;
             SetActiveOffset = Patterns::CN::SetActiveOffset;
+            ProfilePageRefreshOffset = Patterns::CN::ProfilePageRefreshOffset;
             std::cout << "[INFO] Pre-initialized China (CN) Offsets from hardcode" << std::endl;
         }
     }
