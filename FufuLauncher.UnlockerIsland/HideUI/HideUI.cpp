@@ -12,6 +12,11 @@ Licensed under the AGPL-3.0 License.
 static HWND g_hGameWindow = NULL;
 static const char* g_profile_birthday_resolved_target = nullptr;
 
+static void* g_profile_uid_cached = nullptr;
+static bool g_profile_uid_hidden_by_plugin = false;
+static void* g_profile_bday_cached = nullptr;
+static bool g_profile_bday_hidden_by_plugin = false;
+
 static std::atomic g_ShowDamageParamsValid{ true };
 
 bool CheckWindowFocused(HWND window) {
@@ -87,13 +92,14 @@ static bool SetProfileUIDActive(bool active) {
 
     bool updated = false;
     SafeInvoke([&] {
+        void* go = nullptr;
         auto str_obj = FindString(GameStrings::ProfileUIDPath);
-        if (str_obj) {
-            void* foundObj = FindGameObject(str_obj);
-            if (foundObj) {
-                SetActive(foundObj, active);
-                updated = true;
-            }
+        if (str_obj) go = FindGameObject(str_obj);
+        if (!go) go = g_profile_uid_cached; // inactive objects are invisible to Find
+        if (go) {
+            SetActive(go, active);
+            g_profile_uid_cached = go;
+            updated = true;
         }
     });
     return updated;
@@ -111,14 +117,15 @@ static bool SetProfileBirthdayActive(bool active) {
 
     bool updated = false;
     SafeInvoke([&] {
+        void* go = nullptr;
         if (g_profile_birthday_resolved_target) {
             auto str_obj = FindString(g_profile_birthday_resolved_target);
-            if (str_obj) {
-                void* foundObj = FindGameObject(str_obj);
-                if (foundObj) {
-                    SetActive(foundObj, active);
-                    updated = true;
-                }
+            if (str_obj) go = FindGameObject(str_obj);
+            if (!go) go = g_profile_bday_cached;
+            if (go) {
+                SetActive(go, active);
+                g_profile_bday_cached = go;
+                updated = true;
             }
             return;
         }
@@ -130,6 +137,7 @@ static bool SetProfileBirthdayActive(bool active) {
             void* foundObj = FindGameObject(str_obj);
             if (foundObj) {
                 SetActive(foundObj, active);
+                g_profile_bday_cached = foundObj;
                 g_profile_birthday_resolved_target = target;
                 updated = true;
                 if (!active && config.debug_console) {
@@ -139,24 +147,30 @@ static bool SetProfileBirthdayActive(bool active) {
                 break;
             }
         }
+
+        if (!updated && g_profile_bday_cached) {
+            SetActive(g_profile_bday_cached, active);
+            updated = true;
+        }
     });
     return updated;
 }
 
-// Event-driven profile privacy. Called from the SetupPlayerProfilePage hook
-// right after the original has opened/set up the page, so the page renders
-// normally while the UID / birthday objects are force-hidden below.
 void ApplyProfilePrivacyState() {
     const auto& config = Config::Get();
     const bool hideUid = config.hide_profile_uid;
     const bool hideBirthday = config.hide_profile_birthday;
-    if (!hideUid && !hideBirthday) return;
 
     if (hideUid) {
-        SetProfileUIDActive(false);
+        if (SetProfileUIDActive(false)) g_profile_uid_hidden_by_plugin = true;
+    } else if (g_profile_uid_hidden_by_plugin) {
+        if (SetProfileUIDActive(true)) g_profile_uid_hidden_by_plugin = false;
     }
+
     if (hideBirthday) {
-        SetProfileBirthdayActive(false);
+        if (SetProfileBirthdayActive(false)) g_profile_bday_hidden_by_plugin = true;
+    } else if (g_profile_bday_hidden_by_plugin) {
+        if (SetProfileBirthdayActive(true)) g_profile_bday_hidden_by_plugin = false;
     }
 }
 
