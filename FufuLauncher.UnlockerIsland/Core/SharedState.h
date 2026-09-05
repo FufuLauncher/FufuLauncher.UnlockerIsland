@@ -34,6 +34,7 @@ typedef bool (WINAPI *tCraftPartner)(Il2CppString*, void*, void*, void*, void*);
 typedef Il2CppString* (WINAPI *tFindString)(const char*);
 typedef void* (WINAPI *tFindGameObject)(Il2CppString*);
 typedef void (WINAPI *tSetActive)(void*, bool);
+typedef void (WINAPI *tSetupPlayerProfilePage)(void*);
 typedef bool (WINAPI *tEventCamera)(void*, void*);
 typedef bool (WINAPI *tCheckCanEnter)();
 typedef void (WINAPI *tOpenTeamPage)(bool);
@@ -66,6 +67,7 @@ extern std::atomic<void*> o_GetFrameCount;
 extern std::atomic<void*> o_SetFrameCount;
 extern std::atomic<void*> o_ChangeFov;
 extern std::atomic<void*> o_SetupQuestBanner;
+extern std::atomic<void*> o_SetupPlayerProfilePage;
 extern std::atomic<void*> o_ShowDamage;
 extern std::atomic<void*> o_CraftEntry;
 extern std::atomic<void*> o_EventCamera;
@@ -97,7 +99,6 @@ extern std::atomic<void*> o_UpdateInnerTarget;
 
 extern std::atomic<bool> g_RequestReloadPopup;
 extern std::atomic<bool> g_GameUpdateInit;
-extern std::atomic<bool> g_ProfilePrivacyRuntimeReady;
 extern std::atomic<bool> g_RequestCraft;
 extern std::atomic<bool> g_TouchScreenInit;
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) FufuLauncher Dev Team. All rights reserved.
 Licensed under the AGPL-3.0 License.
 */
@@ -10,19 +10,7 @@ Licensed under the AGPL-3.0 License.
 #include <ctime>
 
 static HWND g_hGameWindow = NULL;
-static std::atomic<bool> g_profile_privacy_config_reload_pending{ false };
-static std::atomic<bool> g_profile_privacy_ui_active{ false };
-static bool g_profile_uid_retry_pending = false;
-static ULONGLONG g_profile_uid_retry_started = 0;
-static ULONGLONG g_profile_uid_last_retry = 0;
-static int g_profile_uid_retry_attempts = 0;
 static const char* g_profile_birthday_resolved_target = nullptr;
-static bool g_profile_uid_last_enabled = false;
-static bool g_profile_birthday_last_enabled = false;
-
-static constexpr ULONGLONG PROFILE_UID_RETRY_WINDOW_MS = 1500;
-static constexpr ULONGLONG PROFILE_UID_RETRY_INTERVAL_MS = 8;
-static constexpr int PROFILE_UID_MAX_RETRY_ATTEMPTS = 12;
 
 static std::atomic g_ShowDamageParamsValid{ true };
 
@@ -111,12 +99,6 @@ static bool SetProfileUIDActive(bool active) {
     return updated;
 }
 
-bool UpdateHideProfileUID() {
-    auto& config = Config::Get();
-    if (!config.hide_profile_uid) return true;
-    return SetProfileUIDActive(false);
-}
-
 static bool SetProfileBirthdayActive(bool active) {
     auto& config = Config::Get();
 
@@ -161,153 +143,20 @@ static bool SetProfileBirthdayActive(bool active) {
     return updated;
 }
 
-void UpdateHideProfileBirthday() {
-    auto& config = Config::Get();
-    if (!config.hide_profile_birthday) return;
-    SetProfileBirthdayActive(false);
-}
+// Event-driven profile privacy. Called from the SetupPlayerProfilePage hook
+// right after the original has opened/set up the page, so the page renders
+// normally while the UID / birthday objects are force-hidden below.
+void ApplyProfilePrivacyState() {
+    const auto& config = Config::Get();
+    const bool hideUid = config.hide_profile_uid;
+    const bool hideBirthday = config.hide_profile_birthday;
+    if (!hideUid && !hideBirthday) return;
 
-void UpdateProfilePrivacyUI() {
-    auto& config = Config::Get();
-    if (!config.hide_profile_uid && !config.hide_profile_birthday) return;
-
-    if (UpdateHideProfileUID()) g_profile_uid_retry_pending = false;
-    UpdateHideProfileBirthday();
-}
-
-bool IsProfilePrivacyUIActive() {
-    return g_profile_privacy_ui_active.load(std::memory_order_relaxed);
-}
-
-static bool FindActiveProfilePage() {
-    auto FindString = (tFindString)p_FindString.load();
-    auto FindGameObject = (tFindGameObject)p_FindGameObject.load();
-    auto GetActive = (tGetActive)p_GetActive.load();
-    if (!FindString || !FindGameObject) return false;
-
-    bool active = false;
-    SafeInvoke([&] {
-        auto str_obj = FindString(GameStrings::ProfileLayerPath);
-        if (!str_obj) return;
-
-        void* foundObj = FindGameObject(str_obj);
-        if (!foundObj) return;
-
-        active = !GetActive || GetActive(foundObj);
-    });
-    return active;
-}
-
-static void ResetProfileUIDRetry() {
-    g_profile_uid_retry_pending = false;
-    g_profile_uid_retry_started = 0;
-    g_profile_uid_last_retry = 0;
-    g_profile_uid_retry_attempts = 0;
-}
-
-void BeginProfilePrivacyUI() {
-    auto& config = Config::Get();
-
-    g_profile_privacy_ui_active.store(true, std::memory_order_relaxed);
-    ResetProfileUIDRetry();
-    g_profile_uid_retry_started = GetTickCount64();
-
-    if (config.hide_profile_uid) {
-        g_profile_uid_retry_pending = !UpdateHideProfileUID();
+    if (hideUid) {
+        SetProfileUIDActive(false);
     }
-    UpdateHideProfileBirthday();
-    g_profile_uid_last_enabled = config.hide_profile_uid;
-    g_profile_birthday_last_enabled = config.hide_profile_birthday;
-}
-
-void EndProfilePrivacyUI() {
-    g_profile_privacy_ui_active.store(false, std::memory_order_relaxed);
-    ResetProfileUIDRetry();
-}
-
-void NotifyProfileUIDBlocked() {
-    g_profile_uid_retry_pending = false;
-}
-
-void NotifyProfilePrivacyConfigReload() {
-    g_profile_privacy_config_reload_pending.store(true, std::memory_order_release);
-}
-
-static void ApplyPendingProfilePrivacyConfigReload() {
-    if (!g_profile_privacy_config_reload_pending.exchange(
-            false, std::memory_order_acq_rel)) {
-        return;
-    }
-
-    ResetProfileUIDRetry();
-    bool profilePageActive = IsProfilePrivacyUIActive();
-    if (!profilePageActive) {
-        profilePageActive = FindActiveProfilePage();
-        g_profile_privacy_ui_active.store(profilePageActive, std::memory_order_relaxed);
-    }
-
-    auto& config = Config::Get();
-    if (!profilePageActive) {
-        g_profile_uid_last_enabled = config.hide_profile_uid;
-        g_profile_birthday_last_enabled = config.hide_profile_birthday;
-        return;
-    }
-
-    if (config.hide_profile_uid || config.hide_profile_birthday) {
-        g_ProfilePrivacyRuntimeReady.store(true, std::memory_order_relaxed);
-    }
-
-    if (config.hide_profile_uid) {
-        g_profile_uid_retry_started = GetTickCount64();
-        g_profile_uid_retry_pending = !UpdateHideProfileUID();
-    } else if (g_profile_uid_last_enabled) {
-        SetProfileUIDActive(true);
-    }
-
-    if (config.hide_profile_birthday) {
+    if (hideBirthday) {
         SetProfileBirthdayActive(false);
-    } else if (g_profile_birthday_last_enabled) {
-        SetProfileBirthdayActive(true);
-    }
-
-    g_profile_uid_last_enabled = config.hide_profile_uid;
-    g_profile_birthday_last_enabled = config.hide_profile_birthday;
-}
-
-void UpdatePendingProfilePrivacyUI() {
-    ApplyPendingProfilePrivacyConfigReload();
-    if (!g_profile_uid_retry_pending) return;
-
-    auto& config = Config::Get();
-    if (!config.hide_profile_uid) {
-        EndProfilePrivacyUI();
-        return;
-    }
-
-    ULONGLONG current_time = GetTickCount64();
-    if (g_profile_uid_retry_attempts >= PROFILE_UID_MAX_RETRY_ATTEMPTS ||
-        current_time - g_profile_uid_retry_started > PROFILE_UID_RETRY_WINDOW_MS) {
-        g_profile_uid_retry_pending = false;
-        if (config.debug_console) {
-            std::cout << "[HideUI] Profile UID retry window expired." << std::endl;
-        }
-        return;
-    }
-
-    if (g_profile_uid_last_retry != 0 &&
-        current_time - g_profile_uid_last_retry < PROFILE_UID_RETRY_INTERVAL_MS) {
-        return;
-    }
-
-    g_profile_uid_last_retry = current_time;
-    ++g_profile_uid_retry_attempts;
-    if (UpdateHideProfileUID()) {
-        g_profile_uid_retry_pending = false;
-        if (config.debug_console) {
-            std::cout << "[HideUI] Profile UID hidden after "
-                      << g_profile_uid_retry_attempts << " bounded retries."
-                      << std::endl;
-        }
     }
 }
 
@@ -375,7 +224,7 @@ void WINAPI hk_SetupQuestBanner(void* __this) {
 
 void WINAPI hk_ShowDamage(void* a, int b, int c, int d, float e, Il2CppString* f, void* g, void* h, int i, char j, float k) {
     auto orig = (tShowDamage)o_ShowDamage.load();
-    
+
     if (!Config::Get().disable_show_damage_text) {
         if (orig) orig(a, b, c, d, e, f, g, h, i, j, k);
         return;

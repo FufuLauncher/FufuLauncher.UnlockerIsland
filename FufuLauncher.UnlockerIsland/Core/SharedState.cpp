@@ -8,6 +8,7 @@ std::atomic<void*> o_GetFrameCount{ nullptr };
 std::atomic<void*> o_SetFrameCount{ nullptr };
 std::atomic<void*> o_ChangeFov{ nullptr };
 std::atomic<void*> o_SetupQuestBanner{ nullptr };
+std::atomic<void*> o_SetupPlayerProfilePage{ nullptr };
 std::atomic<void*> o_ShowDamage{ nullptr };
 std::atomic<void*> o_CraftEntry{ nullptr };
 std::atomic<void*> o_EventCamera{ nullptr };
@@ -39,7 +40,6 @@ std::atomic<void*> o_UpdateInnerTarget{ nullptr };
 
 std::atomic<bool> g_RequestReloadPopup{ false };
 std::atomic<bool> g_GameUpdateInit{ false };
-std::atomic<bool> g_ProfilePrivacyRuntimeReady{ false };
 std::atomic<bool> g_RequestCraft{ false };
 std::atomic<bool> g_TouchScreenInit{ false };
 

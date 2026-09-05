@@ -325,72 +325,22 @@ static Il2CppString* SafeGetName(tGetName getName, void* obj) {
     __except (EXCEPTION_EXECUTE_HANDLER) { return nullptr; }
 }
 
-static bool ContainsInsensitive(const wchar_t* text, const wchar_t* fragment) {
-    if (!text || !fragment || !*fragment) return false;
-    const size_t fragmentLength = wcslen(fragment);
-    for (const wchar_t* current = text; *current; ++current) {
-        if (_wcsnicmp(current, fragment, fragmentLength) == 0) return true;
-    }
-    return false;
-}
-
-static bool IsProfileRefreshObject(const wchar_t* name) {
-    return ContainsInsensitive(name, L"PlayerProfilePage") ||
-           _wcsicmp(name, L"GrpProfile") == 0 ||
-           _wcsicmp(name, L"GrpPlayerCard") == 0;
-}
-
-static bool IsProfileUIDObject(const wchar_t* name) {
-    return _wcsicmp(name, L"UID") == 0 ||
-           _wcsicmp(name, L"TxtUID") == 0;
-}
-
-static bool IsProfileBirthdayObject(const wchar_t* name) {
-    return ContainsInsensitive(name, L"birthday") ||
-           ContainsInsensitive(name, L"birthdate");
-}
-
 void WINAPI hk_SetActive(void* pThis, bool active) {
     tSetActive orig = (tSetActive)o_SetActive.load();
     if (!orig) return;
 
     const auto& cfg = Config::Get();
-    const bool profilePrivacyConfigured =
-        cfg.hide_profile_uid || cfg.hide_profile_birthday;
-    const bool profilePrivacyEnabled =
-        profilePrivacyConfigured &&
-        g_ProfilePrivacyRuntimeReady.load(std::memory_order_relaxed);
-    const bool profilePageActive = IsProfilePrivacyUIActive();
-    const bool inspectProfilePrivacyName =
-        profilePrivacyEnabled && (active || profilePageActive);
 
+    // Only used for hide-grass. Profile UID/birthday are now hidden by the
+    // SetupPlayerProfilePage hook instead (see ApplyProfilePrivacyState).
     Il2CppString* name = nullptr;
-    if ((active && cfg.hide_grass) || inspectProfilePrivacyName) {
+    if (active && cfg.hide_grass) {
         auto getName = (tGetName)p_GetName.load();
         if (getName) name = SafeGetName(getName, pThis);
     }
 
     const wchar_t* objectName =
         name && name->chars && name->length > 0 ? name->chars : nullptr;
-
-    const bool profilePageObject =
-        objectName && ContainsInsensitive(objectName, L"PlayerProfilePage");
-
-    if (active && objectName && profilePrivacyEnabled && profilePageActive) {
-        const bool uidTarget = cfg.hide_profile_uid && IsProfileUIDObject(objectName);
-        const bool birthdayTarget =
-            cfg.hide_profile_birthday && IsProfileBirthdayObject(objectName);
-
-        if (uidTarget || birthdayTarget) {
-            orig(pThis, false);
-            if (uidTarget) NotifyProfileUIDBlocked();
-            if (cfg.debug_console) {
-                std::wcout << L"[HideUI] Blocked profile object activation: "
-                           << objectName << std::endl;
-            }
-            return;
-        }
-    }
 
     if (active && cfg.hide_grass && objectName) {
         if (cfg.hide_grass_indiscriminate) {
@@ -408,23 +358,7 @@ void WINAPI hk_SetActive(void* pThis, bool active) {
         }
     }
 
-    const bool refreshProfilePrivacy =
-        active && objectName && profilePrivacyEnabled &&
-        IsProfileRefreshObject(objectName);
-
-    if (profilePageObject && !active) {
-        EndProfilePrivacyUI();
-    }
-
     orig(pThis, active);
-
-    if (profilePageObject && active) {
-        BeginProfilePrivacyUI();
-    } else if (refreshProfilePrivacy && IsProfilePrivacyUIActive()) {
-        UpdateProfilePrivacyUI();
-    } else if (active && IsProfilePrivacyUIActive()) {
-        UpdatePendingProfilePrivacyUI();
-    }
 }
 
 static SafeFogBuffer g_fogBuf = { 0 };
