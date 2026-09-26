@@ -12,6 +12,8 @@ struct ModConfig {
     bool enable_vsync_override = true;
     
     bool enable_fps_override = false;
+
+    bool enable_fps_clamp = true;
     
     int selected_fps = 60;
     

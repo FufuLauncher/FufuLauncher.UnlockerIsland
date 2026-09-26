@@ -262,6 +262,8 @@ int32_t WINAPI hk_GetFrameCount() {
     int32_t ret = 60;
     SafeInvoke([&] { ret = orig(); });
 
+    if (!Config::Get().enable_fps_clamp) return ret;
+
     if (ret >= 60) return 60;
     if (ret >= 45) return 45;
     if (ret >= 30) return 30;

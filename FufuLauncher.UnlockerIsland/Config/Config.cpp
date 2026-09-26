@@ -98,6 +98,8 @@ namespace Config {
         g_Config.debug_console = ReadInt("DebugConsole", 0, file);
         
         g_Config.enable_fps_override = ReadInt("FpsUnlock", 0, file);
+
+        g_Config.enable_fps_clamp = ReadInt("PreventDetectionPopup", 1, file);
         
         g_Config.selected_fps = ReadInt("TargetFps", 60, file);
         
