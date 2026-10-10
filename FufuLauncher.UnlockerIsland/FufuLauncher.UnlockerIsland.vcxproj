@@ -155,6 +155,8 @@
         <ClInclude Include="Camera\Camera.h" />
         <ClInclude Include="CameraOffset\CameraOffset.h" />
         <ClInclude Include="CameraTweaks\CameraTweaks.h" />
+        <ClInclude Include="CameraDistance\CameraDistance.h" />
+        <ClInclude Include="CameraCollision\CameraCollision.h" />
         <ClInclude Include="PaimonFollow\PaimonFollow.h" />
         <ClInclude Include="il2cpp\Il2CppArray.h" />
         <ClInclude Include="il2cpp\Il2CppList.h" />
@@ -179,6 +181,8 @@
         <ClCompile Include="Camera\Camera.cpp" />
         <ClCompile Include="CameraOffset\CameraOffset.cpp" />
         <ClCompile Include="CameraTweaks\CameraTweaks.cpp" />
+        <ClCompile Include="CameraDistance\CameraDistance.cpp" />
+        <ClCompile Include="CameraCollision\CameraCollision.cpp" />
         <ClCompile Include="PaimonFollow\PaimonFollow.cpp" />
     </ItemGroup>
     <ItemGroup>

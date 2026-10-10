@@ -48,6 +48,17 @@ namespace Patterns {
     inline constexpr const char* CameraAngularDecay = "56 48 81 EC 80 00 00 00 44 0F 29 44 24 ? 0F 29 7C 24 ? 0F 29 74 24 ? 0F 28 FB 44 0F 28 C2 48 89 D6 0F 28 F0";
     inline constexpr const char* CameraInputDevice = "48 8B 80 A0 9C 00 00 48 85 C0 0F 84 ? ? ? ? 83 B8 88 01 00 00 03 48 8B 47 20 75";
     inline constexpr const char* CameraStateBlenderTick = "41 57 41 56 41 55 41 54 56 57 55 53 B8 88 18 00 00 E8 ? ? ? ? 48 29 C4 44 0F 29 8C 24 70 18 00 00"; 
+
+    // CN 7.1 DAMLEAKHMIP native protector Tick (RVA 0xAFEDF00).
+    inline constexpr const char* CameraCollisionTick =
+        "41 57 41 56 56 57 53 48 81 EC 20 03 00 00 66 44 0F 29 BC 24 10 03 00 00 66 44 0F 29 B4 24 00 03 00 00";
+    // CN 7.1 JAEBHHCCJAP.Initialize (RVA 0x76463C0 / 0x7640940).
+    inline constexpr const char* CameraDistanceCollect =
+        "41 57 41 56 41 54 56 57 53 48 83 EC 48 0F 29 74 24 30 4D 89 CC 4C 89 C6 66 0F 28 F1 48 89 CF 4C 8B B4 24 A0 00 00 00 80 3D ? ? ? ? 00 0F 85 ? ? ? ? 48 89 F9 48 89 F2 4D 89 F0 E8 ? ? ? ? 48 89 F9 66 0F 28 CE";
+    inline constexpr const char* CameraDistanceInitializeRadius =
+        "56 57 55 53 48 81 EC C8 00 00 00 44 0F 29 8C 24 B0 00 00 00 44 0F 29 84 24 A0 00 00 00 0F 29 BC 24 90 00 00 00 66 0F 29 B4 24 80 00 00 00 4C 89 CB 4C 89 C6 66 44 0F 28 C1 48 89 CF 0F 57 C0 0F 29 44 24 30 80 3D ? ? ? ? 00 0F 85 ? ? ? ? F2 0F 10 BE 40 04 00 00 80 BF B2 02 00 00";
+    inline constexpr const char* CameraDistanceIsRadiusMode =
+        "56 57 48 83 EC 38 89 D7 80 3D ? ? ? ? 00 75 ? 8B 01 8B 51 04 8B 49 08 89 C6 09 D6 75 ? 85 C9 75 ? EB ? 81 C2 92 ED EE 50 39 D0 75 ? 81 F1 D3 33 26 58 01 C8 05 8C 00 36 CA EB ? 80 3D ? ? ? ? 00 48 8B 05 ? ? ? ? 75 ? 48 8B 88 B0 C8 00 00 48 85 C9 74 ? BA 03 00 00 00 E8 ? ? ? ? 31 C0 39 F8 0F 94 C0 48 83 C4 38 5F 5E C3";
     inline constexpr const char* UnderwaterMaskPreMain = "41 56 56 57 55 53 48 81 EC F0 04 00 00";
     inline constexpr const char* UnderwaterMaskMain = "41 57 41 56 56 57 53 48 81 EC D0 04 00 00 48 89 CE";
     inline constexpr const char* UnderwaterMaskPostMain = "41 56 56 57 55 53 48 81 EC E0 00 00 00 48 89 CE 80 3D ? ? ? ? ? 75 ? 48 8B 86 ? ? ? ? 48 85 C0";

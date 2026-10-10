@@ -1,211 +1,87 @@
-﻿/*
+/*
 Copyright (c) FufuLauncher Dev Team. All rights reserved.
 Licensed under the AGPL-3.0 License.
 */
 #include "CameraOffset.h"
-
-#include "../Camera/Camera.h"
 #include "../Config/Config.h"
-
 #include <algorithm>
+#include <atomic>
 #include <cmath>
-#include <iostream>
-#include <Windows.h>
 
 namespace CameraOffset {
     namespace {
-        bool g_AppliedStateValid = false;
-        void* g_AppliedTransform = nullptr;
-        Vector3 g_LastBase = { 0, 0, 0 };
-        Vector3 g_LastOutput = { 0, 0, 0 };
-        Vector3 g_CurrentOffset = { 0, 0, 0 };
-        ULONGLONG g_LastTransitionTick = 0;
-        bool g_HorizontalBasisValid = false;
-        Vector3 g_LastCameraRight = { 1, 0, 0 };
-        Vector3 g_LastCameraBack = { 0, 0, -1 };
+        std::atomic<bool> g_Allowed{ false };
+        Offset g_Current{};
+        Offset g_Right{ 1, 0, 0 };
+        bool g_BasisValid = false;
 
-        bool NearlyEqual(float a, float b) {
-            return fabsf(a - b) <= 0.0005f;
+        bool Finite(const Offset& v) {
+            return std::isfinite(v.x) && std::isfinite(v.y) && std::isfinite(v.z);
         }
 
-        bool NearlyEqual(const Vector3& a, const Vector3& b) {
-            return NearlyEqual(a.x, b.x) &&
-                NearlyEqual(a.y, b.y) &&
-                NearlyEqual(a.z, b.z);
-        }
-
-        void ResetAppliedOffset(bool restoreIfUntouched) {
-            if (!g_AppliedStateValid) return;
-
-            if (restoreIfUntouched &&
-                g_AppliedTransform == Camera::GetTransform()) {
-                Vector3 current{};
-                if (Camera::GetPosition(current) &&
-                    NearlyEqual(current, g_LastOutput)) {
-                    Camera::SetPosition(g_LastBase);
-                }
-            }
-
-            g_AppliedStateValid = false;
-            g_AppliedTransform = nullptr;
-        }
-
-        Vector3 AdvanceOffset(const Vector3& targetOffset, float transitionSpeed) {
-            if (Config::Get().disable_camera_blend) {
-                g_CurrentOffset = targetOffset;
-                g_LastTransitionTick = 0;
-                return g_CurrentOffset;
-            }
-
-            ULONGLONG now = GetTickCount64();
-            float deltaSeconds = 1.0f / 60.0f;
-            if (g_LastTransitionTick != 0 && now > g_LastTransitionTick) {
-                deltaSeconds = static_cast<float>(now - g_LastTransitionTick) / 1000.0f;
-                deltaSeconds = std::clamp(deltaSeconds, 0.0f, 0.1f);
-            }
-            g_LastTransitionTick = now;
-
-            if (transitionSpeed < 0.1f) transitionSpeed = 0.1f;
-            float blend = 1.0f - expf(-transitionSpeed * deltaSeconds);
-            g_CurrentOffset.x += (targetOffset.x - g_CurrentOffset.x) * blend;
-            g_CurrentOffset.y += (targetOffset.y - g_CurrentOffset.y) * blend;
-            g_CurrentOffset.z += (targetOffset.z - g_CurrentOffset.z) * blend;
-            if (NearlyEqual(g_CurrentOffset, targetOffset)) {
-                g_CurrentOffset = targetOffset;
-            }
-            return g_CurrentOffset;
-        }
-
-        bool UpdateHorizontalBasis() {
-            Camera::Quaternion rotation{};
-            if (!Camera::GetRotation(rotation)) return g_HorizontalBasisValid;
-
-            float normSquared = rotation.x * rotation.x +
-                rotation.y * rotation.y + rotation.z * rotation.z +
-                rotation.w * rotation.w;
-            if (!std::isfinite(normSquared) || normSquared < 0.25f ||
-                normSquared > 4.0f) {
-                return g_HorizontalBasisValid;
-            }
-
-            float inverseNorm = 1.0f / sqrtf(normSquared);
-            rotation.x *= inverseNorm;
-            rotation.y *= inverseNorm;
-            rotation.z *= inverseNorm;
-            rotation.w *= inverseNorm;
-
-            Vector3 right = Camera::RotateVector(rotation, { 1, 0, 0 });
-            right.y = 0.0f;
-            float horizontalLength = sqrtf(right.x * right.x + right.z * right.z);
-            if (!std::isfinite(horizontalLength) || horizontalLength < 0.001f) {
-                return g_HorizontalBasisValid;
-            }
-            right.x /= horizontalLength;
-            right.z /= horizontalLength;
-
-            g_LastCameraRight = right;
-            g_LastCameraBack = { right.z, 0.0f, -right.x };
-            g_HorizontalBasisValid = true;
+        bool UpdateBasis(const Rotation& q) {
+            const double norm = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
+            if (!std::isfinite(norm) || norm < 0.25 || norm > 4.0) return false;
+            // Horizontal camera right; Y stays world-up and Z stays backward.
+            const double x = 1.0 - 2.0 * (q.y * q.y + q.z * q.z) / norm;
+            const double z = 2.0 * (q.x * q.z - q.w * q.y) / norm;
+            const double length = std::hypot(x, z);
+            if (length < 0.001) return g_BasisValid;
+            g_Right = { x / length, 0.0, z / length };
+            g_BasisValid = true;
             return true;
         }
-
-        Vector3 ResolveWorldOffset(const Vector3& cameraOffset) {
-            Vector3 worldOffset{ 0.0f, cameraOffset.y, 0.0f };
-            if (UpdateHorizontalBasis()) {
-                worldOffset.x += g_LastCameraRight.x * cameraOffset.x +
-                    g_LastCameraBack.x * cameraOffset.z;
-                worldOffset.z += g_LastCameraRight.z * cameraOffset.x +
-                    g_LastCameraBack.z * cameraOffset.z;
-            }
-            return worldOffset;
-        }
-
-        void ApplyOffset(const Vector3& cameraOffset) {
-            if (NearlyEqual(cameraOffset, { 0, 0, 0 })) {
-                ResetAppliedOffset(true);
-                return;
-            }
-
-            void* transform = Camera::GetTransform();
-            if (!transform) return;
-
-            if (g_AppliedStateValid && g_AppliedTransform != transform) {
-                ResetAppliedOffset(false);
-            }
-
-            Vector3 current{};
-            if (!Camera::GetPosition(current)) return;
-
-            Vector3 base = current;
-            if (g_AppliedStateValid && g_AppliedTransform == transform &&
-                NearlyEqual(current, g_LastOutput)) {
-                // ChangeFOV may run more than once before the game updates the
-                // camera. Reuse the untouched base to prevent cumulative drift.
-                base = g_LastBase;
-            }
-
-            Vector3 worldOffset = ResolveWorldOffset(cameraOffset);
-            Vector3 adjusted = base;
-            adjusted.x += worldOffset.x;
-            adjusted.y += worldOffset.y;
-            adjusted.z += worldOffset.z;
-            if (Camera::SetPosition(adjusted)) {
-                g_AppliedStateValid = true;
-                g_AppliedTransform = transform;
-                g_LastBase = base;
-                g_LastOutput = adjusted;
-            }
-        }
     }
 
-    void Init() {
-        if (Camera::IsReady()) {
-            std::cout << "   -> Follow-camera offset ready." << std::endl;
-        } else {
-            std::cout << "   -> [ERR] Follow-camera offset disabled: shared camera access is unavailable." << std::endl;
-        }
-    }
+    void Init() { SuspendImmediately(); }
 
     void SuspendImmediately() {
-        // ChangeFOV is a state-change event rather than a guaranteed per-frame
-        // callback. Restore the known unmodified base on the aiming event so
-        // the offset cannot remain mostly applied after a single blend step.
-        ResetAppliedOffset(true);
-        g_CurrentOffset = { 0.0f, 0.0f, 0.0f };
-        g_LastTransitionTick = 0;
-        g_HorizontalBasisValid = false;
+        g_Allowed.store(false, std::memory_order_relaxed);
+        g_Current = {};
+        g_BasisValid = false;
     }
 
     void Tick(bool allowGameplayCameraOffset, bool cameraOwnedByAnotherFeature) {
-        auto& config = Config::Get();
-        bool allowOffset = config.enable_camera_offset &&
-            allowGameplayCameraOffset && !cameraOwnedByAnotherFeature;
-
-        Vector3 targetOffset{ 0.0f, 0.0f, 0.0f };
-        if (allowOffset) {
-            targetOffset = {
-                config.camera_offset_x,
-                config.camera_offset_y,
-                config.camera_offset_z
-            };
+        // ChangeFOV only updates eligibility. Interpolation belongs to the
+        // native per-frame callback, not to Unity transform writes.
+        if (!allowGameplayCameraOffset || cameraOwnedByAnotherFeature) {
+            SuspendImmediately();
+        } else {
+            g_Allowed.store(true, std::memory_order_relaxed);
         }
-        Vector3 currentOffset = AdvanceOffset(
-            targetOffset, config.camera_height_transition_speed);
+    }
 
-        if (!Camera::IsReady()) {
-            g_CurrentOffset = { 0.0f, 0.0f, 0.0f };
-            g_LastTransitionTick = 0;
-            return;
+    bool HasPendingOffset() {
+        return Config::Get().enable_camera_offset || std::abs(g_Current.x) > 0.0005 ||
+            std::abs(g_Current.y) > 0.0005 || std::abs(g_Current.z) > 0.0005;
+    }
+
+    bool GetWorldOffset(double dt, const Rotation& rotation, Offset& result) {
+        result = {};
+        if (!g_Allowed.load(std::memory_order_relaxed)) return false;
+        const auto& cfg = Config::Get();
+        Offset target{};
+        if (cfg.enable_camera_offset) {
+            target = { cfg.camera_offset_x, cfg.camera_offset_y, cfg.camera_offset_z };
         }
-
-        if (cameraOwnedByAnotherFeature) {
-            // Restore the untouched game camera before the owning feature
-            // writes its own transform. The internal offset follows the global
-            // blend setting when returning to zero.
-            ResetAppliedOffset(true);
-            return;
+        if (!Finite(target) || !std::isfinite(dt) || !UpdateBasis(rotation)) {
+            g_Current = {};
+            g_BasisValid = false;
+            return false;
         }
-
-        ApplyOffset(currentOffset);
+        const double speed = std::isfinite(cfg.camera_height_transition_speed) ?
+            std::clamp(static_cast<double>(cfg.camera_height_transition_speed), 0.1, 30.0) : 8.0;
+        const double blend = cfg.disable_camera_blend ? 1.0 :
+            1.0 - std::exp(-speed * std::clamp(dt, 0.0, 0.1));
+        g_Current.x += (target.x - g_Current.x) * blend;
+        g_Current.y += (target.y - g_Current.y) * blend;
+        g_Current.z += (target.z - g_Current.z) * blend;
+        if (std::abs(g_Current.x - target.x) <= 0.0005 &&
+            std::abs(g_Current.y - target.y) <= 0.0005 &&
+            std::abs(g_Current.z - target.z) <= 0.0005) g_Current = target;
+        result = { g_Right.x * g_Current.x + g_Right.z * g_Current.z,
+            g_Current.y, g_Right.z * g_Current.x - g_Right.x * g_Current.z };
+        return std::abs(result.x) > 0.0005 || std::abs(result.y) > 0.0005 ||
+            std::abs(result.z) > 0.0005;
     }
 }

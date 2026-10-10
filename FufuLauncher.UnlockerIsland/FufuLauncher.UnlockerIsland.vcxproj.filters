@@ -60,6 +60,12 @@
     <ClInclude Include="CameraTweaks\CameraTweaks.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CameraDistance\CameraDistance.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraCollision\CameraCollision.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="SecurityUtils.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -90,6 +96,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CameraTweaks\CameraTweaks.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraDistance\CameraDistance.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraCollision\CameraCollision.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Config.cpp">

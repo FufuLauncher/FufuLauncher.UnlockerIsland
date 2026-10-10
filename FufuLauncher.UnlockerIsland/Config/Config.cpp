@@ -6,6 +6,7 @@ Licensed under the AGPL-3.0 License.
 #include <string>
 #include <cstdio>
 #include <cstdlib>
+#include <cmath>
 #include <vector>
 #include <Windows.h>
 #include <iostream>
@@ -119,6 +120,15 @@ namespace Config {
 
         g_Config.disable_camera_smooth = ReadInt("DisableCameraSmooth", 0, file);
         g_Config.disable_camera_blend = ReadInt("DisableCameraBlend", 0, file);
+        g_Config.disable_camera_collision = ReadInt("DisableCameraCollision", 0, file);
+
+        g_Config.enable_camera_distance = ReadInt("EnableCameraDistance", 0, file);
+        g_Config.camera_max_distance = ReadFloat("CameraMaxDistance", 20.0f, file);
+        if (!std::isfinite(g_Config.camera_max_distance)) {
+            g_Config.camera_max_distance = 20.0f;
+        } else if (g_Config.camera_max_distance < 6.0f) {
+            g_Config.camera_max_distance = 6.0f;
+        }
 
         g_Config.enable_camera_offset = ReadInt("EnableCameraOffset", 0, file);
         g_Config.camera_offset_key = ReadInt("CameraOffsetKey", VK_F6, file);

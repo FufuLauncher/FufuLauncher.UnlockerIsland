@@ -12,6 +12,7 @@ namespace Hooks {
     void Uninit();
     
     bool IsGameUpdateInit();
+    bool CanApplyCameraOffset();
     void RequestOpenCraft();
     void TriggerReloadPopup();
     void UpdateVisuals();

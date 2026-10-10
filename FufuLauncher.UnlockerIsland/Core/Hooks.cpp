@@ -22,6 +22,8 @@ Licensed under the AGPL-3.0 License.
 #include "../Camera/Camera.h"
 #include "../CameraOffset/CameraOffset.h"
 #include "../CameraTweaks/CameraTweaks.h"
+#include "../CameraDistance/CameraDistance.h"
+#include "../CameraCollision/CameraCollision.h"
 #include "../PaimonFollow/PaimonFollow.h"
 #include <iostream>
 #include <atomic>
@@ -400,6 +402,10 @@ static bool IsDialogueOrCutsceneActive() {
 
 static bool IsCameraSensitivePageActive() {
     return IsCameraPageActiveFromEvents();
+}
+
+bool Hooks::CanApplyCameraOffset() {
+    return !IsDialogueOrCutsceneActive();
 }
 
 static std::atomic<bool> g_IsAimingCamera{ false };
@@ -794,6 +800,8 @@ bool Hooks::Init() {
     FreeCamera::Init();
 
     CameraTweaks::Init();
+    CameraDistance::Init();
+    CameraCollision::Init();
 
     PaimonFollow::Init();
     
