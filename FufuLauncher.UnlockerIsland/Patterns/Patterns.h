@@ -44,7 +44,9 @@ namespace Patterns {
     inline constexpr const char* ExpHashCmp    = "81 F9 E1 73 90 69"; 
     inline constexpr const char* ExpTailJmp    = "41 5F E9";
     inline constexpr const char* ExpTestJz     = "84 C0 0F 84";
-    inline constexpr const char* CameraUpdateView = "56 48 83 EC 40 0F 29 7C 24 30 0F 29 74 24 20 48 89 CE F3 0F 10 71 70 F3 0F 10 79 78 F3 0F 5C F7 F3 0F 59 B1 80 00 00 00 E8 ?";
+    inline constexpr const char* CameraFollowTick = "56 57 53 48 81 EC 90 00 00 00 44 0F 29 84 24 ? ? ? ? 0F 29 7C 24 ? 0F 29 74 24 ? 4C 89 CB";
+    inline constexpr const char* CameraAngularDecay = "56 48 81 EC 80 00 00 00 44 0F 29 44 24 ? 0F 29 7C 24 ? 0F 29 74 24 ? 0F 28 FB 44 0F 28 C2 48 89 D6 0F 28 F0";
+    inline constexpr const char* CameraInputDevice = "48 8B 80 A0 9C 00 00 48 85 C0 0F 84 ? ? ? ? 83 B8 88 01 00 00 03 48 8B 47 20 75";
     inline constexpr const char* CameraStateBlenderTick = "41 57 41 56 41 55 41 54 56 57 55 53 B8 88 18 00 00 E8 ? ? ? ? 48 29 C4 44 0F 29 8C 24 70 18 00 00"; 
     inline constexpr const char* UnderwaterMaskPreMain = "41 56 56 57 55 53 48 81 EC F0 04 00 00";
     inline constexpr const char* UnderwaterMaskMain = "41 57 41 56 56 57 53 48 81 EC D0 04 00 00 48 89 CE";
