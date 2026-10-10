@@ -16,8 +16,10 @@ Licensed under the AGPL-3.0 License.
 #include <cstring>
 #include <iostream>
 
-namespace CameraCollision {
-    namespace {
+namespace CameraCollision
+{
+    namespace
+    {
         // CN 7.1 DAMLEAKHMIP.OFLJEMLABKC, the common native camera protector.
         using Tick = void(__fastcall*)(void*, double, void*, void*, void*, void*, void*);
         Tick g_Tick = nullptr;
@@ -30,48 +32,58 @@ namespace CameraCollision {
         constexpr size_t kOrientation = 0x48;
         constexpr size_t kLookAt = 0xA8;
 
-        struct CallState {
+        struct CallState
+        {
             uint8_t* input = nullptr;
             uint8_t originalSkip = 0;
             bool skipWritten = false;
         };
 
-        bool Finite(const Vector& v) {
+        bool Finite(const Vector& v)
+        {
             return std::isfinite(v.x) && std::isfinite(v.y) && std::isfinite(v.z);
         }
 
-        Vector Shift(const Vector& v, const Vector& offset) {
-            return { v.x + offset.x, v.y + offset.y, v.z + offset.z };
+        Vector Shift(const Vector& v, const Vector& offset)
+        {
+            return {v.x + offset.x, v.y + offset.y, v.z + offset.z};
         }
 
-        void PrepareCall(void* input, void* output, double dt, CallState& call) {
+        void PrepareCall(void* input, void* output, double dt, CallState& call)
+        {
             if (!Config::Get().disable_camera_collision && !CameraOffset::HasPendingOffset()) return;
-            if (!input || !output || FreeCamera::IsActive() || IsCameraPageActiveFromEvents()) {
+            if (!input || !output || FreeCamera::IsActive() || IsCameraPageActiveFromEvents())
+            {
                 CameraOffset::SuspendImmediately();
                 return;
             }
-            __try {
+            __try
+            {
                 auto* state = static_cast<uint8_t*>(input);
                 auto* pose = static_cast<uint8_t*>(output);
                 // Normal follow cameras share this protector, including combat,
                 // climb and flight. Parallel/Cinema are separate native modes.
-                if (*reinterpret_cast<int*>(state + kCameraMode) != 0) {
+                if (*reinterpret_cast<int*>(state + kCameraMode) != 0)
+                {
                     CameraOffset::SuspendImmediately();
                     return;
                 }
                 const auto skip = state[kSkipProtection];
                 if (skip > 1 || state[kEventTarget] > 1) return;
 
-                if (CameraOffset::HasPendingOffset()) {
+                if (CameraOffset::HasPendingOffset())
+                {
                     const double fov = *reinterpret_cast<double*>(pose);
-                    if (std::isfinite(fov) && fov > 30.0 && state[kEventTarget] == 0) {
+                    if (std::isfinite(fov) && fov > 30.0 && state[kEventTarget] == 0)
+                    {
                         // Check cached UI eligibility on the actual frame callback,
                         // so leaving aim/dialogue does not require another FOV event.
                         CameraOffset::Tick(Hooks::CanApplyCameraOffset(), false);
                         CameraOffset::Rotation rotation;
                         std::memcpy(&rotation, pose + kOrientation, sizeof(rotation));
                         Vector offset;
-                        if (CameraOffset::GetWorldOffset(dt, rotation, offset)) {
+                        if (CameraOffset::GetWorldOffset(dt, rotation, offset))
+                        {
                             Vector desired, position, lookAt;
                             std::memcpy(&desired, state + kDesiredPosition, sizeof(desired));
                             std::memcpy(&position, pose + kPosition, sizeof(position));
@@ -82,54 +94,67 @@ namespace CameraCollision {
                             desired = Shift(desired, offset);
                             position = Shift(position, offset);
                             lookAt = Shift(lookAt, offset);
-                            if (Finite(desired) && Finite(position) && Finite(lookAt)) {
+                            if (Finite(desired) && Finite(position) && Finite(lookAt))
+                            {
                                 std::memcpy(state + kDesiredPosition, &desired, sizeof(desired));
                                 std::memcpy(pose + kPosition, &position, sizeof(position));
                                 std::memcpy(pose + kLookAt, &lookAt, sizeof(lookAt));
                             }
                         }
-                    } else {
+                    }
+                    else
+                    {
                         // Retain the offset module's existing aim/script exclusions.
                         CameraOffset::SuspendImmediately();
                     }
                 }
 
-                if (Config::Get().disable_camera_collision) {
+                if (Config::Get().disable_camera_collision)
+                {
                     call.input = state;
                     call.originalSkip = skip;
                     state[kSkipProtection] = 1;
                     call.skipWritten = true;
                 }
-            } __except (EXCEPTION_EXECUTE_HANDLER) {
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
                 // Unsupported/invalid state keeps the original native call.
             }
         }
 
         void __fastcall HookTick(void* self, double dt, void* input, void* output,
-            void* extra, void* context, void* method) {
+                                 void* extra, void* context, void* method)
+        {
             CallState call;
             PrepareCall(input, output, dt, call);
-            __try {
+            __try
+            {
                 // Offset is already in the desired pose. Walls/ground, radius
                 // recovery, near-plane handling and damping resolve it natively.
                 g_Tick(self, dt, input, output, extra, context, method);
-            } __finally {
+            }
+            __finally
+            {
                 if (call.skipWritten) call.input[kSkipProtection] = call.originalSkip;
             }
         }
     }
 
-    void Init() {
+    void Init()
+    {
         auto* tick = Scanner::ScanMainMod(Patterns::CameraCollisionTick);
         if (!tick || !Scanner::ScanRange(tick, 0x100,
-                "80 BE 91 02 00 00 00 0F 85 ? ? ? ? 80 BB 36 04 00 00 00") ||
+                                         "80 BE 91 02 00 00 00 0F 85 ? ? ? ? 80 BB 36 04 00 00 00") ||
             !Scanner::ScanRange(tick, 0x100,
-                "0F 10 87 A8 00 00 00 48 8B 87 B8 00 00 00 48 89 83 98 04 00 00 0F 11 83 88 04 00 00")) {
+                                "0F 10 87 A8 00 00 00 48 8B 87 B8 00 00 00 48 89 83 98 04 00 00 0F 11 83 88 04 00 00"))
+        {
             std::cout << "[WARN] Native camera protector layout unsupported; offset/collision options unavailable.\n";
             return;
         }
         if (MH_CreateHook(tick, reinterpret_cast<void*>(HookTick),
-                reinterpret_cast<void**>(&g_Tick)) != MH_OK) {
+                          reinterpret_cast<void**>(&g_Tick)) != MH_OK)
+        {
             std::cout << "[WARN] Native camera protector hook failed.\n";
             return;
         }

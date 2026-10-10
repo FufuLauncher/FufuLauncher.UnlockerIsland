@@ -6,8 +6,12 @@ Licensed under the AGPL-3.0 License.
 
 #include "../Core/SharedState.h"
 
-namespace Camera {
-    struct Quaternion { float x, y, z, w; };
+namespace Camera
+{
+    struct Quaternion
+    {
+        float x, y, z, w;
+    };
 
     bool Init();
     void Tick();

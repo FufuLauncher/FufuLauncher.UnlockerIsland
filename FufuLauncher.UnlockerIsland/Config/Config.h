@@ -6,19 +6,20 @@ Licensed under the AGPL-3.0 License.
 #include <Windows.h>
 #include <string>
 
-struct ModConfig {
+struct ModConfig
+{
     bool debug_console = false;
-    
+
     bool enable_vsync_override = true;
-    
+
     bool enable_fps_override = false;
 
     bool enable_fps_clamp = true;
-    
+
     int selected_fps = 60;
-    
+
     bool enable_fov_override = false;
-    
+
     float fov_value = 45.0f;
 
     bool disable_camera_smooth = false;
@@ -36,9 +37,9 @@ struct ModConfig {
     float camera_height_transition_speed = 8.0f;
 
     bool use_touch_screen = false;
-    
+
     bool hide_quest_banner = false;
-    
+
     bool hide_uid = false;
 
     bool use_resin_000106 = true;
@@ -46,25 +47,25 @@ struct ModConfig {
     bool use_resin_107009 = true;
     bool use_resin_107012 = true;
     bool use_resin_220007 = true;
-    
+
     bool disable_show_damage_text = false;
-    
+
     bool disable_event_camera_move = false;
-    
+
     bool disable_fog = false;
-    
+
     bool disable_character_fade = false;
-    
+
     bool enable_custom_title = false;
-    
+
     std::string custom_title_text = "原神";
 
     bool enable_redirect_craft_override = false;
-    
+
     bool enable_remove_team_anim = false;
 
     int toggle_key = VK_HOME;
-    
+
     int craft_key = 0;
 
     bool dump_offsets = false;
@@ -84,10 +85,10 @@ struct ModConfig {
     bool hide_grass_indiscriminate = false;
 
     bool enable_clock_speedup = false;
-    
+
     bool enable_auto_cook = false;
     bool enable_auto_expedition = false;
-    
+
     int auto_cook_key = VK_F10;
     int auto_expedition_key = VK_F9;
 
@@ -110,7 +111,8 @@ struct ModConfig {
     bool enable_paimon_follow = false;
 };
 
-namespace Config {
+namespace Config
+{
     ModConfig& Get();
     void Load();
     void SaveOverlayPos(float x, float y);

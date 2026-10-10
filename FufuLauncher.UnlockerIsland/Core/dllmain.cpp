@@ -24,7 +24,7 @@ Licensed under the AGPL-3.0 License.
 #include "Hooks.h"
 
 #pragma comment(lib, "psapi.lib")
-#pragma comment(lib, "wininet.lib") 
+#pragma comment(lib, "wininet.lib")
 #pragma comment(lib, "Crypt32.lib")
 #pragma comment(lib, "Gdi32.lib")
 #pragma comment(lib, "User32.lib")
@@ -34,17 +34,21 @@ Licensed under the AGPL-3.0 License.
 
 static std::string g_LogPath;
 
-static void LogToFile(const std::string& msg) {
+static void LogToFile(const std::string& msg)
+{
     std::error_code ec;
-    if (std::filesystem::exists(g_LogPath, ec)) {
-        if (std::filesystem::file_size(g_LogPath, ec) > 1048576) {
+    if (std::filesystem::exists(g_LogPath, ec))
+    {
+        if (std::filesystem::file_size(g_LogPath, ec) > 1048576)
+        {
             std::ofstream truncFile(g_LogPath, std::ios::trunc);
             truncFile.close();
         }
     }
 
     std::ofstream ofs(g_LogPath, std::ios::app);
-    if (ofs.is_open()) {
+    if (ofs.is_open())
+    {
         SYSTEMTIME st;
         GetLocalTime(&st);
         char timeBuf[64];
@@ -53,7 +57,8 @@ static void LogToFile(const std::string& msg) {
     }
 }
 
-static bool IsSystemModulePath(const std::string& path) {
+static bool IsSystemModulePath(const std::string& path)
+{
     char windowsDir[MAX_PATH];
     UINT length = GetSystemWindowsDirectoryA(windowsDir, MAX_PATH);
     if (length == 0 || length >= MAX_PATH) return false;
@@ -64,10 +69,12 @@ static bool IsSystemModulePath(const std::string& path) {
     return path.size() >= prefix.size() && _strnicmp(path.c_str(), prefix.c_str(), prefix.size()) == 0;
 }
 
-static void LogInjectedModules() {
+static void LogInjectedModules()
+{
     HMODULE modules[1024];
     DWORD needed = 0;
-    if (!EnumProcessModules(GetCurrentProcess(), modules, sizeof(modules), &needed)) {
+    if (!EnumProcessModules(GetCurrentProcess(), modules, sizeof(modules), &needed))
+    {
         LogToFile("Injected module enumeration failed, error " + std::to_string(GetLastError()));
         return;
     }
@@ -80,7 +87,8 @@ static void LogInjectedModules() {
     HMODULE mainModule = GetModuleHandleA(nullptr);
     std::vector<std::string> injected;
 
-    for (size_t i = 0; i < count; ++i) {
+    for (size_t i = 0; i < count; ++i)
+    {
         if (modules[i] == mainModule) continue;
 
         char path[MAX_PATH];
@@ -92,10 +100,12 @@ static void LogInjectedModules() {
 
     std::ostringstream log;
     log << "Injected DLLs detected (non-system modules): " << injected.size();
-    for (size_t i = 0; i < injected.size() && i < kMaxLogged; ++i) {
+    for (size_t i = 0; i < injected.size() && i < kMaxLogged; ++i)
+    {
         log << "\n  " << injected[i];
     }
-    if (injected.size() > kMaxLogged) {
+    if (injected.size() > kMaxLogged)
+    {
         log << "\n  ... and " << (injected.size() - kMaxLogged) << " more";
     }
     LogToFile(log.str());
@@ -106,56 +116,70 @@ std::atomic<bool> g_StopDialogPolling{false};
 std::string g_DialogText = "";
 std::mutex g_DialogMutex;
 
-void DialogWorker() {
+void DialogWorker()
+{
     std::string lastText = "";
-    while (true) {
-        if (g_StopDialogPolling.load()) {
-            break; 
+    while (true)
+    {
+        if (g_StopDialogPolling.load())
+        {
+            break;
         }
 
         HINTERNET hInternet = InternetOpenA("FufuLauncher Unlock/1.7.0.0", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
-        if (hInternet) {
+        if (hInternet)
+        {
             DWORD timeout = 5000;
             InternetSetOptionA(hInternet, INTERNET_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(DWORD));
 
-            HINTERNET hConnect = InternetOpenUrlA(hInternet, "https://fu1.fun/dialog.json", NULL, 0, INTERNET_FLAG_RELOAD | INTERNET_FLAG_SECURE, 0);
-            if (hConnect) {
+            HINTERNET hConnect = InternetOpenUrlA(hInternet, "https://fu1.fun/dialog.json", NULL, 0,
+                                                  INTERNET_FLAG_RELOAD | INTERNET_FLAG_SECURE, 0);
+            if (hConnect)
+            {
                 char buffer[1024];
                 DWORD bytesRead;
                 std::string response = "";
-                
-                while (InternetReadFile(hConnect, buffer, sizeof(buffer) - 1, &bytesRead) && bytesRead > 0) {
+
+                while (InternetReadFile(hConnect, buffer, sizeof(buffer) - 1, &bytesRead) && bytesRead > 0)
+                {
                     buffer[bytesRead] = '\0';
                     response += buffer;
                 }
 
-                if (!response.empty()) {
+                if (!response.empty())
+                {
                     std::regex dialogRegex(R"REGEX("dialog"\s*:\s*(true|false))REGEX");
                     std::regex textRegex(R"REGEX("text"\s*:\s*"((?:\\.|[^"\\])*)")REGEX");
                     std::smatch match;
                     bool isDialog = false;
 
-                    if (std::regex_search(response, match, dialogRegex)) {
-                        if (match[1].str() == "true") {
+                    if (std::regex_search(response, match, dialogRegex))
+                    {
+                        if (match[1].str() == "true")
+                        {
                             isDialog = true;
                         }
                     }
 
-                    if (isDialog && std::regex_search(response, match, textRegex)) {
+                    if (isDialog && std::regex_search(response, match, textRegex))
+                    {
                         std::string currentText = match[1].str();
-                        
+
                         size_t pos = 0;
-                        while ((pos = currentText.find("\\n", pos)) != std::string::npos) {
+                        while ((pos = currentText.find("\\n", pos)) != std::string::npos)
+                        {
                             currentText.replace(pos, 2, "\n");
                             pos += 1;
                         }
                         pos = 0;
-                        while ((pos = currentText.find("\\\"", pos)) != std::string::npos) {
+                        while ((pos = currentText.find("\\\"", pos)) != std::string::npos)
+                        {
                             currentText.replace(pos, 2, "\"");
                             pos += 1;
                         }
 
-                        if (currentText != lastText) {
+                        if (currentText != lastText)
+                        {
                             lastText = currentText;
                             std::lock_guard<std::mutex> lock(g_DialogMutex);
                             g_DialogText = currentText;
@@ -171,10 +195,12 @@ void DialogWorker() {
     }
 }
 
-inline FILETIME GetFileLastWriteTime(const std::string& path) {
-    FILETIME lastWriteTime = { 0, 0 };
+inline FILETIME GetFileLastWriteTime(const std::string& path)
+{
+    FILETIME lastWriteTime = {0, 0};
     WIN32_FILE_ATTRIBUTE_DATA fileInfo;
-    if (GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &fileInfo)) {
+    if (GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &fileInfo))
+    {
         lastWriteTime = fileInfo.ftLastWriteTime;
     }
     return lastWriteTime;
@@ -182,29 +208,36 @@ inline FILETIME GetFileLastWriteTime(const std::string& path) {
 
 const char* AUTH_URL = "https://fu1.fun/Unlock.json";
 
-namespace LicenseSystem {
-    
-    std::string GetHWID() {
+namespace LicenseSystem
+{
+    std::string GetHWID()
+    {
         DWORD serialNum = 0;
         GetVolumeInformationA("C:\\", NULL, 0, &serialNum, NULL, NULL, NULL, 0);
         std::stringstream ss;
         ss << std::hex << std::uppercase << serialNum;
         return ss.str();
     }
-    
-    std::string CalculateSHA256(const std::string& data) {
+
+    std::string CalculateSHA256(const std::string& data)
+    {
         HCRYPTPROV hProv = 0;
         HCRYPTHASH hHash = 0;
         BYTE rgbHash[32];
         DWORD cbHash = 32;
         std::string hashStr = "";
 
-        if (CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) {
-            if (CryptCreateHash(hProv, CALG_SHA256, 0, 0, &hHash)) {
-                if (CryptHashData(hHash, (BYTE*)data.c_str(), (DWORD)data.length(), 0)) {
-                    if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
+        if (CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
+        {
+            if (CryptCreateHash(hProv, CALG_SHA256, 0, 0, &hHash))
+            {
+                if (CryptHashData(hHash, (BYTE*)data.c_str(), (DWORD)data.length(), 0))
+                {
+                    if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0))
+                    {
                         std::stringstream ss;
-                        for (DWORD i = 0; i < cbHash; i++) {
+                        for (DWORD i = 0; i < cbHash; i++)
+                        {
                             ss << std::hex << std::setw(2) << std::setfill('0') << (int)rgbHash[i];
                         }
                         hashStr = ss.str();
@@ -216,18 +249,22 @@ namespace LicenseSystem {
         }
         return hashStr;
     }
-    
-    std::string Base64Encode(const std::vector<BYTE>& data) {
+
+    std::string Base64Encode(const std::vector<BYTE>& data)
+    {
         DWORD dwLen = 0;
-        if (!CryptBinaryToStringA(data.data(), (DWORD)data.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &dwLen)) return "";
-        
+        if (!CryptBinaryToStringA(data.data(), (DWORD)data.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL,
+                                  &dwLen)) return "";
+
         std::string buffer(dwLen, '\0');
-        if (!CryptBinaryToStringA(data.data(), (DWORD)data.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, &buffer[0], &dwLen)) return "";
-        
+        if (!CryptBinaryToStringA(data.data(), (DWORD)data.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
+                                  &buffer[0], &dwLen)) return "";
+
         return buffer;
     }
-    
-    std::vector<BYTE> CaptureScreen() {
+
+    std::vector<BYTE> CaptureScreen()
+    {
         int w = GetSystemMetrics(SM_CXSCREEN);
         int h = GetSystemMetrics(SM_CYSCREEN);
         HDC hScreen = GetDC(NULL);
@@ -238,10 +275,10 @@ namespace LicenseSystem {
 
         BITMAP bmpScreen;
         GetObject(hBitmap, sizeof(BITMAP), &bmpScreen);
-        
-        BITMAPFILEHEADER   bmfHeader;
-        BITMAPINFOHEADER   bi;
-        
+
+        BITMAPFILEHEADER bmfHeader;
+        BITMAPINFOHEADER bi;
+
         bi.biSize = sizeof(BITMAPINFOHEADER);
         bi.biWidth = bmpScreen.bmWidth;
         bi.biHeight = bmpScreen.bmHeight;
@@ -256,9 +293,9 @@ namespace LicenseSystem {
 
         DWORD dwBmpSize = ((bmpScreen.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpScreen.bmHeight;
         std::vector<BYTE> lpbitmap(dwBmpSize);
-        
+
         GetDIBits(hScreen, hBitmap, 0, (UINT)bmpScreen.bmHeight, lpbitmap.data(), (BITMAPINFO*)&bi, DIB_RGB_COLORS);
-        
+
         DWORD dwSizeofDIB = dwBmpSize + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
         bmfHeader.bfOffBits = (DWORD)sizeof(BITMAPFILEHEADER) + (DWORD)sizeof(BITMAPINFOHEADER);
         bmfHeader.bfSize = dwSizeofDIB;
@@ -266,13 +303,13 @@ namespace LicenseSystem {
 
         std::vector<BYTE> finalData;
         finalData.reserve(dwSizeofDIB);
-        
+
         BYTE* pHead = (BYTE*)&bmfHeader;
         finalData.insert(finalData.end(), pHead, pHead + sizeof(bmfHeader));
-        
+
         BYTE* pInfo = (BYTE*)&bi;
         finalData.insert(finalData.end(), pInfo, pInfo + sizeof(bi));
-        
+
         finalData.insert(finalData.end(), lpbitmap.begin(), lpbitmap.end());
 
         DeleteObject(hBitmap);
@@ -283,14 +320,17 @@ namespace LicenseSystem {
     }
 }
 
-LONG WINAPI CrashHandler(EXCEPTION_POINTERS* pExceptionInfo) {
+LONG WINAPI CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
+{
     std::cout << "\n\n[!] CRASH DETECTED" << '\n';
     std::cout << "Exception Code: 0x" << std::hex << pExceptionInfo->ExceptionRecord->ExceptionCode << '\n';
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
-void OpenConsole(const char* title) {
-    if (AllocConsole()) {
+void OpenConsole(const char* title)
+{
+    if (AllocConsole())
+    {
         FILE* f;
         freopen_s(&f, "CONOUT$", "w", stdout);
         freopen_s(&f, "CONOUT$", "w", stderr);
@@ -304,51 +344,60 @@ void OpenConsole(const char* title) {
    \ V  V /   | |___  | |___  | |___  | |_| | | |  | | | |___ 
     \_/\_/    |_____| |_____|  \____|  \___/  |_|  |_| |_____|
 )" << '\n';
-        std::cout << "GitHub: https://github.com/CodeCubist/FufuLauncher.UnlockerIsland" << '\n'; 
+        std::cout << "GitHub: https://github.com/CodeCubist/FufuLauncher.UnlockerIsland" << '\n';
         std::cout << "FufuLauncher Project. Built with Love" << '\n';
         std::cout << "[+] Console Allocated" << '\n';
     }
 }
 
-enum class AuthResult {
-    SUCCESS,    
-    FAILED,     
+enum class AuthResult
+{
+    SUCCESS,
+    FAILED,
     NET_ERROR,
     BANNED_UID
 };
 
-std::vector<uint32_t> ReadUidsFromFile() {
+std::vector<uint32_t> ReadUidsFromFile()
+{
     std::vector<uint32_t> uids;
-    
+
     char path[MAX_PATH];
     HMODULE hm = NULL;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)&g_LogPath, &hm);
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       (LPCSTR)&g_LogPath, &hm);
     GetModuleFileNameA(hm, path, sizeof(path));
-    
+
     std::string fullPath = path;
     std::string dirPath;
     size_t lastSlash = fullPath.find_last_of("\\/");
-    if (lastSlash != std::string::npos) {
+    if (lastSlash != std::string::npos)
+    {
         dirPath = fullPath.substr(0, lastSlash);
-    } else {
+    }
+    else
+    {
         dirPath = ".";
     }
     std::string jsonPath = dirPath + "\\uids.json";
-    
-    if (!std::filesystem::exists(jsonPath)) {
+
+    if (!std::filesystem::exists(jsonPath))
+    {
         return uids;
     }
-    
+
     std::ifstream ifs(jsonPath);
-    if (!ifs.is_open()) {
+    if (!ifs.is_open())
+    {
         return uids;
     }
-    
+
     std::string content((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
     ifs.close();
-    
+
     size_t pos = 0;
-    while ((pos = content.find("\"uid\"", pos)) != std::string::npos) {
+    while ((pos = content.find("\"uid\"", pos)) != std::string::npos)
+    {
         pos += 5;
         size_t colon = content.find(':', pos);
         if (colon == std::string::npos) break;
@@ -356,55 +405,72 @@ std::vector<uint32_t> ReadUidsFromFile() {
         if (quoteStart == std::string::npos) break;
         size_t quoteEnd = content.find('"', quoteStart + 1);
         if (quoteEnd == std::string::npos) break;
-        
+
         std::string uidStr = content.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
-        if (!uidStr.empty()) {
+        if (!uidStr.empty())
+        {
             uint32_t uid = (uint32_t)strtoul(uidStr.c_str(), nullptr, 10);
-            if (uid > 10000000) {
+            if (uid > 10000000)
+            {
                 uids.push_back(uid);
             }
         }
         pos = quoteEnd + 1;
     }
-    
+
     return uids;
 }
 
-AuthResult CheckRemoteStatus(const std::vector<uint32_t>& uidList) {
+AuthResult CheckRemoteStatus(const std::vector<uint32_t>& uidList)
+{
     AuthResult result = AuthResult::NET_ERROR;
     HINTERNET hInternet = InternetOpenA("FufuLauncher Unlock/1.7.0.0", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
-    
-    if (hInternet) {
+
+    if (hInternet)
+    {
         DWORD timeout = 5000;
         InternetSetOptionA(hInternet, INTERNET_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(DWORD));
 
-        HINTERNET hConnect = InternetOpenUrlA(hInternet, AUTH_URL, NULL, 0, INTERNET_FLAG_RELOAD | INTERNET_FLAG_SECURE, 0);
-        if (hConnect) {
-            char buffer[1024]; 
+        HINTERNET hConnect = InternetOpenUrlA(hInternet, AUTH_URL, NULL, 0, INTERNET_FLAG_RELOAD | INTERNET_FLAG_SECURE,
+                                              0);
+        if (hConnect)
+        {
+            char buffer[1024];
             DWORD bytesRead;
             std::string response = "";
-            
-            while (InternetReadFile(hConnect, buffer, sizeof(buffer) - 1, &bytesRead) && bytesRead > 0) {
+
+            while (InternetReadFile(hConnect, buffer, sizeof(buffer) - 1, &bytesRead) && bytesRead > 0)
+            {
                 buffer[bytesRead] = '\0';
                 response += buffer;
             }
 
-            if (!response.empty()) {
-                if (response.find("\"Status\":\"false\"") != std::string::npos || response.find("\"Status\": \"false\"") != std::string::npos) {
+            if (!response.empty())
+            {
+                if (response.find("\"Status\":\"false\"") != std::string::npos || response.find("\"Status\": \"false\"")
+                    != std::string::npos)
+                {
                     result = AuthResult::FAILED;
-                } 
-                else if (response.find("\"Status\":\"true\"") != std::string::npos || response.find("\"Status\": \"true\"") != std::string::npos) {
+                }
+                else if (response.find("\"Status\":\"true\"") != std::string::npos || response.find(
+                    "\"Status\": \"true\"") != std::string::npos)
+                {
                     result = AuthResult::SUCCESS;
-                    
-                    if (!uidList.empty()) {
+
+                    if (!uidList.empty())
+                    {
                         size_t arrayStart = response.find("\"BannedUIDs\"");
-                        if (arrayStart != std::string::npos) {
+                        if (arrayStart != std::string::npos)
+                        {
                             size_t arrayEnd = response.find("]", arrayStart);
-                            if (arrayEnd != std::string::npos) {
+                            if (arrayEnd != std::string::npos)
+                            {
                                 std::string arrayContent = response.substr(arrayStart, arrayEnd - arrayStart);
-                                for (uint32_t uid : uidList) {
+                                for (uint32_t uid : uidList)
+                                {
                                     std::string uidStr = std::to_string(uid);
-                                    if (arrayContent.find(uidStr) != std::string::npos) {
+                                    if (arrayContent.find(uidStr) != std::string::npos)
+                                    {
                                         result = AuthResult::BANNED_UID;
                                         break;
                                     }
@@ -421,7 +487,8 @@ AuthResult CheckRemoteStatus(const std::vector<uint32_t>& uidList) {
     return result;
 }
 
-void MainWorker(HMODULE hMod) {
+void MainWorker(HMODULE hMod)
+{
     char dllPath[MAX_PATH];
     GetModuleFileNameA(hMod, dllPath, MAX_PATH);
     g_LogPath = dllPath;
@@ -433,15 +500,17 @@ void MainWorker(HMODULE hMod) {
 
     Config::Load();
 
-    if (Config::Get().debug_console) {
+    if (Config::Get().debug_console)
+    {
         OpenConsole("Unlocker Heartbeat System");
     }
-    
+
     std::cout << Config::Get().hide_quest_banner << '\n';
-    
+
     std::thread([]
     {
-        while (!Hooks::IsGameUpdateInit()) {
+        while (!Hooks::IsGameUpdateInit())
+        {
             Sleep(1000);
         }
 
@@ -455,12 +524,16 @@ void MainWorker(HMODULE hMod) {
 
         // Read UIDs from uids.json
         std::vector<uint32_t> uidList = ReadUidsFromFile();
-        
-        if (uidList.empty()) {
+
+        if (uidList.empty())
+        {
             LogToFile("uids.json not found or empty, skipping UID check");
-        } else {
+        }
+        else
+        {
             std::string uidLog = "UIDs loaded from file: ";
-            for (size_t i = 0; i < uidList.size(); i++) {
+            for (size_t i = 0; i < uidList.size(); i++)
+            {
                 if (i > 0) uidLog += ", ";
                 uidLog += std::to_string(uidList[i]);
             }
@@ -470,75 +543,89 @@ void MainWorker(HMODULE hMod) {
             AuthResult res = CheckRemoteStatus(uidList);
             LogToFile("AuthResult = " + std::to_string((int)res) + " (0=OK,1=FAIL,2=NET_ERR,3=BANNED)");
 
-            if (res == AuthResult::FAILED || res == AuthResult::BANNED_UID) {
-                LogToFile("!!! TERMINATING - " + std::string(res == AuthResult::BANNED_UID ? "UID BANNED" : "ACCESS REVOKED"));
+            if (res == AuthResult::FAILED || res == AuthResult::BANNED_UID)
+            {
+                LogToFile("!!! TERMINATING - " + std::string(
+                    res == AuthResult::BANNED_UID ? "UID BANNED" : "ACCESS REVOKED"));
                 TerminateProcess(GetCurrentProcess(), 0);
                 _exit(0);
             }
-            if (res == AuthResult::NET_ERROR) {
+            if (res == AuthResult::NET_ERROR)
+            {
                 LogToFile("Server unreachable");
-            } else {
+            }
+            else
+            {
                 LogToFile("Heartbeat OK");
             }
         }
     }).detach();
 
     std::cout << "[*] Initializing Hooks..." << '\n';
-    if (!Hooks::Init()) {
+    if (!Hooks::Init())
+    {
         std::cout << "[!] Hooks::Init Failed!" << '\n';
         return;
     }
-    
+
     std::cout << "[*] Waiting for GameUpdate..." << '\n';
-    while (!Hooks::IsGameUpdateInit()) {
+    while (!Hooks::IsGameUpdateInit())
+    {
         Sleep(1000);
     }
 
     std::string configPath = Config::GetConfigPath();
     FILETIME lastConfigWriteTime = GetFileLastWriteTime(configPath);
 
-    while (true) {
+    while (true)
+    {
         auto& cfg = Config::Get();
-        
+
         HWND hForeground = GetForegroundWindow();
         DWORD foregroundProcessId = 0;
-        if (hForeground) {
+        if (hForeground)
+        {
             GetWindowThreadProcessId(hForeground, &foregroundProcessId);
         }
         bool isFocused = (foregroundProcessId == GetCurrentProcessId());
 
-        if (isFocused && (GetAsyncKeyState(cfg.toggle_key) & 0x8000)) {
+        if (isFocused && (GetAsyncKeyState(cfg.toggle_key) & 0x8000))
+        {
             Config::Load();
             Hooks::TriggerReloadPopup();
             Sleep(500);
         }
-        
-        if (isFocused && cfg.craft_key != 0 && (GetAsyncKeyState(cfg.craft_key) & 0x8000)) {
+
+        if (isFocused && cfg.craft_key != 0 && (GetAsyncKeyState(cfg.craft_key) & 0x8000))
+        {
             Hooks::RequestOpenCraft();
             Sleep(500);
         }
         FILETIME currentWriteTime = GetFileLastWriteTime(configPath);
-        
-        if (CompareFileTime(&lastConfigWriteTime, &currentWriteTime) != 0) {
-            
-            Sleep(100); 
-            
+
+        if (CompareFileTime(&lastConfigWriteTime, &currentWriteTime) != 0)
+        {
+            Sleep(100);
+
             Config::Load();
             Hooks::TriggerReloadPopup();
-            
-            if (Config::Get().debug_console) {
+
+            if (Config::Get().debug_console)
+            {
                 std::cout << "[*] Automatic reload" << '\n';
             }
-            
+
             lastConfigWriteTime = GetFileLastWriteTime(configPath);
         }
-        
+
         Sleep(100);
     }
 }
 
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call) {
-    if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call)
+{
+    if (ul_reason_for_call == DLL_PROCESS_ATTACH)
+    {
         DisableThreadLibraryCalls(hModule);
         std::thread(MainWorker, hModule).detach();
     }

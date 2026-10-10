@@ -7,7 +7,8 @@ Licensed under the AGPL-3.0 License.
 
 std::string GetOwnDllDir();
 
-namespace Offsets {
+namespace Offsets
+{
     std::string GetActiveOffset;
     std::string GetComponent;
     std::string GetText;
@@ -27,8 +28,10 @@ namespace Offsets {
     std::string UpdateInnerTargetOffset;
     std::string SetActiveOffset;
 
-    void InitOffsets(bool isOS) {
-        if (isOS) {
+    void InitOffsets(bool isOS)
+    {
+        if (isOS)
+        {
             GetActiveOffset = Patterns::OS::GetActiveOffset;
             GetComponent = Patterns::OS::GetComponent;
             GetText = Patterns::OS::GetText;
@@ -48,7 +51,9 @@ namespace Offsets {
             UpdateInnerTargetOffset = Patterns::OS::UpdateInnerTargetOffset;
             SetActiveOffset = Patterns::OS::SetActiveOffset;
             std::cout << "[INFO] Pre-initialized Global (OS) Offsets from hardcode" << std::endl;
-        } else {
+        }
+        else
+        {
             GetActiveOffset = Patterns::CN::GetActiveOffset;
             GetComponent = Patterns::CN::GetComponent;
             GetText = Patterns::CN::GetText;

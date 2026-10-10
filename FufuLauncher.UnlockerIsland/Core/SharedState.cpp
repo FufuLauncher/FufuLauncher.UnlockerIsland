@@ -4,47 +4,47 @@ Licensed under the AGPL-3.0 License.
 */
 #include "SharedState.h"
 
-std::atomic<void*> o_GetFrameCount{ nullptr };
-std::atomic<void*> o_SetFrameCount{ nullptr };
-std::atomic<void*> o_ChangeFov{ nullptr };
-std::atomic<void*> o_SetupQuestBanner{ nullptr };
-std::atomic<void*> o_SetupPlayerProfilePage{ nullptr };
-std::atomic<void*> o_SetupResinList{ nullptr };
-std::atomic<void*> o_ShowDamage{ nullptr };
-std::atomic<void*> o_CraftEntry{ nullptr };
-std::atomic<void*> o_EventCamera{ nullptr };
-std::atomic<void*> o_OpenTeam{ nullptr };
-std::atomic<void*> o_DisplayFog{ nullptr };
-std::atomic<void*> p_SwitchInput{ nullptr };
-std::atomic<void*> p_FindString{ nullptr };
-std::atomic<void*> p_CraftPartner{ nullptr };
-std::atomic<void*> p_FindGameObject{ nullptr };
-std::atomic<void*> o_SetActive{ nullptr };
-std::atomic<void*> p_CheckCanEnter{ nullptr };
-std::atomic<void*> p_OpenTeamPage{ nullptr };
-std::atomic<void*> o_PlayerPerspective{ nullptr };
-std::atomic<void*> o_SetSyncCount{ nullptr };
-std::atomic<void*> o_GameUpdate{ nullptr };
-std::atomic<void*> o_ClockPageOk{ nullptr };
-std::atomic<void*> p_ClockPageClose{ nullptr };
-std::atomic<void*> p_ClockPageFinish{ nullptr };
-std::atomic<void*> p_ClockPageBack{ nullptr };
-std::atomic<void*> p_CheckCanOpenMap{ nullptr };
-std::atomic<void*> p_GetName{ nullptr };
-std::atomic<void*> p_GetActive{ nullptr };
-std::atomic<void*> p_AvatarPaimonAppear{ nullptr };
-std::atomic<void*> p_StringNew{ nullptr };
-std::atomic<void*> p_ShowDialog{ nullptr };
-std::atomic<void*> o_UpdateInnerTarget{ nullptr };
+std::atomic<void*> o_GetFrameCount{nullptr};
+std::atomic<void*> o_SetFrameCount{nullptr};
+std::atomic<void*> o_ChangeFov{nullptr};
+std::atomic<void*> o_SetupQuestBanner{nullptr};
+std::atomic<void*> o_SetupPlayerProfilePage{nullptr};
+std::atomic<void*> o_SetupResinList{nullptr};
+std::atomic<void*> o_ShowDamage{nullptr};
+std::atomic<void*> o_CraftEntry{nullptr};
+std::atomic<void*> o_EventCamera{nullptr};
+std::atomic<void*> o_OpenTeam{nullptr};
+std::atomic<void*> o_DisplayFog{nullptr};
+std::atomic<void*> p_SwitchInput{nullptr};
+std::atomic<void*> p_FindString{nullptr};
+std::atomic<void*> p_CraftPartner{nullptr};
+std::atomic<void*> p_FindGameObject{nullptr};
+std::atomic<void*> o_SetActive{nullptr};
+std::atomic<void*> p_CheckCanEnter{nullptr};
+std::atomic<void*> p_OpenTeamPage{nullptr};
+std::atomic<void*> o_PlayerPerspective{nullptr};
+std::atomic<void*> o_SetSyncCount{nullptr};
+std::atomic<void*> o_GameUpdate{nullptr};
+std::atomic<void*> o_ClockPageOk{nullptr};
+std::atomic<void*> p_ClockPageClose{nullptr};
+std::atomic<void*> p_ClockPageFinish{nullptr};
+std::atomic<void*> p_ClockPageBack{nullptr};
+std::atomic<void*> p_CheckCanOpenMap{nullptr};
+std::atomic<void*> p_GetName{nullptr};
+std::atomic<void*> p_GetActive{nullptr};
+std::atomic<void*> p_AvatarPaimonAppear{nullptr};
+std::atomic<void*> p_StringNew{nullptr};
+std::atomic<void*> p_ShowDialog{nullptr};
+std::atomic<void*> o_UpdateInnerTarget{nullptr};
 
-std::atomic<bool> g_RequestReloadPopup{ false };
-std::atomic<bool> g_GameUpdateInit{ false };
-std::atomic<bool> g_RequestCraft{ false };
-std::atomic<bool> g_TouchScreenInit{ false };
+std::atomic<bool> g_RequestReloadPopup{false};
+std::atomic<bool> g_GameUpdateInit{false};
+std::atomic<bool> g_RequestCraft{false};
+std::atomic<bool> g_TouchScreenInit{false};
 
 unsigned char originalCheckCanOpenMapBytes[5] = {0};
 
-std::list<std::wstring> GrassPrefix {
+std::list<std::wstring> GrassPrefix{
     L"Area_Ndkl_",
     L"Area_Nt_",
     L"Area_Fd_",

@@ -6,16 +6,18 @@ Licensed under the AGPL-3.0 License.
 #include "../Core/SharedState.h"
 #include <cstdint>
 
-namespace HelperField {
-    constexpr uint32_t CookCtxV35         = 0x20;
-    constexpr uint32_t CookCtxV2          = 0x10;
-    constexpr uint32_t CookFireStateDef   = 0x248;
-    constexpr uint32_t CookFireParamDef   = 0x250;
-    constexpr uint32_t CookEntityRefDef   = 0xA0;
-    constexpr uint32_t CookHookMagic1     = 0x3F800000;
+namespace HelperField
+{
+    constexpr uint32_t CookCtxV35 = 0x20;
+    constexpr uint32_t CookCtxV2 = 0x10;
+    constexpr uint32_t CookFireStateDef = 0x248;
+    constexpr uint32_t CookFireParamDef = 0x250;
+    constexpr uint32_t CookEntityRefDef = 0xA0;
+    constexpr uint32_t CookHookMagic1 = 0x3F800000;
 }
 
-namespace HelperAddr {
+namespace HelperAddr
+{
     extern uintptr_t InnerDispatcher;
     extern uintptr_t CookHandler;
     extern uintptr_t CookShowPage;
@@ -31,9 +33,9 @@ namespace HelperAddr {
     extern uintptr_t ExpPatchAddr;
 }
 
-typedef void   (__fastcall *Fn_CookShowPage)(__int64);
+typedef void (__fastcall *Fn_CookShowPage)(__int64);
 typedef __int64 (__fastcall *Fn_CookHandler)(__int64, __int64);
-typedef bool    (__fastcall *Fn_ExpHandler)(void*, void*);
+typedef bool (__fastcall *Fn_ExpHandler)(void*, void*);
 
 extern Fn_CookShowPage g_oCookShowPage;
 extern BYTE g_CookHandlerPrologue[8];

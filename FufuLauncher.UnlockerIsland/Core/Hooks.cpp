@@ -40,13 +40,19 @@ Licensed under the AGPL-3.0 License.
 
 #pragma comment(lib, "d3d11.lib")
 
-static void TryInitTouchScreen() {
+static void TryInitTouchScreen()
+{
     auto sw = (tSwitchInput)p_SwitchInput.load();
-    if (IsValid(sw)) {
+    if (IsValid(sw))
+    {
         g_TouchScreenInit.store(true);
-        __try {
+        __try
+        {
             sw(nullptr);
-        } __except (EXCEPTION_EXECUTE_HANDLER) {}
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+        }
     }
 }
 #pragma comment(lib, "MinHook/libMinHook.x64.lib")
@@ -54,10 +60,10 @@ static void TryInitTouchScreen() {
 using tSetCursor = HCURSOR(WINAPI*)(HCURSOR);
 static tSetCursor o_SetCursor = nullptr;
 
-static HCURSOR WINAPI hk_SetCursor(HCURSOR cursor) {
-    if (cursor && Config::Get().use_system_cursor) {
-        // IDC_ARROW resolves to the active Windows "Normal Select" cursor,
-        // including a user-selected cursor scheme; no cursor file is fixed.
+static HCURSOR WINAPI hk_SetCursor(HCURSOR cursor)
+{
+    if (cursor && Config::Get().use_system_cursor)
+    {
         static HCURSOR systemNormal = static_cast<HCURSOR>(LoadImageW(
             nullptr, IDC_ARROW, IMAGE_CURSOR, 0, 0,
             LR_SHARED | LR_DEFAULTSIZE));
@@ -118,31 +124,39 @@ static HCURSOR WINAPI hk_SetCursor(HCURSOR cursor) {
         else std::cout << "   -> [ERR] Not Found." << std::endl; \
     }
 
-static uintptr_t ResolveAddress(uintptr_t addr) {
+static uintptr_t ResolveAddress(uintptr_t addr)
+{
     unsigned char* p = (unsigned char*)addr;
-    if (p[0] == 0xE9) {
+    if (p[0] == 0xE9)
+    {
         int32_t offset = *(int32_t*)(p + 1);
         return addr + 5 + offset;
     }
     return addr;
 }
 
-static std::atomic<uint32_t> g_ResinListOffset{ 0 };
+static std::atomic<uint32_t> g_ResinListOffset{0};
 
-static bool MatchesResinChoice(uint64_t item, uint32_t id) {
+static bool MatchesResinChoice(uint64_t item, uint32_t id)
+{
     return static_cast<uint32_t>(item) == id ||
         static_cast<uint32_t>(item >> 32) == id;
 }
 
-static void ApplyResinChoices(void* pThis) {
+static void ApplyResinChoices(void* pThis)
+{
     const auto& cfg = Config::Get();
-    struct Choice { uint32_t id; bool enabled; };
+    struct Choice
+    {
+        uint32_t id;
+        bool enabled;
+    };
     const Choice choices[] = {
-        { 106,    cfg.use_resin_000106 },
-        { 220007, cfg.use_resin_220007 },
-        { 107012, cfg.use_resin_107012 },
-        { 107009, cfg.use_resin_107009 },
-        { 201,    cfg.use_resin_000201 }
+        {106, cfg.use_resin_000106},
+        {220007, cfg.use_resin_220007},
+        {107012, cfg.use_resin_107012},
+        {107009, cfg.use_resin_107009},
+        {201, cfg.use_resin_000201}
     };
 
     const uint32_t offset = g_ResinListOffset.load();
@@ -154,7 +168,8 @@ static void ApplyResinChoices(void* pThis) {
 
     auto* list = *listPtr;
     if (!list || IsBadReadPtr(list, sizeof(*list)) ||
-        IsBadWritePtr(list, sizeof(*list))) return;
+        IsBadWritePtr(list, sizeof(*list)))
+        return;
 
     const int count = list->Count();
     if (count < 0 || count > 32) return;
@@ -164,18 +179,21 @@ static void ApplyResinChoices(void* pThis) {
     const auto capacity = items->Count();
     if (capacity < static_cast<size_t>(count) || capacity > 1000) return;
 
-    if (count) {
+    if (count)
+    {
         auto* values = reinterpret_cast<uint8_t*>(items) + 0x20;
         if (IsBadReadPtr(values, count * sizeof(uint64_t)) ||
-            IsBadWritePtr(values, count * sizeof(uint64_t))) return;
+            IsBadWritePtr(values, count * sizeof(uint64_t)))
+            return;
     }
-
-    // The game decides which choices are available for the current resources
-    // and reward. Toggles may hide those choices, but must not add missing ones.
-    for (int i = count - 1; i >= 0; --i) {
+    
+    for (int i = count - 1; i >= 0; --i)
+    {
         const uint64_t item = list->Get(i);
-        for (const Choice& choice : choices) {
-            if (MatchesResinChoice(item, choice.id) && !choice.enabled) {
+        for (const Choice& choice : choices)
+        {
+            if (MatchesResinChoice(item, choice.id) && !choice.enabled)
+            {
                 list->RemoveAt(i);
                 break;
             }
@@ -183,17 +201,24 @@ static void ApplyResinChoices(void* pThis) {
     }
 }
 
-static void WINAPI hk_SetupResinList(void* pThis) {
+static void WINAPI hk_SetupResinList(void* pThis)
+{
     auto original = reinterpret_cast<tSetupResinList>(o_SetupResinList.load());
     if (!original) return;
     original(pThis);
-    __try {
+    __try
+    {
         ApplyResinChoices(pThis);
-    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+    }
 }
 
-static __int64 __fastcall hk_UpdateInnerTarget(void* pThis, void* a2, double a3) {
-    if (Config::Get().enable_low_render_scale) {
+static __int64 __fastcall hk_UpdateInnerTarget(void* pThis, void* a2, double a3)
+{
+    if (Config::Get().enable_low_render_scale)
+    {
         uintptr_t p = (uintptr_t)pThis;
         *(float*)(p + 0x88) = Config::Get().render_scale_value;
         *(__int64*)(p + 0x94) = 0;
@@ -204,7 +229,8 @@ static __int64 __fastcall hk_UpdateInnerTarget(void* pThis, void* a2, double a3)
     return 0;
 }
 
-static void* GetGetActiveAddr() {
+static void* GetGetActiveAddr()
+{
     HMODULE hMod = GetModuleHandle(NULL);
     if (!hMod) return nullptr;
     uintptr_t base = (uintptr_t)hMod;
@@ -215,38 +241,46 @@ static void* GetGetActiveAddr() {
     ss >> offsetVal;
     void* addr = (void*)(base + offsetVal);
     std::cout << "[SCAN] GetActive resolved via encrypted offset: 0x"
-              << std::hex << offsetVal << std::dec << std::endl;
+        << std::hex << offsetVal << std::dec << std::endl;
     return addr;
 }
 
 
-static void ClockPageOk_SafeLogic(void* pThis, bool& out_handled) {
+static void ClockPageOk_SafeLogic(void* pThis, bool& out_handled)
+{
     out_handled = false;
     auto& cfg = Config::Get();
     auto orig = (tButtonClicked)o_ClockPageOk.load();
 
-    if (cfg.debug_console) {
+    if (cfg.debug_console)
+    {
         std::cout << "[Clock Debug] OK Button Hook Triggered!" << std::endl;
     }
 
-    if (cfg.enable_clock_speedup) {
+    if (cfg.enable_clock_speedup)
+    {
         out_handled = true;
 
-        if (orig && !IsBadReadPtr((void*)orig, 1)) {
+        if (orig && !IsBadReadPtr((void*)orig, 1))
+        {
             orig(pThis);
         }
 
         auto finishFunc = (tButtonClicked)p_ClockPageFinish.load();
-        if (finishFunc && !IsBadReadPtr((void*)finishFunc, 1)) {
-            if (cfg.debug_console) {
+        if (finishFunc && !IsBadReadPtr((void*)finishFunc, 1))
+        {
+            if (cfg.debug_console)
+            {
                 std::cout << "[Clock Debug] Forcing Finish UI..." << std::endl;
             }
             finishFunc(pThis);
         }
 
         auto backFunc = (tClockPageBack)p_ClockPageBack.load();
-        if (backFunc && !IsBadReadPtr((void*)backFunc, 1)) {
-            if (cfg.debug_console) {
+        if (backFunc && !IsBadReadPtr((void*)backFunc, 1))
+        {
+            if (cfg.debug_console)
+            {
                 std::cout << "[Clock Debug] Forcing Back UI..." << std::endl;
             }
             backFunc(pThis, nullptr);
@@ -254,10 +288,12 @@ static void ClockPageOk_SafeLogic(void* pThis, bool& out_handled) {
         }
 
         auto closeBtnFunc = (tButtonClicked)p_ClockPageClose.load();
-        if (!closeBtnFunc || IsBadReadPtr((void*)closeBtnFunc, 1)) {
+        if (!closeBtnFunc || IsBadReadPtr((void*)closeBtnFunc, 1))
+        {
             return;
         }
-        if (cfg.debug_console) {
+        if (cfg.debug_console)
+        {
             std::cout << "[Clock Debug] Forcing Close UI..." << std::endl;
         }
 
@@ -265,38 +301,51 @@ static void ClockPageOk_SafeLogic(void* pThis, bool& out_handled) {
     }
 }
 
-void WINAPI hk_ClockPageOk(void* pThis) {
+void WINAPI hk_ClockPageOk(void* pThis)
+{
     auto orig = (tButtonClicked)o_ClockPageOk.load();
 
-    if (!pThis || IsBadReadPtr(pThis, sizeof(void*))) {
-        if (orig && IsValidCodePtr(orig)) {
-            __try { orig(pThis); } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    if (!pThis || IsBadReadPtr(pThis, sizeof(void*)))
+    {
+        if (orig && IsValidCodePtr(orig))
+        {
+            __try { orig(pThis); }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+            }
         }
         return;
     }
 
     bool handled = false;
 
-    __try {
+    __try
+    {
         ClockPageOk_SafeLogic(pThis, handled);
     }
-    __except (EXCEPTION_EXECUTE_HANDLER) {
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
         handled = false;
     }
 
-    if (!handled && orig && IsValidCodePtr(orig)) {
-        __try {
+    if (!handled && orig && IsValidCodePtr(orig))
+    {
+        __try
+        {
             orig(pThis);
         }
-        __except (EXCEPTION_EXECUTE_HANDLER) {
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
         }
     }
 }
 
-int32_t WINAPI hk_GetFrameCount() {
+int32_t WINAPI hk_GetFrameCount()
+{
     UpdateTitleWatermark();
 
-    if (g_ShouldShowDialog.load()) {
+    if (g_ShouldShowDialog.load())
+    {
         g_ShouldShowDialog.store(false);
         std::lock_guard<std::mutex> lock(g_DialogMutex);
 
@@ -307,21 +356,24 @@ int32_t WINAPI hk_GetFrameCount() {
 
         if (fnStringNew != nullptr && fnShowDialog != nullptr &&
             !IsBadReadPtr((void*)fnStringNew, 1) &&
-            !IsBadReadPtr((void*)fnShowDialog, 1)) {
-
-            SafeInvoke([&] {
+            !IsBadReadPtr((void*)fnShowDialog, 1))
+        {
+            SafeInvoke([&]
+            {
                 __int64 strMsg = fnStringNew(g_DialogText.c_str());
                 __int64 strOk = fnStringNew("\xE7\xA1\xAE\xE8\xAE\xA4");
                 __int64 strNo = fnStringNew("\xE5\x8F\x96\xE6\xB6\x88");
 
-                if (strMsg && strOk && strNo) {
+                if (strMsg && strOk && strNo)
+                {
                     fnShowDialog(strMsg, strOk, strNo, 0, 0);
                     dialogSuccess = true;
                 }
             });
-            }
+        }
 
-        if (!dialogSuccess) {
+        if (!dialogSuccess)
+        {
             g_StopDialogPolling.store(true);
         }
     }
@@ -336,30 +388,28 @@ int32_t WINAPI hk_GetFrameCount() {
     if (ret >= 60) return 60;
     if (ret >= 45) return 45;
     if (ret >= 30) return 30;
-    
+
     return ret;
 }
 
-auto WINAPI hk_GameUpdate(__int64 a1, const char* a2) -> __int64 {
+auto WINAPI hk_GameUpdate(__int64 a1, const char* a2) -> __int64
+{
     auto orig = (tGameUpdate)o_GameUpdate.load();
     return orig ? orig(a1, a2) : 0;
 }
 
-// ===================================================================
-// SetupPlayerProfilePage hook — the player profile page is allowed to
-// open normally (origin always runs). Afterwards the profile UID and
-// birthday objects are force-hidden when their config flags are set,
-// instead of blocking the page as the upstream implementation does.
-// ===================================================================
-static void WINAPI hk_SetupPlayerProfilePage(void* pThis) {
+static void WINAPI hk_SetupPlayerProfilePage(void* pThis)
+{
     auto orig = (tSetupPlayerProfilePage)o_SetupPlayerProfilePage.load();
     if (orig) orig(pThis);
     ApplyProfilePrivacyState();
 }
 
-static bool CheckCanUseShortcut() {
+static bool CheckCanUseShortcut()
+{
     auto checkEnter = (tCheckCanEnter)p_CheckCanEnter.load();
-    if (checkEnter) {
+    if (checkEnter)
+    {
         bool canEnter = false;
         SafeInvoke([&] { canEnter = checkEnter(); });
         return canEnter;
@@ -367,14 +417,16 @@ static bool CheckCanUseShortcut() {
     return true;
 }
 
-static bool IsActiveGameObject(const char* name) {
+static bool IsActiveGameObject(const char* name)
+{
     auto findString = (tFindString)p_FindString.load();
     auto findGameObject = (tFindGameObject)p_FindGameObject.load();
     auto getActive = (tGetActive)p_GetActive.load();
     if (!IsValid(findString) || !IsValid(findGameObject)) return false;
 
     bool active = false;
-    SafeInvoke([&] {
+    SafeInvoke([&]
+    {
         Il2CppString* objectName = findString(name);
         if (!objectName) return;
 
@@ -386,7 +438,8 @@ static bool IsActiveGameObject(const char* name) {
     return active;
 }
 
-static bool IsDialogueOrCutsceneActive() {
+static bool IsDialogueOrCutsceneActive()
+{
     static ULONGLONG lastCheck = 0;
     static bool cachedResult = false;
 
@@ -400,31 +453,36 @@ static bool IsDialogueOrCutsceneActive() {
     return cachedResult;
 }
 
-static bool IsCameraSensitivePageActive() {
+static bool IsCameraSensitivePageActive()
+{
     return IsCameraPageActiveFromEvents();
 }
 
-bool Hooks::CanApplyCameraOffset() {
+bool Hooks::CanApplyCameraOffset()
+{
     return !IsDialogueOrCutsceneActive();
 }
 
-static std::atomic<bool> g_IsAimingCamera{ false };
+static std::atomic<bool> g_IsAimingCamera{false};
 
-static void UpdateCameraFeatures() {
+static void UpdateCameraFeatures()
+{
     auto& cfg = Config::Get();
     static const int cameraOffsetKey = cfg.camera_offset_key;
     static bool previousCameraOffsetToggle = false;
     static bool previousFreeCameraActive = false;
     bool cameraOffsetToggle = cameraOffsetKey != 0 &&
         (GetAsyncKeyState(cameraOffsetKey) & 0x8000) != 0;
-    if (cameraOffsetToggle && !previousCameraOffsetToggle) {
+    if (cameraOffsetToggle && !previousCameraOffsetToggle)
+    {
         cfg.enable_camera_offset = !cfg.enable_camera_offset;
         if (!cfg.enable_camera_offset) CameraOffset::SuspendImmediately();
     }
     previousCameraOffsetToggle = cameraOffsetToggle;
 
     const bool freeCameraActive = FreeCamera::IsActive();
-    if (previousFreeCameraActive && !freeCameraActive) {
+    if (previousFreeCameraActive && !freeCameraActive)
+    {
         CameraOffset::SuspendImmediately();
         Camera::Invalidate();
         previousFreeCameraActive = false;
@@ -432,14 +490,16 @@ static void UpdateCameraFeatures() {
     }
     previousFreeCameraActive = freeCameraActive;
 
-    if ((cfg.enable_camera_offset || freeCameraActive) && IsCameraSensitivePageActive()) {
+    if ((cfg.enable_camera_offset || freeCameraActive) && IsCameraSensitivePageActive())
+    {
         CameraOffset::SuspendImmediately();
         Camera::Invalidate();
         return;
     }
 
     Camera::Tick();
-    if (freeCameraActive) {
+    if (freeCameraActive)
+    {
         CameraOffset::SuspendImmediately();
         FreeCamera::Tick();
         return;
@@ -452,7 +512,8 @@ static void UpdateCameraFeatures() {
     CameraOffset::Tick(!isAimingCamera && !dialogueOrCutsceneActive, false);
 }
 
-int32_t WINAPI hk_ChangeFov(void* __this, float value) {
+int32_t WINAPI hk_ChangeFov(void* __this, float value)
+{
     if (!g_GameUpdateInit.load()) g_GameUpdateInit.store(true);
 
     auto& cfg = Config::Get();
@@ -460,7 +521,8 @@ int32_t WINAPI hk_ChangeFov(void* __this, float value) {
     static int frameCounter = 0;
     frameCounter++;
 
-    if (frameCounter >= 100) {
+    if (frameCounter >= 100)
+    {
         frameCounter = 0;
         UpdateHideUID();
         UpdateHideMainUI();
@@ -473,61 +535,81 @@ int32_t WINAPI hk_ChangeFov(void* __this, float value) {
     bool canOpenUI = CheckCanUseShortcut();
     bool isFocused = CheckWindowFocused(GetForegroundWindow());
 
-    if (g_RequestCraft.load()) {
+    if (g_RequestCraft.load())
+    {
         g_RequestCraft.store(false);
-        if (cfg.enable_redirect_craft_override && canOpenUI) {
+        if (cfg.enable_redirect_craft_override && canOpenUI)
+        {
             std::cout << "[Hotkey] Craft function triggered." << std::endl;
 
             auto findStr = (tFindString)p_FindString.load();
             auto partner = (tCraftPartner)p_CraftPartner.load();
 
-            if (IsValid(findStr) && IsValid(partner)) {
-                SafeInvoke([&] {
+            if (IsValid(findStr) && IsValid(partner))
+            {
+                SafeInvoke([&]
+                {
                     Il2CppString* str = findStr(GameStrings::SynthesisPage);
                     if (str) partner(str, nullptr, nullptr, nullptr, nullptr);
-                    });
+                });
             }
         }
     }
 
-    if (isFocused && cfg.enable_auto_cook && (GetAsyncKeyState(cfg.auto_cook_key) & 0x8000) && now - g_LastCookTime > 300) {
-        if (canOpenUI) {
+    if (isFocused && cfg.enable_auto_cook && (GetAsyncKeyState(cfg.auto_cook_key) & 0x8000) && now - g_LastCookTime >
+        300)
+    {
+        if (canOpenUI)
+        {
             g_TrigCook = true;
             g_LastCookTime = now;
             std::cout << "[Hotkey] Auto Cook function triggered." << std::endl;
         }
     }
-    if (isFocused && cfg.enable_auto_expedition && (GetAsyncKeyState(cfg.auto_expedition_key) & 0x8000) && now - g_LastExpTime > 300) {
-        if (canOpenUI) {
+    if (isFocused && cfg.enable_auto_expedition && (GetAsyncKeyState(cfg.auto_expedition_key) & 0x8000) && now -
+        g_LastExpTime > 300)
+    {
+        if (canOpenUI)
+        {
             g_TrigExp = true;
             g_LastExpTime = now;
             std::cout << "[Hotkey] Auto Expedition function triggered." << std::endl;
         }
     }
 
-    if (g_TrigCook)  { g_TrigCook  = false; DoCookingLogic(); }
-    if (g_TrigExp)   { g_TrigExp   = false; DoExpeditionLogic(); }
+    if (g_TrigCook)
+    {
+        g_TrigCook = false;
+        DoCookingLogic();
+    }
+    if (g_TrigExp)
+    {
+        g_TrigExp = false;
+        DoExpeditionLogic();
+    }
 
-    if (cfg.enable_vsync_override) {
+    if (cfg.enable_vsync_override)
+    {
         auto setSync = (tSetSyncCount)o_SetSyncCount.load();
         if (IsValid(setSync)) SafeInvoke([&]() { setSync(false); });
     }
 
-    if (!g_TouchScreenInit.load() && g_GameUpdateInit.load() && cfg.use_touch_screen) {
+    if (!g_TouchScreenInit.load() && g_GameUpdateInit.load() && cfg.use_touch_screen)
+    {
         TryInitTouchScreen();
     }
 
-    if (cfg.enable_fps_override) {
+    if (cfg.enable_fps_override)
+    {
         auto setFps = (tSetFrameCount)o_SetFrameCount.load();
         if (IsValid(setFps)) SafeInvoke([&]() { setFps(cfg.selected_fps); });
     }
-
-    // Preserve the game's incoming FOV before an override changes it. The
-    // existing <= 30 threshold is the plugin's stable aiming-camera signal.
+    
     bool isAimingCamera = value <= 30.0f;
     g_IsAimingCamera.store(isAimingCamera, std::memory_order_relaxed);
     bool pass_check = !cfg.enable_fov_limit_check || !isAimingCamera;
-    if (pass_check && cfg.enable_fov_override) {
+    if (pass_check && cfg.enable_fov_override)
+    {
         value = cfg.fov_value;
     }
 
@@ -537,8 +619,10 @@ int32_t WINAPI hk_ChangeFov(void* __this, float value) {
     return ret;
 }
 
-bool Hooks::Init() {
-    auto StringToAddr = [](const std::string& hexStr) -> uintptr_t {
+bool Hooks::Init()
+{
+    auto StringToAddr = [](const std::string& hexStr) -> uintptr_t
+    {
         if (hexStr.empty()) return 0;
         uintptr_t addr = 0;
         std::stringstream ss;
@@ -556,26 +640,33 @@ bool Hooks::Init() {
 
     void* getActiveAddr = nullptr;
     void* activeScan = Scanner::ScanMainMod(Patterns::GetActive);
-    if (activeScan) {
+    if (activeScan)
+    {
         getActiveAddr = Scanner::ResolveRelative(activeScan, 1, 5);
         if (getActiveAddr) std::cout << "[SCAN] GetActive resolved via signature.\n";
     }
-    if (!getActiveAddr) {
+    if (!getActiveAddr)
+    {
         getActiveAddr = GetGetActiveAddr();
         if (getActiveAddr) std::cout << "[SCAN] GetActive resolved via offset fallback.\n";
     }
 
-    if (getActiveAddr) {
+    if (getActiveAddr)
+    {
         p_GetActive.store(getActiveAddr);
         LogOffset("GameObject.get_active", getActiveAddr, getActiveAddr);
-    } else {
+    }
+    else
+    {
         std::cout << "[ERR] Failed to resolve GetActive address" << '\n';
     }
 
-    if (Config::Get().dump_offsets) {
+    if (Config::Get().dump_offsets)
+    {
         std::string filePath = GetOwnDllDir() + "\\offsets.txt";
         std::ofstream file(filePath, std::ios::trunc);
-        if (file.is_open()) {
+        if (file.is_open())
+        {
             file << "Feature Offsets Dump" << '\n';
             file << "====================" << '\n';
             file << "Generated on module init." << '\n' << '\n';
@@ -589,41 +680,52 @@ bool Hooks::Init() {
     HOOK_DIR("ChangeFOV", Patterns::ChangeFOV, hk_ChangeFov, o_ChangeFov);
     {
         void* touchInputAddr = Scanner::ScanMainMod(Patterns::SwitchInputDeviceToTouchScreen);
-        if (touchInputAddr) {
+        if (touchInputAddr)
+        {
             LogOffset("SwitchInputDeviceToTouchScreen", touchInputAddr, touchInputAddr);
             std::cout << "[SCAN] SwitchInputDeviceToTouchScreen resolved via signature.\n";
-        } else {
+        }
+        else
+        {
             HMODULE hMod = GetModuleHandle(NULL);
             uintptr_t offsetTouchInput = StringToAddr(Offsets::TouchInputOffset);
-            if (hMod && offsetTouchInput) {
+            if (hMod && offsetTouchInput)
+            {
                 touchInputAddr = (void*)((uintptr_t)hMod + offsetTouchInput);
                 LogOffset("SwitchInputDeviceToTouchScreen", touchInputAddr, touchInputAddr);
                 std::cout << "[SCAN] SwitchInputDeviceToTouchScreen resolved via offset: 0x"
-                          << std::hex << offsetTouchInput << std::dec << '\n';
-            } else {
+                    << std::hex << offsetTouchInput << std::dec << '\n';
+            }
+            else
+            {
                 std::cout << "[ERR] SwitchInputDeviceToTouchScreen offset is missing.\n";
             }
         }
-        if (touchInputAddr) {
+        if (touchInputAddr)
+        {
             p_SwitchInput.store(touchInputAddr);
         }
     }
     HOOK_DIR("QuestBanner", Patterns::QuestBanner, hk_SetupQuestBanner, o_SetupQuestBanner);
-    HOOK_DIR("SetupPlayerProfilePage", Patterns::SetupPlayerProfilePage, hk_SetupPlayerProfilePage, o_SetupPlayerProfilePage);
+    HOOK_DIR("SetupPlayerProfilePage", Patterns::SetupPlayerProfilePage, hk_SetupPlayerProfilePage,
+             o_SetupPlayerProfilePage);
     SCAN_DIR("FindGameObject", Patterns::FindGameObject, p_FindGameObject);
     {
         HMODULE hMod = GetModuleHandle(NULL);
         uintptr_t offsetSetActive = StringToAddr(Offsets::SetActiveOffset);
-        if (hMod && offsetSetActive) {
+        if (hMod && offsetSetActive)
+        {
             void* setActiveAddr = (void*)((uintptr_t)hMod + offsetSetActive);
             LogOffset("SetActive", setActiveAddr, setActiveAddr);
             std::cout << "[SCAN] SetActive via offset: 0x"
-                      << std::hex << offsetSetActive << std::dec << '\n';
+                << std::hex << offsetSetActive << std::dec << '\n';
             if (MH_CreateHook(setActiveAddr, (void*)hk_SetActive, (void**)&o_SetActive) == MH_OK)
                 std::cout << "   -> SetActive Hook Ready." << std::endl;
             else
                 std::cout << "   -> [ERR] SetActive MH_CreateHook Failed." << std::endl;
-        } else {
+        }
+        else
+        {
             std::cout << "   -> [ERR] SetActive offset is missing." << std::endl;
         }
     }
@@ -643,25 +745,31 @@ bool Hooks::Init() {
         std::cout << "[SCAN] SetupResinList..." << std::endl;
         void* call = Scanner::ScanMainMod(Patterns::SetupResinList);
         void* target = call ? Scanner::ResolveRelative(call, 1, 5) : nullptr;
-        if (target && !IsBadReadPtr(target, 0x2E)) {
+        if (target && !IsBadReadPtr(target, 0x2E))
+        {
             const auto* code = static_cast<const uint8_t*>(target);
-            const uint8_t prologue[] = { 0x56, 0x57, 0x53, 0x48, 0x83, 0xEC, 0x20, 0x48, 0x89, 0xCB };
-            const uint8_t listRead[] = { 0x48, 0x8B, 0x8B };
-            const uint8_t listCheck[] = { 0x48, 0x85, 0xC9, 0x0F, 0x84 };
-            const uint8_t sizeReset[] = { 0xC7, 0x41, 0x18, 0, 0, 0, 0 };
+            const uint8_t prologue[] = {0x56, 0x57, 0x53, 0x48, 0x83, 0xEC, 0x20, 0x48, 0x89, 0xCB};
+            const uint8_t listRead[] = {0x48, 0x8B, 0x8B};
+            const uint8_t listCheck[] = {0x48, 0x85, 0xC9, 0x0F, 0x84};
+            const uint8_t sizeReset[] = {0xC7, 0x41, 0x18, 0, 0, 0, 0};
             if (memcmp(code, prologue, sizeof(prologue)) == 0 &&
                 memcmp(code + 0x17, listRead, sizeof(listRead)) == 0 &&
                 memcmp(code + 0x1E, listCheck, sizeof(listCheck)) == 0 &&
-                memcmp(code + 0x27, sizeReset, sizeof(sizeReset)) == 0) {
+                memcmp(code + 0x27, sizeReset, sizeof(sizeReset)) == 0)
+            {
                 uint32_t listOffset = 0;
                 memcpy(&listOffset, code + 0x1A, sizeof(listOffset));
-                if (listOffset >= 0x20 && listOffset <= 0x1000 && listOffset % 8 == 0) {
+                if (listOffset >= 0x20 && listOffset <= 0x1000 && listOffset % 8 == 0)
+                {
                     g_ResinListOffset.store(listOffset);
                     LogOffset("SetupResinList", target, call);
-                    if (MH_CreateHook(target, (void*)hk_SetupResinList, (void**)&o_SetupResinList) == MH_OK) {
+                    if (MH_CreateHook(target, (void*)hk_SetupResinList, (void**)&o_SetupResinList) == MH_OK)
+                    {
                         std::cout << "   -> Hook Ready; list field: 0x" << std::hex
-                                  << listOffset << std::dec << std::endl;
-                    } else {
+                            << listOffset << std::dec << std::endl;
+                    }
+                    else
+                    {
                         g_ResinListOffset.store(0);
                         std::cout << "   -> [ERR] MH_CreateHook Failed." << std::endl;
                     }
@@ -677,25 +785,36 @@ bool Hooks::Init() {
 
     void* eventCameraAddr = nullptr;
     uintptr_t offsetEventCam = StringToAddr(Offsets::EventCameraOffset);
-    if (offsetEventCam > 0) {
+    if (offsetEventCam > 0)
+    {
         eventCameraAddr = (void*)((uintptr_t)GetModuleHandle(NULL) + offsetEventCam);
-        std::cout << "[SCAN] EventCamera resolved via explicit offset: 0x" << std::hex << offsetEventCam << std::dec << '\n';
-    } else {
+        std::cout << "[SCAN] EventCamera resolved via explicit offset: 0x" << std::hex << offsetEventCam << std::dec <<
+            '\n';
+    }
+    else
+    {
         void* scanRes = Scanner::ScanMainMod(Patterns::EventCamera);
-        if (scanRes) {
+        if (scanRes)
+        {
             eventCameraAddr = scanRes;
             std::cout << "[SCAN] EventCamera resolved via signature fallback.\n";
         }
     }
 
-    if (eventCameraAddr) {
+    if (eventCameraAddr)
+    {
         LogOffset("EventCamera", eventCameraAddr, eventCameraAddr);
-        if (MH_CreateHook(eventCameraAddr, (void*)hk_EventCamera, (void**)&o_EventCamera) == MH_OK) {
+        if (MH_CreateHook(eventCameraAddr, (void*)hk_EventCamera, (void**)&o_EventCamera) == MH_OK)
+        {
             std::cout << "   -> EventCamera Hook Ready.\n";
-        } else {
+        }
+        else
+        {
             std::cout << "   -> [ERR] EventCamera Hook Failed.\n";
         }
-    } else {
+    }
+    else
+    {
         std::cout << "   -> [ERR] EventCamera not found.\n";
     }
 
@@ -710,63 +829,91 @@ bool Hooks::Init() {
 
     {
         HMODULE hMod = GetModuleHandle(NULL);
-        if (hMod) {
+        if (hMod)
+        {
             uintptr_t base = (uintptr_t)hMod;
 
             uintptr_t offsetClockOk = StringToAddr(Offsets::ClockPageOkOffset);
-            if (offsetClockOk) {
+            if (offsetClockOk)
+            {
                 void* clockOkAddr = (void*)(base + offsetClockOk);
                 LogOffset("ClockPage.Ok", clockOkAddr, clockOkAddr);
-                if (MH_CreateHook(clockOkAddr, (void*)hk_ClockPageOk, (void**)&o_ClockPageOk) == MH_OK) {
-                    std::cout << "[SCAN] ClockPageOk hooked via offset at: 0x" << std::hex << offsetClockOk << std::dec << '\n';
-                } else {
+                if (MH_CreateHook(clockOkAddr, (void*)hk_ClockPageOk, (void**)&o_ClockPageOk) == MH_OK)
+                {
+                    std::cout << "[SCAN] ClockPageOk hooked via offset at: 0x" << std::hex << offsetClockOk << std::dec
+                        << '\n';
+                }
+                else
+                {
                     std::cout << "[ERR] Failed to hook ClockPageOk via offset.\n";
                 }
-            } else {
+            }
+            else
+            {
                 std::cout << "[ERR] ClockPageOk offset is missing.\n";
             }
 
             uintptr_t offsetClockClose = StringToAddr(Offsets::ClockPageCloseOffset);
-            if (offsetClockClose) {
+            if (offsetClockClose)
+            {
                 void* clockCloseAddr = (void*)(base + offsetClockClose);
                 p_ClockPageClose.store(clockCloseAddr);
                 LogOffset("ClockPage.Close", clockCloseAddr, clockCloseAddr);
-                std::cout << "[SCAN] ClockPageClose resolved via offset at: 0x" << std::hex << offsetClockClose << std::dec << '\n';
-            } else {
+                std::cout << "[SCAN] ClockPageClose resolved via offset at: 0x" << std::hex << offsetClockClose <<
+                    std::dec << '\n';
+            }
+            else
+            {
                 std::cout << "[WARN] ClockPageClose offset is missing.\n";
             }
 
             uintptr_t offsetClockFinish = StringToAddr(Offsets::ClockPageFinishOffset);
-            if (offsetClockFinish) {
+            if (offsetClockFinish)
+            {
                 void* clockFinishAddr = (void*)(base + offsetClockFinish);
                 p_ClockPageFinish.store(clockFinishAddr);
                 LogOffset("ClockPage.Finish", clockFinishAddr, clockFinishAddr);
-                std::cout << "[SCAN] ClockPageFinish resolved via offset at: 0x" << std::hex << offsetClockFinish << std::dec << '\n';
-            } else {
+                std::cout << "[SCAN] ClockPageFinish resolved via offset at: 0x" << std::hex << offsetClockFinish <<
+                    std::dec << '\n';
+            }
+            else
+            {
                 std::cout << "[WARN] ClockPageFinish offset is missing; falling back to OK+Close.\n";
             }
 
             uintptr_t offsetClockBack = StringToAddr(Offsets::ClockPageBackOffset);
-            if (offsetClockBack) {
+            if (offsetClockBack)
+            {
                 void* clockBackAddr = (void*)(base + offsetClockBack);
                 p_ClockPageBack.store(clockBackAddr);
                 LogOffset("ClockPage.Back", clockBackAddr, clockBackAddr);
-                std::cout << "[SCAN] ClockPageBack resolved via offset at: 0x" << std::hex << offsetClockBack << std::dec << '\n';
-            } else {
+                std::cout << "[SCAN] ClockPageBack resolved via offset at: 0x" << std::hex << offsetClockBack <<
+                    std::dec << '\n';
+            }
+            else
+            {
                 std::cout << "[WARN] ClockPageBack offset is missing; falling back to Close path.\n";
             }
-        } else {
+        }
+        else
+        {
             std::cout << "[ERR] Critical: GetModuleHandle failed!" << '\n';
         }
     }
 
-    if (Config::Get().enable_rainbow_damage) {
+    if (Config::Get().enable_rainbow_damage)
+    {
         std::cout << "[SCAN] Hooking Rainbow Damage Colors..." << std::endl;
 
         uintptr_t base = (uintptr_t)GetModuleHandle(NULL);
 
-        auto ParseOffset = [](const std::string& hexStr) -> uintptr_t {
-            uintptr_t val = 0; std::stringstream ss; ss << std::hex << hexStr; ss >> val; return val;
+        auto ParseOffset = [](const std::string& hexStr) -> uintptr_t
+        {
+            uintptr_t val = 0;
+            std::stringstream ss;
+            ss << std::hex << hexStr;
+            ss >> val;
+            return val;
         };
 
         uintptr_t offA = ParseOffset(Offsets::DamageColorAOffset);
@@ -776,20 +923,29 @@ bool Hooks::Init() {
         uintptr_t off3 = ParseOffset(Offsets::DamageColor3Offset);
         uintptr_t off4 = ParseOffset(Offsets::DamageColor4Offset);
 
-        if (offA) MH_CreateHook((void*)(base + offA), (void*)RainbowDamageFeature::HookGetColorA, (void**)&RainbowDamageFeature::g_oGetColorA);
-        if (offB) MH_CreateHook((void*)(base + offB), (void*)RainbowDamageFeature::HookGetColorB, (void**)&RainbowDamageFeature::g_oGetColorB);
-        if (off1) MH_CreateHook((void*)(base + off1), (void*)RainbowDamageFeature::HookGetColor1, (void**)&RainbowDamageFeature::g_oGetColor1);
-        if (off2) MH_CreateHook((void*)(base + off2), (void*)RainbowDamageFeature::HookGetColor2, (void**)&RainbowDamageFeature::g_oGetColor2);
-        if (off3) MH_CreateHook((void*)(base + off3), (void*)RainbowDamageFeature::HookGetColor3, (void**)&RainbowDamageFeature::g_oGetColor3);
-        if (off4) MH_CreateHook((void*)(base + off4), (void*)RainbowDamageFeature::HookGetColor4, (void**)&RainbowDamageFeature::g_oGetColor4);
+        if (offA) MH_CreateHook((void*)(base + offA), (void*)RainbowDamageFeature::HookGetColorA,
+                                (void**)&RainbowDamageFeature::g_oGetColorA);
+        if (offB) MH_CreateHook((void*)(base + offB), (void*)RainbowDamageFeature::HookGetColorB,
+                                (void**)&RainbowDamageFeature::g_oGetColorB);
+        if (off1) MH_CreateHook((void*)(base + off1), (void*)RainbowDamageFeature::HookGetColor1,
+                                (void**)&RainbowDamageFeature::g_oGetColor1);
+        if (off2) MH_CreateHook((void*)(base + off2), (void*)RainbowDamageFeature::HookGetColor2,
+                                (void**)&RainbowDamageFeature::g_oGetColor2);
+        if (off3) MH_CreateHook((void*)(base + off3), (void*)RainbowDamageFeature::HookGetColor3,
+                                (void**)&RainbowDamageFeature::g_oGetColor3);
+        if (off4) MH_CreateHook((void*)(base + off4), (void*)RainbowDamageFeature::HookGetColor4,
+                                (void**)&RainbowDamageFeature::g_oGetColor4);
 
         CreateThread(nullptr, 0, RainbowDamageFeature::ColorCycleThread, nullptr, 0, nullptr);
         std::cout << "   -> Rainbow Damage Hooks Ready." << std::endl;
     }
 
-    if (MH_CreateHookApi(L"user32.dll", "SetCursor", (void*)hk_SetCursor, (void**)&o_SetCursor) == MH_OK) {
+    if (MH_CreateHookApi(L"user32.dll", "SetCursor", (void*)hk_SetCursor, (void**)&o_SetCursor) == MH_OK)
+    {
         std::cout << "[SCAN] Hook SetCursor Ready." << '\n';
-    } else {
+    }
+    else
+    {
         std::cout << "[SCAN] Hook SetCursor Failed." << '\n';
     }
 
@@ -804,24 +960,33 @@ bool Hooks::Init() {
     CameraCollision::Init();
 
     PaimonFollow::Init();
-    
-    if (Config::Get().enable_low_render_scale) {
+
+    if (Config::Get().enable_low_render_scale)
+    {
         uintptr_t offsetUpdateTarget = StringToAddr(Offsets::UpdateInnerTargetOffset);
-        if (offsetUpdateTarget) {
+        if (offsetUpdateTarget)
+        {
             void* updateTargetAddr = (void*)((uintptr_t)GetModuleHandle(NULL) + offsetUpdateTarget);
             LogOffset("UpdateInnerTarget", updateTargetAddr, updateTargetAddr);
-            std::cout << "[SCAN] UpdateInnerTarget resolved via offset at: 0x" << std::hex << offsetUpdateTarget << std::dec << std::endl;
-            if (MH_CreateHook(updateTargetAddr, (void*)hk_UpdateInnerTarget, (void**)&o_UpdateInnerTarget) == MH_OK) {
+            std::cout << "[SCAN] UpdateInnerTarget resolved via offset at: 0x" << std::hex << offsetUpdateTarget <<
+                std::dec << std::endl;
+            if (MH_CreateHook(updateTargetAddr, (void*)hk_UpdateInnerTarget, (void**)&o_UpdateInnerTarget) == MH_OK)
+            {
                 std::cout << "   -> UpdateInnerTarget Hook Ready." << std::endl;
-            } else {
+            }
+            else
+            {
                 std::cout << "   -> [ERR] UpdateInnerTarget MH_CreateHook Failed." << std::endl;
             }
-        } else {
+        }
+        else
+        {
             std::cout << "[ERR] UpdateInnerTarget offset is missing." << std::endl;
         }
     }
 
-    if (MH_EnableHook(MH_ALL_HOOKS) != MH_OK) {
+    if (MH_EnableHook(MH_ALL_HOOKS) != MH_OK)
+    {
         std::cout << "[SCAN] MH_EnableHook Failed!" << '\n';
         return false;
     }
@@ -832,13 +997,17 @@ bool Hooks::Init() {
 bool Hooks::IsGameUpdateInit() { return o_GetFrameCount.load() != nullptr; }
 void Hooks::RequestOpenCraft() { g_RequestCraft.store(true); }
 
-void Hooks::TriggerReloadPopup() {
-    // Config was just (re)loaded; re-apply profile privacy so a toggle while
-    // the profile page is open takes effect immediately.
+void Hooks::TriggerReloadPopup()
+{
     ApplyProfilePrivacyState();
     g_RequestReloadPopup.store(true);
 }
 
 
-void Hooks::Uninit() {}
-void Hooks::UpdateVisuals() {}
+void Hooks::Uninit()
+{
+}
+
+void Hooks::UpdateVisuals()
+{
+}

@@ -4,6 +4,7 @@ Licensed under the AGPL-3.0 License.
 */
 #pragma once
 
-namespace CameraTweaks {
+namespace CameraTweaks
+{
     void Init();
 }

@@ -7,7 +7,8 @@ Licensed under the AGPL-3.0 License.
 #include <d3d11.h>
 
 void UpdateOpenMap();
-bool LoadTextureFromFile(const char* filename, ID3D11Device* device, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height);
+bool LoadTextureFromFile(const char* filename, ID3D11Device* device, ID3D11ShaderResourceView** out_srv, int* out_width,
+                         int* out_height);
 float GetProcessCpuUsage();
 void* WINAPI hk_PlayerPerspective(void* a1, float a2, void* a3);
 void LogOffset(const std::string& name, void* resultAddress, void* instructionAddress = nullptr);

@@ -4,7 +4,8 @@ Licensed under the AGPL-3.0 License.
 */
 #pragma once
 
-namespace PaimonFollow {
+namespace PaimonFollow
+{
     void Init();
     void Tick();
 }

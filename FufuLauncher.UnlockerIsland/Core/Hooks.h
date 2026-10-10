@@ -7,10 +7,11 @@ Licensed under the AGPL-3.0 License.
 
 extern std::atomic<bool> g_StopDialogPolling;
 
-namespace Hooks {
+namespace Hooks
+{
     bool Init();
     void Uninit();
-    
+
     bool IsGameUpdateInit();
     bool CanApplyCameraOffset();
     void RequestOpenCraft();

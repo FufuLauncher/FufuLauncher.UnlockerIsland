@@ -4,7 +4,8 @@ Licensed under the AGPL-3.0 License.
 */
 #pragma once
 
-namespace FreeCamera {
+namespace FreeCamera
+{
     void Init();
     bool IsActive();
     void Tick();

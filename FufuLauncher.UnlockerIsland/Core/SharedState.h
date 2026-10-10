@@ -14,7 +14,10 @@ Licensed under the AGPL-3.0 License.
 
 struct Il2CppString;
 
-struct Vector3 { float x, y, z; };
+struct Vector3
+{
+    float x, y, z;
+};
 
 typedef int32_t (WINAPI *tGetFrameCount)();
 typedef int32_t (WINAPI *tSetFrameCount)(int32_t);
@@ -37,8 +40,8 @@ typedef __int64 (*tDisplayFog)(__int64, __int64);
 typedef void* (WINAPI *tPlayerPerspective)(void*, float, void*);
 typedef int32_t (WINAPI *tSetSyncCount)(bool);
 typedef __int64 (WINAPI *tGameUpdate)(__int64, const char*);
-typedef BOOL (WINAPI* tQueryPerformanceCounter)(LARGE_INTEGER*);
-typedef ULONGLONG (WINAPI* tGetTickCount64)();
+typedef BOOL (WINAPI*tQueryPerformanceCounter)(LARGE_INTEGER*);
+typedef ULONGLONG (WINAPI*tGetTickCount64)();
 typedef bool (WINAPI *tGetActive)(void*);
 typedef void (WINAPI *tAvatarPaimonAppear)(void*, void*, bool);
 typedef void* (*tGetComponent)(void*, Il2CppString*);
@@ -94,7 +97,8 @@ extern unsigned char originalCheckCanOpenMapBytes[5];
 
 extern std::list<std::wstring> GrassPrefix;
 
-struct SafeFogBuffer {
+struct SafeFogBuffer
+{
     __declspec(align(16)) uint8_t data[404];
     uint8_t padding[16];
 };

@@ -25,7 +25,7 @@
         <RootNamespace>FufuLauncherUnlockerIsland</RootNamespace>
         <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     </PropertyGroup>
-    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props"/>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
         <ConfigurationType>DynamicLibrary</ConfigurationType>
         <UseDebugLibraries>true</UseDebugLibraries>
@@ -52,24 +52,24 @@
         <WholeProgramOptimization>false</WholeProgramOptimization>
         <CharacterSet>Unicode</CharacterSet>
     </PropertyGroup>
-    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props"/>
     <ImportGroup Label="ExtensionSettings">
     </ImportGroup>
     <ImportGroup Label="Shared">
     </ImportGroup>
     <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
     </ImportGroup>
     <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
     </ImportGroup>
     <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
     </ImportGroup>
     <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
     </ImportGroup>
-    <PropertyGroup Label="UserMacros" />
+    <PropertyGroup Label="UserMacros"/>
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
         <ClCompile>
             <WarningLevel>Level3</WarningLevel>
@@ -142,53 +142,53 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClInclude Include="Config\Config.h" />
-        <ClInclude Include="Core\Hooks.h" />
-        <ClInclude Include="Core\SharedState.h" />
-        <ClInclude Include="Patterns\Patterns.h" />
-        <ClInclude Include="Automation\Automation.h" />
-        <ClInclude Include="RainbowDamage\RainbowDamage.h" />
-        <ClInclude Include="HideUI\HideUI.h" />
-        <ClInclude Include="UnderwaterMask\UnderwaterMask.h" />
-        <ClInclude Include="Visual\Visual.h" />
-        <ClInclude Include="FreeCamera\FreeCamera.h" />
-        <ClInclude Include="Camera\Camera.h" />
-        <ClInclude Include="CameraOffset\CameraOffset.h" />
-        <ClInclude Include="CameraTweaks\CameraTweaks.h" />
-        <ClInclude Include="CameraDistance\CameraDistance.h" />
-        <ClInclude Include="CameraCollision\CameraCollision.h" />
-        <ClInclude Include="PaimonFollow\PaimonFollow.h" />
-        <ClInclude Include="il2cpp\Il2CppArray.h" />
-        <ClInclude Include="il2cpp\Il2CppList.h" />
-        <ClInclude Include="il2cpp\Il2CppObject.h" />
-        <ClInclude Include="MinHook\MinHook.h" />
-        <ClInclude Include="Scanner\Scanner.h" />
-        <ClInclude Include="Core\Utils.h" />
+        <ClInclude Include="Config\Config.h"/>
+        <ClInclude Include="Core\Hooks.h"/>
+        <ClInclude Include="Core\SharedState.h"/>
+        <ClInclude Include="Patterns\Patterns.h"/>
+        <ClInclude Include="Automation\Automation.h"/>
+        <ClInclude Include="RainbowDamage\RainbowDamage.h"/>
+        <ClInclude Include="HideUI\HideUI.h"/>
+        <ClInclude Include="UnderwaterMask\UnderwaterMask.h"/>
+        <ClInclude Include="Visual\Visual.h"/>
+        <ClInclude Include="FreeCamera\FreeCamera.h"/>
+        <ClInclude Include="Camera\Camera.h"/>
+        <ClInclude Include="CameraOffset\CameraOffset.h"/>
+        <ClInclude Include="CameraTweaks\CameraTweaks.h"/>
+        <ClInclude Include="CameraDistance\CameraDistance.h"/>
+        <ClInclude Include="CameraCollision\CameraCollision.h"/>
+        <ClInclude Include="PaimonFollow\PaimonFollow.h"/>
+        <ClInclude Include="il2cpp\Il2CppArray.h"/>
+        <ClInclude Include="il2cpp\Il2CppList.h"/>
+        <ClInclude Include="il2cpp\Il2CppObject.h"/>
+        <ClInclude Include="MinHook\MinHook.h"/>
+        <ClInclude Include="Scanner\Scanner.h"/>
+        <ClInclude Include="Core\Utils.h"/>
     </ItemGroup>
     <ItemGroup>
-        <ClCompile Include="Config\Config.cpp" />
-        <ClCompile Include="Core\dllmain.cpp" />
-        <ClCompile Include="Core\Hooks.cpp" />
-        <ClCompile Include="Scanner\Scanner.cpp" />
-        <ClCompile Include="Core\SharedState.cpp" />
-        <ClCompile Include="Patterns\Patterns.cpp" />
-        <ClCompile Include="Automation\Automation.cpp" />
-        <ClCompile Include="RainbowDamage\RainbowDamage.cpp" />
-        <ClCompile Include="HideUI\HideUI.cpp" />
-        <ClCompile Include="UnderwaterMask\UnderwaterMask.cpp" />
-        <ClCompile Include="Visual\Visual.cpp" />
-        <ClCompile Include="FreeCamera\FreeCamera.cpp" />
-        <ClCompile Include="Camera\Camera.cpp" />
-        <ClCompile Include="CameraOffset\CameraOffset.cpp" />
-        <ClCompile Include="CameraTweaks\CameraTweaks.cpp" />
-        <ClCompile Include="CameraDistance\CameraDistance.cpp" />
-        <ClCompile Include="CameraCollision\CameraCollision.cpp" />
-        <ClCompile Include="PaimonFollow\PaimonFollow.cpp" />
+        <ClCompile Include="Config\Config.cpp"/>
+        <ClCompile Include="Core\dllmain.cpp"/>
+        <ClCompile Include="Core\Hooks.cpp"/>
+        <ClCompile Include="Scanner\Scanner.cpp"/>
+        <ClCompile Include="Core\SharedState.cpp"/>
+        <ClCompile Include="Patterns\Patterns.cpp"/>
+        <ClCompile Include="Automation\Automation.cpp"/>
+        <ClCompile Include="RainbowDamage\RainbowDamage.cpp"/>
+        <ClCompile Include="HideUI\HideUI.cpp"/>
+        <ClCompile Include="UnderwaterMask\UnderwaterMask.cpp"/>
+        <ClCompile Include="Visual\Visual.cpp"/>
+        <ClCompile Include="FreeCamera\FreeCamera.cpp"/>
+        <ClCompile Include="Camera\Camera.cpp"/>
+        <ClCompile Include="CameraOffset\CameraOffset.cpp"/>
+        <ClCompile Include="CameraTweaks\CameraTweaks.cpp"/>
+        <ClCompile Include="CameraDistance\CameraDistance.cpp"/>
+        <ClCompile Include="CameraCollision\CameraCollision.cpp"/>
+        <ClCompile Include="PaimonFollow\PaimonFollow.cpp"/>
     </ItemGroup>
     <ItemGroup>
-        <Content Include="MinHook\libMinHook.x64.lib" />
+        <Content Include="MinHook\libMinHook.x64.lib"/>
     </ItemGroup>
-    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
     <ImportGroup Label="ExtensionTargets">
     </ImportGroup>
     <PropertyGroup>

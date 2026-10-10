@@ -11,8 +11,10 @@ Licensed under the AGPL-3.0 License.
 #include <atomic>
 #include <iostream>
 
-namespace Camera {
-    namespace {
+namespace Camera
+{
+    namespace
+    {
         using FnGetMain = void* (__fastcall*)();
         using FnGetAllCameras = Il2CppArray<void*>* (__fastcall*)();
         using FnGetTransform = void* (__fastcall*)(void*);
@@ -31,35 +33,41 @@ namespace Camera {
 
         void* g_Transform = nullptr;
         void* g_SecondaryTransform = nullptr;
-        std::atomic<bool> g_Ready{ false };
+        std::atomic<bool> g_Ready{false};
         ULONGLONG g_LastRefresh = 0;
 
-        void* SafeGetMain() {
+        void* SafeGetMain()
+        {
             if (!g_fnGetMain) return nullptr;
             __try { return g_fnGetMain(); }
             __except (EXCEPTION_EXECUTE_HANDLER) { return nullptr; }
         }
 
-        void* SafeGetTransform(void* camera) {
+        void* SafeGetTransform(void* camera)
+        {
             if (!g_fnGetTransform || !camera) return nullptr;
             __try { return g_fnGetTransform(camera); }
             __except (EXCEPTION_EXECUTE_HANDLER) { return nullptr; }
         }
 
-        Il2CppArray<void*>* SafeGetAllCameras() {
+        Il2CppArray<void*>* SafeGetAllCameras()
+        {
             if (!g_fnGetAllCameras) return nullptr;
             __try { return g_fnGetAllCameras(); }
             __except (EXCEPTION_EXECUTE_HANDLER) { return nullptr; }
         }
 
-        size_t SafeGetCameraCount(Il2CppArray<void*>* cameras) {
+        size_t SafeGetCameraCount(Il2CppArray<void*>* cameras)
+        {
             if (!cameras) return 0;
             __try { return cameras->Count(); }
             __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
         }
 
-        bool SafeGetCameraAt(Il2CppArray<void*>* cameras, size_t index, void*& camera) {
-            __try {
+        bool SafeGetCameraAt(Il2CppArray<void*>* cameras, size_t index, void*& camera)
+        {
+            __try
+            {
                 if (!cameras || index >= cameras->Count()) return false;
                 camera = cameras->Get(static_cast<int>(index));
                 return true;
@@ -68,7 +76,8 @@ namespace Camera {
         }
     }
 
-    Quaternion Multiply(const Quaternion& a, const Quaternion& b) {
+    Quaternion Multiply(const Quaternion& a, const Quaternion& b)
+    {
         return {
             a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
             a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
@@ -77,22 +86,25 @@ namespace Camera {
         };
     }
 
-    Vector3 RotateVector(const Quaternion& rotation, const Vector3& vector) {
-        Quaternion qv{ vector.x, vector.y, vector.z, 0.0f };
-        Quaternion conjugate{ -rotation.x, -rotation.y, -rotation.z, rotation.w };
+    Vector3 RotateVector(const Quaternion& rotation, const Vector3& vector)
+    {
+        Quaternion qv{vector.x, vector.y, vector.z, 0.0f};
+        Quaternion conjugate{-rotation.x, -rotation.y, -rotation.z, rotation.w};
         Quaternion result = Multiply(Multiply(rotation, qv), conjugate);
-        return { result.x, result.y, result.z };
+        return {result.x, result.y, result.z};
     }
 
-    Quaternion FromYawPitch(float yawDegrees, float pitchDegrees) {
+    Quaternion FromYawPitch(float yawDegrees, float pitchDegrees)
+    {
         float yaw = yawDegrees * 0.0174532925f * 0.5f;
         float pitch = pitchDegrees * 0.0174532925f * 0.5f;
-        Quaternion yawRotation{ 0, sinf(yaw), 0, cosf(yaw) };
-        Quaternion pitchRotation{ sinf(pitch), 0, 0, cosf(pitch) };
+        Quaternion yawRotation{0, sinf(yaw), 0, cosf(yaw)};
+        Quaternion pitchRotation{sinf(pitch), 0, 0, cosf(pitch)};
         return Multiply(yawRotation, pitchRotation);
     }
 
-    bool Init() {
+    bool Init()
+    {
         std::cout << "[SCAN] Initializing shared camera access..." << std::endl;
 
         void* getMain = Scanner::ScanMainMod(Patterns::FreeCamCameraGetMain);
@@ -102,7 +114,8 @@ namespace Camera {
         void* setRotation = Scanner::ScanMainMod(Patterns::FreeCamTransformSetRotation);
         void* getRotation = Scanner::ScanMainMod(Patterns::FreeCamTransformGetRotation);
 
-        if (!getMain || !getTransform || !getPosition || !setPosition || !setRotation) {
+        if (!getMain || !getTransform || !getPosition || !setPosition || !setRotation)
+        {
             std::cout << "   -> [ERR] Shared camera patterns not found; camera features are disabled." << std::endl;
             return false;
         }
@@ -120,13 +133,17 @@ namespace Camera {
         g_Ready.store(true, std::memory_order_relaxed);
 
         std::cout << "   -> Shared camera access ready." << std::endl;
-        if (!g_fnGetRotation) {
-            std::cout << "   -> [WARN] Camera rotation pattern not found; horizontal camera-relative offsets are disabled." << std::endl;
+        if (!g_fnGetRotation)
+        {
+            std::cout <<
+                "   -> [WARN] Camera rotation pattern not found; horizontal camera-relative offsets are disabled." <<
+                std::endl;
         }
         return true;
     }
 
-    void Tick() {
+    void Tick()
+    {
         if (!IsReady()) return;
 
         ULONGLONG now = GetTickCount64();
@@ -138,79 +155,99 @@ namespace Camera {
         g_SecondaryTransform = nullptr;
         auto* cameras = SafeGetAllCameras();
         size_t count = SafeGetCameraCount(cameras);
-        if (camera && count > 0 && count <= 16) {
-            for (size_t i = 0; i < count; ++i) {
+        if (camera && count > 0 && count <= 16)
+        {
+            for (size_t i = 0; i < count; ++i)
+            {
                 void* item = nullptr;
                 if (!SafeGetCameraAt(cameras, i, item) || !item || item == camera) continue;
                 void* transform = SafeGetTransform(item);
                 if (!transform) continue;
-                if (!g_Transform) {
+                if (!g_Transform)
+                {
                     g_Transform = transform;
-                } else if (!g_SecondaryTransform && transform != g_Transform) {
+                }
+                else if (!g_SecondaryTransform && transform != g_Transform)
+                {
                     g_SecondaryTransform = transform;
                 }
             }
         }
     }
 
-    void Invalidate() {
+    void Invalidate()
+    {
         g_Transform = nullptr;
         g_SecondaryTransform = nullptr;
         g_LastRefresh = 0;
     }
 
-    bool IsReady() {
+    bool IsReady()
+    {
         return g_Ready.load(std::memory_order_relaxed);
     }
 
-    void* GetTransform() {
+    void* GetTransform()
+    {
         return g_Transform;
     }
 
-    bool GetPosition(Vector3& outPosition) {
+    bool GetPosition(Vector3& outPosition)
+    {
         if (!g_fnGetPosition || !g_Transform) return false;
-        __try {
+        __try
+        {
             g_fnGetPosition(&outPosition, g_Transform);
             return true;
         }
-        __except (EXCEPTION_EXECUTE_HANDLER) {
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
             return false;
         }
     }
 
-    bool GetRotation(Quaternion& outRotation) {
+    bool GetRotation(Quaternion& outRotation)
+    {
         if (!g_fnGetRotation || !g_Transform) return false;
-        __try {
+        __try
+        {
             g_fnGetRotation(&outRotation, g_Transform);
             return true;
         }
-        __except (EXCEPTION_EXECUTE_HANDLER) {
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
             return false;
         }
     }
 
-    bool SetPosition(const Vector3& position) {
+    bool SetPosition(const Vector3& position)
+    {
         if (!g_fnSetPosition || !g_Transform) return false;
         Vector3 value = position;
-        __try {
+        __try
+        {
             g_fnSetPosition(g_Transform, &value);
             if (g_SecondaryTransform) g_fnSetPosition(g_SecondaryTransform, &value);
             return true;
         }
-        __except (EXCEPTION_EXECUTE_HANDLER) {
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
             return false;
         }
     }
 
-    bool SetRotation(const Quaternion& rotation) {
+    bool SetRotation(const Quaternion& rotation)
+    {
         if (!g_fnSetRotation || !g_Transform) return false;
         Quaternion value = rotation;
-        __try {
+        __try
+        {
             g_fnSetRotation(g_Transform, &value);
             if (g_SecondaryTransform) g_fnSetRotation(g_SecondaryTransform, &value);
             return true;
         }
-        __except (EXCEPTION_EXECUTE_HANDLER) {
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
             return false;
         }
     }
