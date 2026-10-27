@@ -7,20 +7,18 @@ Licensed under the AGPL-3.0 License.
 #include <Psapi.h>
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <sstream>
 #include <vector>
-#include <iostream>
-
-#include "../Config/Config.h"
 
 namespace Scanner
 {
     std::vector<int> ParsePattern(const std::string& signature)
     {
         std::vector<int> pattern;
-        std::stringstream ss(signature);
+        std::istringstream stream(signature);
         std::string word;
-        while (ss >> word)
+        while (stream >> word)
         {
             if (word == "?" || word == "??") pattern.push_back(-1);
             else
@@ -32,159 +30,98 @@ namespace Scanner
         return pattern;
     }
 
-    void* ScanMainMod(const std::string& signature)
+    namespace
     {
-        HMODULE hModule = nullptr;
-
-        if (!hModule)
+        // Shared matching loop. Existing APIs retain first-match/readable-page
+        // behavior; unique searches accumulate across executable PE sections.
+        bool ScanRegions(uintptr_t start, uintptr_t end, const std::vector<int>& pattern,
+                         bool unique, bool executableOnly, void*& found)
         {
-            hModule = GetModuleHandleA(nullptr);
-        }
-
-        if (!hModule) return nullptr;
-
-        MODULEINFO modInfo = {0};
-        if (!GetModuleInformation(GetCurrentProcess(), hModule, &modInfo, sizeof(MODULEINFO)))
-        {
-            return nullptr;
-        }
-
-        auto pattern = ParsePattern(signature);
-        if (pattern.empty()) return nullptr;
-
-        uintptr_t startAddr = (uintptr_t)modInfo.lpBaseOfDll;
-        uintptr_t endAddr = startAddr + modInfo.SizeOfImage;
-        uintptr_t current = startAddr;
-
-        const size_t pSize = pattern.size();
-
-        while (current < endAddr)
-        {
-            MEMORY_BASIC_INFORMATION mbi;
-            if (!VirtualQuery((LPCVOID)current, &mbi, sizeof(mbi)))
+            for (auto current = start; current < end;)
             {
-                break;
-            }
-
-            bool isGood = (mbi.State == MEM_COMMIT) &&
-                ((mbi.Protect & PAGE_GUARD) == 0) &&
-                ((mbi.Protect & PAGE_EXECUTE_READ) ||
-                    (mbi.Protect & PAGE_EXECUTE_READWRITE) ||
-                    (mbi.Protect & PAGE_READWRITE) ||
-                    (mbi.Protect & PAGE_READONLY));
-
-            if (isGood)
-            {
-                size_t regionSize = mbi.RegionSize;
-
-                if ((uintptr_t)mbi.BaseAddress + regionSize > endAddr)
+                MEMORY_BASIC_INFORMATION memory{};
+                if (!VirtualQuery(reinterpret_cast<void*>(current), &memory, sizeof(memory))) return false;
+                const auto next = (std::min)(end,
+                    reinterpret_cast<uintptr_t>(memory.BaseAddress) + memory.RegionSize);
+                if (next <= current) return false;
+                const DWORD readable = executableOnly
+                    ? PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY
+                    : PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_READWRITE | PAGE_READONLY;
+                if (memory.State == MEM_COMMIT && !(memory.Protect & PAGE_GUARD) && (memory.Protect & readable))
                 {
-                    regionSize = endAddr - (uintptr_t)mbi.BaseAddress;
-                }
-
-                if (regionSize >= pSize)
-                {
-                    const uint8_t* pStart = (const uint8_t*)mbi.BaseAddress;
-
-                    for (size_t i = 0; i <= regionSize - pSize; ++i)
+                    auto cursor = reinterpret_cast<const uint8_t*>(current);
+                    const auto finish = reinterpret_cast<const uint8_t*>(next);
+                    while (finish - cursor >= static_cast<ptrdiff_t>(pattern.size()))
                     {
-                        bool found = true;
-                        for (size_t j = 0; j < pSize; ++j)
+                        const auto hit = pattern.front() < 0 ? cursor : static_cast<const uint8_t*>(
+                            std::memchr(cursor, pattern.front(), finish - cursor - pattern.size() + 1));
+                        if (!hit) break;
+                        bool match = true;
+                        for (size_t j = 0; j < pattern.size(); ++j)
+                            if (pattern[j] != -1 && pattern[j] != hit[j]) { match = false; break; }
+                        if (match)
                         {
-                            if (pattern[j] != -1 && pattern[j] != pStart[i + j])
-                            {
-                                found = false;
-                                break;
-                            }
+                            if (unique && found) return false;
+                            found = const_cast<uint8_t*>(hit);
+                            if (!unique) return true;
                         }
-                        if (found)
-                        {
-                            return (void*)(pStart + i);
-                        }
+                        cursor = hit + 1;
                     }
                 }
+                current = next;
             }
-
-            uintptr_t nextAddr = (uintptr_t)mbi.BaseAddress + mbi.RegionSize;
-
-            if (nextAddr <= current)
-            {
-                break;
-            }
-            current = nextAddr;
+            return true;
         }
 
-        return nullptr;
+        bool MainModule(MODULEINFO& info)
+        {
+            return GetModuleInformation(GetCurrentProcess(), GetModuleHandleW(nullptr), &info, sizeof(info)) != FALSE;
+        }
     }
 
     void* ScanRange(void* start, size_t size, const std::string& signature)
     {
-        if (!start || size == 0) return nullptr;
-
-        auto pattern = ParsePattern(signature);
+        if (!start || !size) return nullptr;
+        const auto pattern = ParsePattern(signature);
         if (pattern.empty()) return nullptr;
+        const auto begin = reinterpret_cast<uintptr_t>(start);
+        const auto end = size > UINTPTR_MAX - begin ? UINTPTR_MAX : begin + size;
+        void* found = nullptr;
+        return ScanRegions(begin, end, pattern, false, false, found) ? found : nullptr;
+    }
 
-        uintptr_t rangeStart = (uintptr_t)start;
-        uintptr_t rangeEnd = rangeStart + size;
-        if (rangeEnd < rangeStart)
+    void* ScanMainMod(const std::string& signature)
+    {
+        MODULEINFO info{};
+        return MainModule(info) ? ScanRange(info.lpBaseOfDll, info.SizeOfImage, signature) : nullptr;
+    }
+
+    void* ScanUniqueMainMod(const std::string& signature, void* within, size_t size)
+    {
+        MODULEINFO info{};
+        if (!MainModule(info)) return nullptr;
+        const auto pattern = ParsePattern(signature);
+        if (pattern.empty() || (within && !size)) return nullptr;
+        const auto base = reinterpret_cast<uintptr_t>(info.lpBaseOfDll);
+        const auto imageEnd = base + info.SizeOfImage;
+        const auto start = within ? reinterpret_cast<uintptr_t>(within) : base;
+        if (start < base || start >= imageEnd) return nullptr;
+        const auto end = within ? start + (std::min)(size, imageEnd - start) : imageEnd;
+        const auto dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+        if (dos->e_magic != IMAGE_DOS_SIGNATURE || dos->e_lfanew < 0 ||
+            static_cast<size_t>(dos->e_lfanew) > info.SizeOfImage - sizeof(IMAGE_NT_HEADERS)) return nullptr;
+        const auto nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
+        if (nt->Signature != IMAGE_NT_SIGNATURE) return nullptr;
+        const auto sections = IMAGE_FIRST_SECTION(nt);
+        void* found = nullptr;
+        for (unsigned i = 0; i < nt->FileHeader.NumberOfSections; ++i)
         {
-            rangeEnd = UINTPTR_MAX;
+            if (!(sections[i].Characteristics & IMAGE_SCN_MEM_EXECUTE)) continue;
+            const auto begin = (std::max)(start, base + sections[i].VirtualAddress);
+            const auto finish = (std::min)(end, base + sections[i].VirtualAddress + sections[i].Misc.VirtualSize);
+            if (begin < finish && !ScanRegions(begin, finish, pattern, true, true, found)) return nullptr;
         }
-
-        const size_t pSize = pattern.size();
-        uintptr_t current = rangeStart;
-
-        while (current < rangeEnd)
-        {
-            MEMORY_BASIC_INFORMATION mbi;
-            if (!VirtualQuery((LPCVOID)current, &mbi, sizeof(mbi)))
-            {
-                current += 0x1000;
-                continue;
-            }
-
-            bool isGood = (mbi.State == MEM_COMMIT) &&
-                ((mbi.Protect & PAGE_GUARD) == 0) &&
-                ((mbi.Protect & PAGE_EXECUTE_READ) ||
-                    (mbi.Protect & PAGE_EXECUTE_READWRITE) ||
-                    (mbi.Protect & PAGE_READWRITE) ||
-                    (mbi.Protect & PAGE_READONLY));
-
-            uintptr_t regionStart = (std::max)((uintptr_t)mbi.BaseAddress, rangeStart);
-            uintptr_t regionEnd = (std::min)((uintptr_t)mbi.BaseAddress + mbi.RegionSize, rangeEnd);
-
-            if (isGood && regionEnd > regionStart && regionEnd - regionStart >= pSize)
-            {
-                const uint8_t* pStart = (const uint8_t*)regionStart;
-                const size_t regionSize = regionEnd - regionStart;
-
-                for (size_t i = 0; i <= regionSize - pSize; ++i)
-                {
-                    bool found = true;
-                    for (size_t j = 0; j < pSize; ++j)
-                    {
-                        if (pattern[j] != -1 && pattern[j] != pStart[i + j])
-                        {
-                            found = false;
-                            break;
-                        }
-                    }
-                    if (found)
-                    {
-                        return (void*)(pStart + i);
-                    }
-                }
-            }
-
-            uintptr_t nextAddr = (uintptr_t)mbi.BaseAddress + mbi.RegionSize;
-            if (nextAddr <= current)
-            {
-                break;
-            }
-            current = nextAddr;
-        }
-
-        return nullptr;
+        return found;
     }
 
     void* ResolveRelative(void* instruction, int offset, int instrSize)
@@ -192,14 +129,9 @@ namespace Scanner
         if (!instruction) return nullptr;
         __try
         {
-            uintptr_t instrAddr = (uintptr_t)instruction;
-            int32_t relative = *(int32_t*)(instrAddr + offset);
-            uintptr_t target = instrAddr + instrSize + relative;
-            return (void*)target;
+            const auto address = reinterpret_cast<uintptr_t>(instruction);
+            return reinterpret_cast<void*>(address + instrSize + *reinterpret_cast<int32_t*>(address + offset));
         }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return nullptr;
-        }
+        __except (EXCEPTION_EXECUTE_HANDLER) { return nullptr; }
     }
 }

@@ -147,4 +147,8 @@
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DomainMap\DomainMap.h"><Filter>头文件</Filter></ClInclude>
+    <ClCompile Include="DomainMap\DomainMap.cpp"><Filter>源文件</Filter></ClCompile>
+  </ItemGroup>
 </Project>

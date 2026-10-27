@@ -143,6 +143,7 @@
     </ItemDefinitionGroup>
     <ItemGroup>
         <ClInclude Include="Config\Config.h"/>
+        <ClInclude Include="DomainMap\DomainMap.h"/>
         <ClInclude Include="Core\Hooks.h"/>
         <ClInclude Include="ResinChoices\ResinChoices.h"/>
         <ClInclude Include="Core\SharedState.h"/>
@@ -168,6 +169,7 @@
     </ItemGroup>
     <ItemGroup>
         <ClCompile Include="Config\Config.cpp"/>
+        <ClCompile Include="DomainMap\DomainMap.cpp"/>
         <ClCompile Include="Core\dllmain.cpp"/>
         <ClCompile Include="Core\Hooks.cpp"/>
         <ClCompile Include="ResinChoices\ResinChoices.cpp"/>

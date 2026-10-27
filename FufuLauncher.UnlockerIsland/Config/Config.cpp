@@ -4,6 +4,7 @@ Licensed under the AGPL-3.0 License.
 */
 #include "Config.h"
 #include "../ResinChoices/ResinChoices.h"
+#include "../DomainMap/DomainMap.h"
 #include <string>
 #include <cstdio>
 #include <cstdlib>
@@ -218,6 +219,9 @@ namespace Config
         g_Config.disable_character_fade = ReadInt("DisableCharFade", 0, file);
 
         g_Config.enable_redirect_craft_override = ReadInt("RedirectCraft", 0, file);
+
+        g_Config.enable_domain_map = ReadInt("EnableDomainMap", ReadInt("EnableDungeonMap", 0, file), file) != 0;
+        DomainMap::SetEnabled(g_Config.enable_domain_map);
 
         g_Config.enable_remove_team_anim = ReadInt("RemoveTeamAnim", 0, file);
 

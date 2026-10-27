@@ -26,6 +26,7 @@ Licensed under the AGPL-3.0 License.
 #include "../CameraCollision/CameraCollision.h"
 #include "../PaimonFollow/PaimonFollow.h"
 #include "../ResinChoices/ResinChoices.h"
+#include "../DomainMap/DomainMap.h"
 #include <iostream>
 #include <atomic>
 #include <mutex>
@@ -843,6 +844,8 @@ bool Hooks::Init()
     CameraCollision::Init();
 
     PaimonFollow::Init();
+
+    DomainMap::Init();
 
     if (Config::Get().enable_low_render_scale)
     {

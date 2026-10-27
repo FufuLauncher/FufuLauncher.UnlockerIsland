@@ -62,6 +62,8 @@ struct ModConfig
 
     bool enable_redirect_craft_override = false;
 
+    bool enable_domain_map = false;
+
     bool enable_remove_team_anim = false;
 
     int toggle_key = VK_HOME;
