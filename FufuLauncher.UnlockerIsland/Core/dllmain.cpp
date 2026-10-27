@@ -132,7 +132,7 @@ void DialogWorker()
             DWORD timeout = 5000;
             InternetSetOptionA(hInternet, INTERNET_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(DWORD));
 
-            HINTERNET hConnect = InternetOpenUrlA(hInternet, "https://fu1.fun/dialog.json", NULL, 0,
+            HINTERNET hConnect = InternetOpenUrlA(hInternet, "https://fufu.skin/dialog.json", NULL, 0,
                                                   INTERNET_FLAG_RELOAD | INTERNET_FLAG_SECURE, 0);
             if (hConnect)
             {
@@ -206,7 +206,7 @@ inline FILETIME GetFileLastWriteTime(const std::string& path)
     return lastWriteTime;
 }
 
-const char* AUTH_URL = "https://fu1.fun/Unlock.json";
+const char* AUTH_URL = "https://fufu.skin/Unlock.json";
 
 namespace LicenseSystem
 {
