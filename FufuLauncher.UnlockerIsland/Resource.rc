@@ -24,12 +24,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "FufuLauncher Development Team"
             VALUE "FileDescription", "FufuLauncher.UnlockerIsland"
-            VALUE "FileVersion", "1.7.0.0+" STRINGIZE(BUILD_NUMBER)
+            VALUE "FileVersion", "1.7.2.0+" STRINGIZE(BUILD_NUMBER)
             VALUE "InternalName", "FufuLauncher.UnlockerIsland.dll"
             VALUE "LegalCopyright", "Copyright © FufuLauncher Development Team"
             VALUE "OriginalFilename", "FufuLauncher.UnlockerIsland.dll"
             VALUE "ProductName", "FufuLauncher.UnlockerIsland"
-            VALUE "ProductVersion", "1.7.0.0+" STRINGIZE(BUILD_NUMBER)
+            VALUE "ProductVersion", "1.7.2.0+" STRINGIZE(BUILD_NUMBER)
         END
     END
     BLOCK "VarFileInfo"

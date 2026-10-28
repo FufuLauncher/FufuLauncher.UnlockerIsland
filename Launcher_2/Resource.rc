@@ -24,12 +24,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "FufuLauncher Development Team"
             VALUE "FileDescription", "FufuLauncher.Launcher_2"
-            VALUE "FileVersion", "1.7.0.0+" STRINGIZE(BUILD_NUMBER)
+            VALUE "FileVersion", "1.7.2.0+" STRINGIZE(BUILD_NUMBER)
             VALUE "InternalName", "FufuLauncher.Launcher_2.exe"
             VALUE "LegalCopyright", "Copyright © FufuLauncher Development Team"
             VALUE "OriginalFilename", "FufuLauncher.Launcher_2.exe"
             VALUE "ProductName", "FufuLauncher.Launcher_2"
-            VALUE "ProductVersion", "1.7.0.0+" STRINGIZE(BUILD_NUMBER)
+            VALUE "ProductVersion", "1.7.2.0+" STRINGIZE(BUILD_NUMBER)
         END
     END
     BLOCK "VarFileInfo"

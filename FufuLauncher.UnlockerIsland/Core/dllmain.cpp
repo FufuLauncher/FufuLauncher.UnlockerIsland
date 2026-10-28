@@ -126,7 +126,7 @@ void DialogWorker()
             break;
         }
 
-        HINTERNET hInternet = InternetOpenA("FufuLauncher Unlock/1.7.0.0", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+        HINTERNET hInternet = InternetOpenA("FufuLauncher Unlock/1.7.2.0", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
         if (hInternet)
         {
             DWORD timeout = 5000;
@@ -424,7 +424,7 @@ std::vector<uint32_t> ReadUidsFromFile()
 AuthResult CheckRemoteStatus(const std::vector<uint32_t>& uidList)
 {
     AuthResult result = AuthResult::NET_ERROR;
-    HINTERNET hInternet = InternetOpenA("FufuLauncher Unlock/1.7.0.0", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+    HINTERNET hInternet = InternetOpenA("FufuLauncher Unlock/1.7.2.0", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
 
     if (hInternet)
     {
