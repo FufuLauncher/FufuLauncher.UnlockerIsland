@@ -67,7 +67,7 @@ namespace CameraDistance
                     !g_IsRadiusMode(input + 0x4C4, 0, nullptr))
                     return false;
 
-                auto* global = *reinterpret_cast<uint8_t**>(static_cast<uint8_t*>(self) + 0x10);
+                auto* global = *reinterpret_cast<uint8_t**>(static_cast<uint8_t*>(self) + 0x20);
                 if (!global) return false;
                 const float minimum = *reinterpret_cast<float*>(global + 0x34);
                 if (!std::isfinite(minimum) || minimum <= 0.0f || minimum >= 6.0f) return false;
@@ -137,10 +137,8 @@ namespace CameraDistance
         // Check the cached ideal radius and the global-config accessor/upper
         // radius writes as well as the prologues before using fixed field offsets.
         if (!collect || !radius || !mode ||
-            !Scanner::ScanRange(collect, 0x560, "F2 0F 11 87 10 03 00 00") ||
-            !Scanner::ScanRange(radius, 0xDB0,
-                                "48 8B 4F 10 48 85 C9 ? ? ? ? ? ? 0F 57 C0 F3 0F 5A C6 F2 0F 58 F8 F2 0F 10 B7 10 03 00 00")
-            ||
+            !Scanner::ScanRange(collect, 0x560, "F2 0F 11 87 40 01 00 00") ||
+            !Scanner::ScanRange(collect, 0x560, "48 8B 4F 20 48 85 C9") ||
             !Scanner::ScanRange(radius, 0xDB0, "F2 0F 11 86 78 04 00 00"))
         {
             std::cout << "[WARN] Camera distance layout unsupported; native distance unchanged.\n";

@@ -254,11 +254,13 @@ namespace LicenseSystem
     {
         DWORD dwLen = 0;
         if (!CryptBinaryToStringA(data.data(), (DWORD)data.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL,
-                                  &dwLen)) return "";
+                                  &dwLen))
+            return "";
 
         std::string buffer(dwLen, '\0');
         if (!CryptBinaryToStringA(data.data(), (DWORD)data.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
-                                  &buffer[0], &dwLen)) return "";
+                                  &buffer[0], &dwLen))
+            return "";
 
         return buffer;
     }

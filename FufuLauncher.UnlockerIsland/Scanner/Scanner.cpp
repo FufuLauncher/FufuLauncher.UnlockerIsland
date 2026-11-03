@@ -42,23 +42,31 @@ namespace Scanner
                 MEMORY_BASIC_INFORMATION memory{};
                 if (!VirtualQuery(reinterpret_cast<void*>(current), &memory, sizeof(memory))) return false;
                 const auto next = (std::min)(end,
-                    reinterpret_cast<uintptr_t>(memory.BaseAddress) + memory.RegionSize);
+                                             reinterpret_cast<uintptr_t>(memory.BaseAddress) + memory.RegionSize);
                 if (next <= current) return false;
                 const DWORD readable = executableOnly
-                    ? PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY
-                    : PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_READWRITE | PAGE_READONLY;
+                                           ? PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY
+                                           : PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_READWRITE |
+                                           PAGE_READONLY;
                 if (memory.State == MEM_COMMIT && !(memory.Protect & PAGE_GUARD) && (memory.Protect & readable))
                 {
                     auto cursor = reinterpret_cast<const uint8_t*>(current);
                     const auto finish = reinterpret_cast<const uint8_t*>(next);
                     while (finish - cursor >= static_cast<ptrdiff_t>(pattern.size()))
                     {
-                        const auto hit = pattern.front() < 0 ? cursor : static_cast<const uint8_t*>(
-                            std::memchr(cursor, pattern.front(), finish - cursor - pattern.size() + 1));
+                        const auto hit = pattern.front() < 0
+                                             ? cursor
+                                             : static_cast<const uint8_t*>(
+                                                 std::memchr(cursor, pattern.front(),
+                                                             finish - cursor - pattern.size() + 1));
                         if (!hit) break;
                         bool match = true;
                         for (size_t j = 0; j < pattern.size(); ++j)
-                            if (pattern[j] != -1 && pattern[j] != hit[j]) { match = false; break; }
+                            if (pattern[j] != -1 && pattern[j] != hit[j])
+                            {
+                                match = false;
+                                break;
+                            }
                         if (match)
                         {
                             if (unique && found) return false;
@@ -109,7 +117,8 @@ namespace Scanner
         const auto end = within ? start + (std::min)(size, imageEnd - start) : imageEnd;
         const auto dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
         if (dos->e_magic != IMAGE_DOS_SIGNATURE || dos->e_lfanew < 0 ||
-            static_cast<size_t>(dos->e_lfanew) > info.SizeOfImage - sizeof(IMAGE_NT_HEADERS)) return nullptr;
+            static_cast<size_t>(dos->e_lfanew) > info.SizeOfImage - sizeof(IMAGE_NT_HEADERS))
+            return nullptr;
         const auto nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
         if (nt->Signature != IMAGE_NT_SIGNATURE) return nullptr;
         const auto sections = IMAGE_FIRST_SECTION(nt);

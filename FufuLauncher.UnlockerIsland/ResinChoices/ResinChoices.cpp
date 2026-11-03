@@ -50,12 +50,14 @@ namespace ResinChoices
             void* view = nullptr;
             uint32_t available = 0;
             uint32_t choices = 0;
+
             bool operator==(const Snapshot& other) const
             {
                 return inventory == other.inventory && view == other.view &&
                     available == other.available && choices == other.choices;
             }
         };
+
         struct WindowState
         {
             void* context = nullptr;
@@ -88,7 +90,8 @@ namespace ResinChoices
             if (capacity < static_cast<size_t>(count) || capacity > 1000) return nullptr;
             auto* values = reinterpret_cast<uint8_t*>(items) + 0x20;
             if (count && (IsBadReadPtr(values, count * sizeof(uint64_t)) ||
-                IsBadWritePtr(values, count * sizeof(uint64_t)))) return nullptr;
+                IsBadWritePtr(values, count * sizeof(uint64_t))))
+                return nullptr;
             return list;
         }
 
@@ -96,7 +99,8 @@ namespace ResinChoices
         {
             for (size_t i = 0; i < kItemIds.size(); ++i)
                 if (static_cast<uint32_t>(item) == kItemIds[i] ||
-                    static_cast<uint32_t>(item >> 32) == kItemIds[i]) return 1u << i;
+                    static_cast<uint32_t>(item >> 32) == kItemIds[i])
+                    return 1u << i;
             return 0;
         }
 
@@ -135,7 +139,8 @@ namespace ResinChoices
         {
             void* table = nullptr;
             if (!g_GetItemCount || !ReadPointer(g_ModuleTable, 0, table) ||
-                !ReadPointer(table, g_InventoryOffset, snapshot.inventory)) return false;
+                !ReadPointer(table, g_InventoryOffset, snapshot.inventory))
+                return false;
             snapshot.view = view;
             snapshot.choices = Config::GetResinChoiceMask();
             for (size_t i = 0; i < kItemIds.size(); ++i)
@@ -176,15 +181,24 @@ namespace ResinChoices
         {
             if (GetCurrentThreadId() != g_UiThread.load(std::memory_order_acquire)) return;
             g_Posted.store(false);
-            if (g_Refreshing) { g_Deferred = true; return; }
+            if (g_Refreshing)
+            {
+                g_Deferred = true;
+                return;
+            }
             const uint32_t reasons = g_Reasons.exchange(0);
             if (!reasons || !g_Window.context || g_Window.failed) return;
             void* klass = nullptr;
             void* view = nullptr;
             if (!ReadPointer(g_Window.context, 0, klass) || klass != g_Window.klass ||
-                !IsVisible(g_Window.context, view)) return;
+                !IsVisible(g_Window.context, view))
+                return;
             Snapshot snapshot;
-            if (!TakeSnapshot(view, snapshot)) { g_Window.valid = false; return; }
+            if (!TakeSnapshot(view, snapshot))
+            {
+                g_Window.valid = false;
+                return;
+            }
             if (!(reasons & kWindowShown) && g_Window.valid && snapshot == g_Window.applied) return;
 
             // Events are delivered through this thread's message queue, after
@@ -204,7 +218,11 @@ namespace ResinChoices
             else if (Config::Get().debug_console)
                 std::cout << "[Resin] Event refresh; available=" << snapshot.available
                     << " choices=" << snapshot.choices << '\n';
-            if (g_Deferred) { g_Deferred = false; PostRequest(0); }
+            if (g_Deferred)
+            {
+                g_Deferred = false;
+                PostRequest(0);
+            }
         }
 
         LRESULT CALLBACK OnMessage(int code, WPARAM remove, LPARAM param)
@@ -252,7 +270,9 @@ namespace ResinChoices
             {
                 if (ApplyChoices(context)) TrackContext(context, false);
             }
-            __except (EXCEPTION_EXECUTE_HANDLER) {}
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+            }
         }
 
         void WINAPI HookContextShow(void* context, bool shown)
@@ -261,7 +281,9 @@ namespace ResinChoices
             if (g_OriginalShow) g_OriginalShow(context, shown);
             if (!shown) return;
             __try { TrackContext(context, true); }
-            __except (EXCEPTION_EXECUTE_HANDLER) {}
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+            }
         }
 
         void WINAPI HookContextDisable(void* context)
@@ -283,35 +305,47 @@ namespace ResinChoices
         {
             auto* refresh = static_cast<uint8_t*>(setupCall) - 0x46;
             if (Scanner::ScanRange(refresh, 0x4D, Patterns::RefreshResinList) != refresh) return false;
-            auto* setupView = static_cast<uint8_t*>(Scanner::ScanRange(setup, 0x2000, Patterns::ResinSetupView));
+            auto* windowBase = static_cast<uint8_t*>(setup) - 0x2000;
+            auto* setupView = static_cast<uint8_t*>(Scanner::ScanRange(windowBase, 0x4000, Patterns::ResinSetupView));
             auto* inventory = static_cast<uint8_t*>(Scanner::ScanRange(setup, 0x400, Patterns::ResinItemCount));
-            void* disable = Scanner::ScanRange(setup, 0x2000, Patterns::ResinContextDisable);
+            void* disable = Scanner::ScanRange(windowBase, 0x4000, Patterns::ResinContextDisable);
             void* show = Scanner::ScanMainMod(Patterns::ResinContextShow);
             void* changed = Scanner::ScanMainMod(Patterns::ResinInventoryChanged);
             if (!setupView || !inventory || !show || !disable || !changed ||
-                !IsValidCodePtr(p_GetActive.load())) return false;
-            if (Scanner::ResolveRelative(setupView + 0x5D, 1, 5) != refresh) return false;
+                !IsValidCodePtr(p_GetActive.load()))
+                return false;
+            if (Scanner::ResolveRelative(setupView + 0x60, 1, 5) != refresh) return false;
             uint32_t viewOffset = 0, storedViewOffset = 0, inventoryOffset = 0;
             memcpy(&viewOffset, refresh + 0x2B, sizeof(viewOffset));
-            memcpy(&storedViewOffset, setupView + 0x43, sizeof(storedViewOffset));
+            memcpy(&storedViewOffset, setupView + 0x46, sizeof(storedViewOffset));
             memcpy(&inventoryOffset, inventory + 0x10, sizeof(inventoryOffset));
             if (viewOffset != storedViewOffset || viewOffset < 0x20 || viewOffset > 0x1000 || viewOffset % 8 ||
-                inventoryOffset < 0x20 || inventoryOffset > 0x1000000 || inventoryOffset % 8) return false;
+                inventoryOffset < 0x20 || inventoryOffset > 0x1000000 || inventoryOffset % 8)
+                return false;
             void* count = Scanner::ResolveRelative(inventory + 0x22, 1, 5);
             const uint8_t prologue[]{0x56, 0x57, 0x48, 0x83, 0xEC, 0x28, 0x89, 0xD6, 0x48, 0x89, 0xCF};
-            if (!count || IsBadReadPtr(count, sizeof(prologue)) || memcmp(count, prologue, sizeof(prologue))) return false;
+            if (!count || IsBadReadPtr(count, sizeof(prologue)) || memcmp(count, prologue, sizeof(prologue))) return
+                false;
             auto** moduleTable = reinterpret_cast<void**>(Scanner::ResolveRelative(inventory, 3, 7));
             if (!moduleTable || IsBadReadPtr(moduleTable, sizeof(*moduleTable))) return false;
             g_Message = RegisterWindowMessageW(L"FufuLauncher.UnlockerIsland.ResinChoices.Refresh");
             if (!g_Message) return false;
             if (MH_CreateHook(show, reinterpret_cast<void*>(HookContextShow),
-                reinterpret_cast<void**>(&g_OriginalShow)) != MH_OK) return false;
+                              reinterpret_cast<void**>(&g_OriginalShow)) != MH_OK)
+                return false;
             if (MH_CreateHook(disable, reinterpret_cast<void*>(HookContextDisable),
-                reinterpret_cast<void**>(&g_OriginalDisable)) != MH_OK)
-            { MH_RemoveHook(show); return false; }
+                              reinterpret_cast<void**>(&g_OriginalDisable)) != MH_OK)
+            {
+                MH_RemoveHook(show);
+                return false;
+            }
             if (MH_CreateHook(changed, reinterpret_cast<void*>(HookInventoryChanged),
-                reinterpret_cast<void**>(&g_OriginalInventoryChanged)) != MH_OK)
-            { MH_RemoveHook(disable); MH_RemoveHook(show); return false; }
+                              reinterpret_cast<void**>(&g_OriginalInventoryChanged)) != MH_OK)
+            {
+                MH_RemoveHook(disable);
+                MH_RemoveHook(show);
+                return false;
+            }
             g_ViewOffset = viewOffset;
             g_GameObjectOffset = setupView[0x2A];
             g_InventoryOffset = inventoryOffset;
@@ -349,14 +383,14 @@ namespace ResinChoices
                 !memcmp(setup + 0x27, sizeReset, sizeof(sizeReset)) &&
                 offset >= 0x20 && offset <= 0x1000 && offset % 8 == 0 &&
                 MH_CreateHook(setup, reinterpret_cast<void*>(HookSetupList),
-                    reinterpret_cast<void**>(&o_SetupResinList)) == MH_OK)
+                              reinterpret_cast<void**>(&o_SetupResinList)) == MH_OK)
             {
                 g_ListOffset = offset;
                 LogOffset("SetupResinList", setup, call);
                 std::cout << "   -> Hook Ready; list field: 0x" << std::hex << offset << std::dec << '\n';
                 std::cout << (InitRefresh(call, setup)
-                    ? "   -> Resin availability events ready.\n"
-                    : "   -> [WARN] Resin event dependencies unsupported; native filtering retained.\n");
+                                  ? "   -> Resin availability events ready.\n"
+                                  : "   -> [WARN] Resin event dependencies unsupported; native filtering retained.\n");
                 return;
             }
         }

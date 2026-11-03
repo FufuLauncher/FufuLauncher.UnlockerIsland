@@ -73,8 +73,8 @@ namespace CameraTweaks
             {
                 if (!g_InputRootSlot || !*g_InputRootSlot) return 0;
                 auto* manager = *reinterpret_cast<uint8_t**>(
-                    static_cast<uint8_t*>(*g_InputRootSlot) + 0x9CA0);
-                return manager ? *reinterpret_cast<int*>(manager + 0x188) : 0;
+                    static_cast<uint8_t*>(*g_InputRootSlot) + 0x9EC0);
+                return manager ? *reinterpret_cast<int*>(manager + 0x1AC) : 0;
             }
             __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
         }
@@ -145,8 +145,8 @@ namespace CameraTweaks
                 const uint8_t reset[] = {0x48, 0xC7, 0x86, 0x1C, 0x05, 0, 0, 0, 0, 0, 0};
                 const uint8_t read[] = {0x4C, 0x8B, 0x86, 0x1C, 0x05, 0, 0};
                 const uint8_t write[] = {0x48, 0x89, 0x86, 0x1C, 0x05, 0, 0};
-                const uint8_t deviceField[] = {0x48, 0x8B, 0x80, 0xA0, 0x9C, 0, 0};
-                const uint8_t modeField[] = {0x83, 0xB8, 0x88, 0x01, 0, 0, 0x03};
+                const uint8_t deviceField[] = {0x48, 0x8B, 0x80, 0xC0, 0x9E, 0, 0};
+                const uint8_t modeField[] = {0x83, 0xB8, 0xAC, 0x01, 0, 0, 0x03};
                 return memcmp(follow + 0x68, reset, sizeof(reset)) == 0 &&
                     follow[0x4AF] == 0xE8 && Relative(follow + 0x4AF, 1, 5) == decay &&
                     memcmp(decay + 0x3A, read, sizeof(read)) == 0 &&
@@ -168,10 +168,10 @@ namespace CameraTweaks
                 __try
                 {
                     auto* state = static_cast<float*>(self);
-                    const float duration = state[24];
+                    const float duration = state[27];
                     if (std::isfinite(duration) && duration > 0.0f)
                     {
-                        state[25] = duration;
+                        state[120] = duration;
                     }
                 }
                 __except (EXCEPTION_EXECUTE_HANDLER)
@@ -220,9 +220,9 @@ namespace CameraTweaks
         {
             auto* code = static_cast<uint8_t*>(Scanner::ScanMainMod(Patterns::CameraStateBlenderTick));
             const uint8_t timers[] = {
-                0xF3, 0x0F, 0x10, 0x46, 0x60, 0xF3, 0x0F, 0x10, 0x76, 0x64,
+                0xF3, 0x0F, 0x10, 0x46, 0x6C, 0xF3, 0x0F, 0x10, 0xB6, 0xE0, 0x01, 0x00, 0x00,
                 0x0F, 0x28, 0xCE, 0xF3, 0x41, 0x0F, 0x58, 0xC8,
-                0xF3, 0x0F, 0x11, 0x4E, 0x64
+                0xF3, 0x0F, 0x11, 0xB6, 0xE0, 0x01, 0x00, 0x00
             };
             if (code && !IsBadReadPtr(code, 0x4F + sizeof(timers)) &&
                 memcmp(code + 0x4F, timers, sizeof(timers)) == 0 &&

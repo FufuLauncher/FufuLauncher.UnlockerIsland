@@ -115,11 +115,12 @@ uintptr_t FindLocal(uintptr_t from, uintptr_t to, const char* pat)
         for (uintptr_t i = from; i <= to - n; i++)
         {
             bool ok = true;
-            for (int j = 0; j < n; j++) if (p[j] != -1 && *(BYTE*)(i + j) != p[j])
-            {
-                ok = false;
-                break;
-            }
+            for (int j = 0; j < n; j++)
+                if (p[j] != -1 && *(BYTE*)(i + j) != p[j])
+                {
+                    ok = false;
+                    break;
+                }
             if (ok) return i;
         }
     }

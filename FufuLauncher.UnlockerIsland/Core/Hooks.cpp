@@ -160,6 +160,7 @@ static void* GetGetActiveAddr()
     std::stringstream ss;
     ss << std::hex << offsetStr;
     ss >> offsetVal;
+    if (!offsetVal) return nullptr;
     void* addr = (void*)(base + offsetVal);
     std::cout << "[SCAN] GetActive resolved via encrypted offset: 0x"
         << std::hex << offsetVal << std::dec << std::endl;
@@ -525,7 +526,7 @@ int32_t WINAPI hk_ChangeFov(void* __this, float value)
         auto setFps = (tSetFrameCount)o_SetFrameCount.load();
         if (IsValid(setFps)) SafeInvoke([&]() { setFps(cfg.selected_fps); });
     }
-    
+
     bool isAimingCamera = value <= 30.0f;
     g_IsAimingCamera.store(isAimingCamera, std::memory_order_relaxed);
     bool pass_check = !cfg.enable_fov_limit_check || !isAimingCamera;
@@ -807,18 +808,24 @@ bool Hooks::Init()
         uintptr_t off3 = ParseOffset(Offsets::DamageColor3Offset);
         uintptr_t off4 = ParseOffset(Offsets::DamageColor4Offset);
 
-        if (offA) MH_CreateHook((void*)(base + offA), (void*)RainbowDamageFeature::HookGetColorA,
-                                (void**)&RainbowDamageFeature::g_oGetColorA);
-        if (offB) MH_CreateHook((void*)(base + offB), (void*)RainbowDamageFeature::HookGetColorB,
-                                (void**)&RainbowDamageFeature::g_oGetColorB);
-        if (off1) MH_CreateHook((void*)(base + off1), (void*)RainbowDamageFeature::HookGetColor1,
-                                (void**)&RainbowDamageFeature::g_oGetColor1);
-        if (off2) MH_CreateHook((void*)(base + off2), (void*)RainbowDamageFeature::HookGetColor2,
-                                (void**)&RainbowDamageFeature::g_oGetColor2);
-        if (off3) MH_CreateHook((void*)(base + off3), (void*)RainbowDamageFeature::HookGetColor3,
-                                (void**)&RainbowDamageFeature::g_oGetColor3);
-        if (off4) MH_CreateHook((void*)(base + off4), (void*)RainbowDamageFeature::HookGetColor4,
-                                (void**)&RainbowDamageFeature::g_oGetColor4);
+        if (offA)
+            MH_CreateHook((void*)(base + offA), (void*)RainbowDamageFeature::HookGetColorA,
+                          (void**)&RainbowDamageFeature::g_oGetColorA);
+        if (offB)
+            MH_CreateHook((void*)(base + offB), (void*)RainbowDamageFeature::HookGetColorB,
+                          (void**)&RainbowDamageFeature::g_oGetColorB);
+        if (off1)
+            MH_CreateHook((void*)(base + off1), (void*)RainbowDamageFeature::HookGetColor1,
+                          (void**)&RainbowDamageFeature::g_oGetColor1);
+        if (off2)
+            MH_CreateHook((void*)(base + off2), (void*)RainbowDamageFeature::HookGetColor2,
+                          (void**)&RainbowDamageFeature::g_oGetColor2);
+        if (off3)
+            MH_CreateHook((void*)(base + off3), (void*)RainbowDamageFeature::HookGetColor3,
+                          (void**)&RainbowDamageFeature::g_oGetColor3);
+        if (off4)
+            MH_CreateHook((void*)(base + off4), (void*)RainbowDamageFeature::HookGetColor4,
+                          (void**)&RainbowDamageFeature::g_oGetColor4);
 
         CreateThread(nullptr, 0, RainbowDamageFeature::ColorCycleThread, nullptr, 0, nullptr);
         std::cout << "   -> Rainbow Damage Hooks Ready." << std::endl;

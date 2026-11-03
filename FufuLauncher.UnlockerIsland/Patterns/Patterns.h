@@ -3,6 +3,7 @@ Copyright (c) FufuLauncher Dev Team. All rights reserved.
 Licensed under the AGPL-3.0 License.
 */
 #pragma once
+#include <cstdint>
 #include <string>
 
 namespace Patterns
@@ -19,7 +20,7 @@ namespace Patterns
         "40 53 48 83 EC ? 48 89 4C 24 ? 48 8D 54 24 ? 48 8D 4C 24 ? E8 ? ? ? ? 48 8B 08 48 85 C9 75 ? 48 8D 48 ? E8 ? ? ? ? 48 8B 4C 24 ? 48 8B D8 48 85 C9 74 ? 48 83 7C 24 ? 00 76";
     inline constexpr const char* SetActive = ""; //removed, use offset
     inline constexpr const char* DamageText =
-        "41 57 41 56 41 55 41 54 56 57 55 53 48 81 EC E8 01 00 00 44 0F 29 AC 24 D0 01 00 00 44 0F 29 A4 24 C0 01 00 00 44 0F 29 9C 24 B0 01 00 00 44 0F 29 94 24 A0 01 00 00 44 0F 29 8C 24 90 01 00 00 44 0F 29 84 24 80 01 00 00 0F 29 BC 24 70 01 00 00 0F 29 B4 24 60 01 00 00 44 89 CF 44 89 44 24 7C 89 D5 48 89 CE F3 44 0F 10 94 24 80 02 00 00 44 0F B6 A4 24 78 02 00 00";
+        "41 57 41 56 41 55 41 54 56 57 55 53 48 81 EC 28 02 00 00 44 0F 29 BC 24 ? ? ? ? 44 0F 29 B4 24 ? ? ? ? 44 0F 29 AC 24 ? ? ? ? 44 0F 29 A4 24 ? ? ? ? 44 0F 29 9C 24 ? ? ? ? 44 0F 29 94 24 ? ? ? ? 44 0F 29 8C 24 ? ? ? ? 44 0F 29 84 24 ? ? ? ? 0F 29 BC 24 ? ? ? ? 0F 29 B4 24 ? ? ? ? 45 89 CD 89 D5 48 89 CE F3 44 0F 10 9C 24 ? ? ? ?";
     inline constexpr const char* EventCamera =
         "41 57 41 56 56 57 55 53 48 83 EC 48 48 89 D7 49 89 CE 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 80";
     inline constexpr const char* FindString =
@@ -33,7 +34,7 @@ namespace Patterns
     inline constexpr const char* OpenTeamPage =
         "56 57 53 48 83 ec 20 89 cb 80 3d ? ? ? ? 00 74 7a 80 3d ? ? ? ? 00 48 8b 05";
     inline constexpr const char* OpenTeam =
-        "48 83 EC 28 80 3D ? ? ? ? 00 75 ? 48 8B 0D ? ? ? ? 80 B9 C7 00 00 00 00 74 ? B9 0C 00 00 00 E8 ? ? ? ? 84 C0 74";
+        "48 83 EC 28 80 3D ? ? ? ? 00 75 ? 48 8B 0D ? ? ? ? 80 B9 C7 00 00 00 00 74 ? B9 0D 00 00 00 E8 ? ? ? ? 84 C0 74";
     inline constexpr const char* DisplayFog =
         "0F B6 02 88 01 8B 42 04 89 41 04 F3 0F 10 52 ? F3 0F 10 4A ? F3 0F 10 42 ? 8B 42 08";
     inline constexpr const char* PlayerPerspective =
@@ -49,11 +50,11 @@ namespace Patterns
     inline constexpr const char* RefreshResinList =
         "41 56 56 57 53 48 83 EC 28 89 D3 49 89 CE 80 3D ?? ?? ?? ?? 00 0F 84 ?? ?? ?? ?? 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 49 8B 86 ?? ?? ?? ?? 48 85 C0 0F 84 ?? ?? ?? ?? 48 83 78 10 00 0F 84 ?? ?? ?? ?? 4C 89 F1 E8 ?? ?? ?? ?? 84 DB";
     inline constexpr const char* ResinSetupView =
-        "56 48 83 EC 20 48 89 CE 80 3D ?? ?? ?? ?? 00 74 ?? 80 3D ?? ?? ?? ?? 00 75 ?? 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 48 8B 4E 60 48 85 C9 0F 84 ?? ?? ?? ?? 48 8B 15 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 86 38 02 00 00 48 85 C0 74 ?? 48 83 78 10 00 74 ?? 48 89 F1 B2 01 48 83 C4 20 5E E9 ?? ?? ?? ??";
+        "56 48 83 EC 20 48 89 CE 80 3D ?? ?? ?? ?? 00 74 ?? 80 3D ?? ?? ?? ?? 00 75 ?? 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 48 8B 8E 88 00 00 00 48 85 C9 0F 84 ?? ?? ?? ?? 48 8B 15 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 86 40 02 00 00 48 85 C0 74 ?? 48 83 78 10 00 74 ?? 48 89 F1 B2 01 48 83 C4 20 5E E9 ?? ?? ?? ??";
     inline constexpr const char* ResinContextShow =
         "56 53 48 83 EC 28 89 D3 48 89 CE 80 3D ?? ?? ?? ?? 00 75 ?? 84 DB 74 ?? 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 48 8B 8E 30 02 00 00 48 85 C9 74 ?? B2 01 E8 ?? ?? ?? ??";
     inline constexpr const char* ResinInventoryChanged =
-        "56 57 48 81 EC 88 00 00 00 41 89 D0 48 89 CA 80 3D ?? ?? ?? ?? 00 48 8B 05 ?? ?? ?? ?? 0F 85 ?? ?? ?? ?? 48 8B B0 B0 A0 00 00 48 8B 42 38 48 C7 44 24 48 00 00 00 00 48 89 44 24 40 44 89 44 24 48 48 8B 0D ?? ?? ?? ?? 48 8D 54 24 40 E8 ?? ?? ?? ?? 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 0F 57 C0 0F 29 44 24 20 48 C7 44 24 30 00 00 00 00 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? C7 44 24 20 18 01 00 00";
+        "56 57 48 81 EC 88 00 00 00 41 89 D0 48 89 CA 80 3D ?? ?? ?? ?? 00 48 8B 05 ?? ?? ?? ?? 0F 85 ?? ?? ?? ?? 48 8B B0 50 9E 00 00 48 8B 42 48 48 C7 44 24 48 00 00 00 00 48 89 44 24 40 44 89 44 24 48 48 8B 0D ?? ?? ?? ?? 48 8D 54 24 40 E8 ?? ?? ?? ?? 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 0F 57 C0 0F 29 44 24 20 48 C7 44 24 30 00 00 00 00 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? C7 44 24 20 1B 01 00 00";
     inline constexpr const char* ResinItemCount =
         "48 8B 05 ?? ?? ?? ?? 0F 85 ?? ?? ?? ?? 48 8B 88 ?? ?? ?? ?? 48 85 C9 0F 84 ?? ?? ?? ?? BA 04 A2 01 00 E8 ?? ?? ?? ?? 48 85 C0 0F 8E";
     inline constexpr const char* ResinContextDisable =
@@ -85,20 +86,17 @@ namespace Patterns
     inline constexpr const char* CameraAngularDecay =
         "56 48 81 EC 80 00 00 00 44 0F 29 44 24 ? 0F 29 7C 24 ? 0F 29 74 24 ? 0F 28 FB 44 0F 28 C2 48 89 D6 0F 28 F0";
     inline constexpr const char* CameraInputDevice =
-        "48 8B 80 A0 9C 00 00 48 85 C0 0F 84 ? ? ? ? 83 B8 88 01 00 00 03 48 8B 47 20 75";
+        "48 8B 80 C0 9E 00 00 48 85 C0 0F 84 ? ? ? ? 83 B8 AC 01 00 00 03 48 8B 47 18 75";
     inline constexpr const char* CameraStateBlenderTick =
         "41 57 41 56 41 55 41 54 56 57 55 53 B8 88 18 00 00 E8 ? ? ? ? 48 29 C4 44 0F 29 8C 24 70 18 00 00";
-
-    // CN 7.1 DAMLEAKHMIP native protector Tick (RVA 0xAFEDF00).
     inline constexpr const char* CameraCollisionTick =
         "41 57 41 56 56 57 53 48 81 EC 20 03 00 00 66 44 0F 29 BC 24 10 03 00 00 66 44 0F 29 B4 24 00 03 00 00";
-    // CN 7.1 JAEBHHCCJAP.Initialize (RVA 0x76463C0 / 0x7640940).
     inline constexpr const char* CameraDistanceCollect =
         "41 57 41 56 41 54 56 57 53 48 83 EC 48 0F 29 74 24 30 4D 89 CC 4C 89 C6 66 0F 28 F1 48 89 CF 4C 8B B4 24 A0 00 00 00 80 3D ? ? ? ? 00 0F 85 ? ? ? ? 48 89 F9 48 89 F2 4D 89 F0 E8 ? ? ? ? 48 89 F9 66 0F 28 CE";
     inline constexpr const char* CameraDistanceInitializeRadius =
-        "56 57 55 53 48 81 EC C8 00 00 00 44 0F 29 8C 24 B0 00 00 00 44 0F 29 84 24 A0 00 00 00 0F 29 BC 24 90 00 00 00 66 0F 29 B4 24 80 00 00 00 4C 89 CB 4C 89 C6 66 44 0F 28 C1 48 89 CF 0F 57 C0 0F 29 44 24 30 80 3D ? ? ? ? 00 0F 85 ? ? ? ? F2 0F 10 BE 40 04 00 00 80 BF B2 02 00 00";
+        "41 56 56 57 55 53 48 81 EC C0 00 00 00 44 0F 29 8C 24 ? ? ? ? 44 0F 29 84 24 ? ? ? ? 0F 29 BC 24 ? ? ? ? 66 0F 29 B4 24 ? ? ? ? 4C 89 CB 4C 89 C6 66 44 0F 28 C1 49 89 CE 0F 57 C0 0F 29 44 24 30 80 3D ? ? ? ? 00 0F 85 ? ? ? ?";
     inline constexpr const char* CameraDistanceIsRadiusMode =
-        "56 57 48 83 EC 38 89 D7 80 3D ? ? ? ? 00 75 ? 8B 01 8B 51 04 8B 49 08 89 C6 09 D6 75 ? 85 C9 75 ? EB ? 81 C2 92 ED EE 50 39 D0 75 ? 81 F1 D3 33 26 58 01 C8 05 8C 00 36 CA EB ? 80 3D ? ? ? ? 00 48 8B 05 ? ? ? ? 75 ? 48 8B 88 B0 C8 00 00 48 85 C9 74 ? BA 03 00 00 00 E8 ? ? ? ? 31 C0 39 F8 0F 94 C0 48 83 C4 38 5F 5E C3";
+        "56 57 48 83 EC 38 89 D7 80 3D ? ? ? ? 00 75 ? 8B 01 8B 51 04 8B 49 08 89 C6 09 D6 75 ? 85 C9 75 ? EB ? 81 C2 92 ED EE 50 39 D0 75 ? 81 F1 D3 33 26 58 01 C8 05 8C 00 36 CA EB ? 80 3D ? ? ? ? 00 48 8B 05 ? ? ? ? 75 ? 48 8B 88 E0 BE 00 00 48 85 C9 74 ? BA 03 00 00 00 E8 ? ? ? ? 31 C0 39 F8 0F 94 C0 48 83 C4 38 5F 5E C3";
     inline constexpr const char* UnderwaterMaskPreMain = "41 56 56 57 55 53 48 81 EC F0 04 00 00";
     inline constexpr const char* UnderwaterMaskMain = "41 57 41 56 56 57 53 48 81 EC D0 04 00 00 48 89 CE";
     inline constexpr const char* UnderwaterMaskPostMain =
@@ -157,83 +155,83 @@ namespace Patterns
     {
         inline constexpr const char* GetActiveOffset = ""; //does not exist
         inline constexpr const char* GetComponent = ""; //does not exist
-        inline constexpr const char* GetText = "19D9ABC0";
-        // 48 8B 81 ? ? ? ? C3 0F 1F 84 00 ? ? ? ? 56 57 48 83 EC 28 48 89 CE 48 85 D2 0F 84
-        inline constexpr const char* ClockPageOkOffset = "10DCB3B0";
-        // 56 57 55 53 48 83 EC 28 48 89 CE 80 3D ? ? ? ? ? 0F 85 ? ? ? ? 80 BE ? ? ? ? ? 74 ? 48 83 C4 28 5B 5D 5F 5E C3 48 8B 86
-        inline constexpr const char* ClockPageCloseOffset = "1258D7E0";
-        // 56 57 53 48 83 EC 20 48 89 CE 80 3D ? ? ? ? ? 0F 85 ? ? ? ? 48 8B 8E ? ? ? ? 48 85 C9 0F 84 ? ? ? ? 83 79 ? ? 7E ? 48 8B 15
-        inline constexpr const char* ClockPageFinishOffset = "10DCD690";
-        // 56 48 83 EC 30 48 8B 05 ? ? ? ? 48 8B 90 ? ? ? ? 48 85 D2 0F 84 ? ? ? ? 48 89 CE 80 3D ? ? ? ? ? 0F 85 ? ? ? ? 48 89 D1 31 D2 41 B8 03 00 00 00 E8
-        inline constexpr const char* ClockPageBackOffset = "10DC8A20";
-        // 56 57 48 83 EC 38 0F 29 74 24 ? 48 89 CE 80 3D ? ? ? ? ? 0F 84 ? ? ? ? 80 3D ? ? ? ? ? 0F 85 ? ? ? ? C6 86
-        inline constexpr const char* TouchInputOffset = "9669C20";
-        // 56 57 48 83 EC 28 48 89 CE 80 3D ? ? ? ? ? 48 8B 05 ? ? ? ? 0F 85 ? ? ? ? 48 8B 88 ? ? ? ? 48 85 C9 0F 84 ? ? ? ? 48 8B 15
-        inline constexpr const char* InnerDispatcherOffset = "A62C240";
-        // 41 57 41 56 41 55 41 54 56 57 55 53 48 81 EC 08 01 00 00 4C 89 CD 4C 89 C7 48 89 D3 48 89 CA
+        inline constexpr const char* GetText = "1A30DD80";
+        // 48 8B 81 E0 00 00 00 C3 0F 1F 84 00 00 00 00 00 56 57 48 83 EC 28 48 89 CE 48 85 D2 0F 84 C2 00 00 00 48 89 D7 8B 42 10
+        inline constexpr const char* ClockPageOkOffset = "AE127B0";
+        // 56 57 55 53 48 83 EC 28 48 89 CE 80 3D ? ? ? ? 00 0F 85 ? ? ? ? 80 BE 4A 02 00 00 00 74 ? 48 83 C4 28 5B 5D 5F
+        inline constexpr const char* ClockPageCloseOffset = "9AAA620";
+        // 56 57 53 48 83 EC 20 48 89 CE 80 3D ? ? ? ? 00 0F 85 ? ? ? ? 48 8B 8E 10 02 00 00 48 85 C9 0F 84 ? ? ? ? 83
+        inline constexpr const char* ClockPageFinishOffset = "AE0E270";
+        // 56 48 83 EC 30 48 8B 05 ? ? ? ? 48 8B 90 E0 8E 01 00 48 85 D2 0F 84 ? ? ? ? 48 89 CE 80 3D ? ? ? ? 00 0F 85
+        inline constexpr const char* ClockPageBackOffset = "AE0F930";
+        // 56 57 48 83 EC 38 0F 29 74 24 20 48 89 CE 80 3D ? ? ? ? 00 0F 84 ? ? ? ? 80 3D ? ? ? ? 00 0F 85 ? ? ? ?
+        inline constexpr const char* TouchInputOffset = "D484110";
+        // 56 57 48 83 EC 28 48 89 CE 80 3D ? ? ? ? 00 48 8B 05 ? ? ? ? 0F 85 ? ? ? ? 48 8B 88 60 9E 00 00 48 85 C9 0F
+        inline constexpr const char* InnerDispatcherOffset = "10EF9DF0";
+        // 41 57 41 56 41 55 41 54 56 57 55 53 48 81 EC 08 01 00 00 4C 89 CD 4C 89 C7 48 89 D3 48 89 CA 4C 8B A4 24 80 01 00 00 44
         inline constexpr const char* EventCameraOffset = ""; //does not exist
-        inline constexpr const char* DamageColorA = "13BDA820";
-        // 56 57 53 48 83 EC 40 44 89 CF 4C 89 C3 48 89 CE 80 3D ? ? ? ? ? 75 ? 48 8B 0D ? ? ? ? 80 B9 ? ? ? ? ? 74 ? B9 35 0E 00 00 E8
-        inline constexpr const char* DamageColorB = "13BD87E0";
-        // 56 57 53 48 83 EC 40 44 89 CB 4C 89 C7 48 89 CE 80 3D ? ? ? ? ? 75 ? 48 8B 0D ? ? ? ? 80 B9 ? ? ? ? ? 74 ? B9 35 0E 00 00 E8
-        inline constexpr const char* DamageColor1 = "13BD86D0";
-        // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? ? 75 ? 4C 8B 40 60 48 8D 4C 24 ? 48 89 C2
-        inline constexpr const char* DamageColor2 = "13BDA7B0";
-        // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? ? 75 ? 4C 8B 40 48 48 8D 4C 24 ? 48 89 C2
-        inline constexpr const char* DamageColor3 = "13BD8660";
-        // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? ? 75 ? 4C 8B 40 58 48 8D 4C 24 ? 48 89 C2
-        inline constexpr const char* DamageColor4 = "13BDB100";
-        // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? ? 75 ? 4C 8B 40 40 48 8D 4C 24 ? 48 89 C2
-        inline constexpr const char* UpdateInnerTargetOffset = "7089120";
-        // 56 57 55 53 48 81 EC C8 00 00 00 44 0F 29 84 24 ? ? ? ? 0F 29 BC 24 ? ? ? ? 0F 29 B4 24 ? ? ? ? 48 89 CE 80 B9 ? ? ? ? ? 74 ? F3 0F 10 B6 ? ? ? ? 8B 86 ? ? ? ? 85 C0 75 ? E9 ? ? ? ? F3 0F 10 35 ? ? ? ? 8B 86
-        inline constexpr const char* SetActiveOffset = "1452EE0";
-        // 48 89 5C 24 ? 57 48 83 EC 20 0F B6 FA 48 8B D9 48 85 C9 74 ? E8 ? ? ? ? 48 85 C0 74 ? 40 84 FF 48 8B C8 0F 95 C2 48 8B 5C 24 ? 48 83 C4 20 5F E9 ? ? ? ? 48 8B CB E8 ? ? ? ? CC
+        inline constexpr const char* DamageColorA = "13F4C370";
+        // 56 57 53 48 83 EC 40 44 89 CF 4C 89 C3 48 89 CE 80 3D ? ? ? ? 00 75 ? 48 8B 0D ? ? ? ? 80 B9 C7 00 00 00 00 74
+        inline constexpr const char* DamageColorB = "13F4D2E0";
+        // 56 57 53 48 83 EC 40 44 89 CB 4C 89 C7 48 89 CE 80 3D ? ? ? ? 00 75 ? 48 8B 0D ? ? ? ? 80 B9 C7 00 00 00 00 74
+        inline constexpr const char* DamageColor1 = "13F4C0C0";
+        // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? 00 75 ? 4C 8B 40 60 48 8D 4C 24 20 48 89 C2 E8 ? ? ? ?
+        inline constexpr const char* DamageColor2 = "13F4DBD0";
+        // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? 00 75 ? 4C 8B 40 48 48 8D 4C 24 20 48 89 C2 E8 ? ? ? ?
+        inline constexpr const char* DamageColor3 = "13F4C050";
+        // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? 00 75 ? 4C 8B 40 58 48 8D 4C 24 20 48 89 C2 E8 ? ? ? ?
+        inline constexpr const char* DamageColor4 = "13F4C300";
+        // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? 00 75 ? 4C 8B 40 40 48 8D 4C 24 20 48 89 C2 E8 ? ? ? ?
+        inline constexpr const char* UpdateInnerTargetOffset = "71B3400";
+        // 56 57 55 53 48 81 EC C8 00 00 00 44 0F 29 84 24 B0 00 00 00 0F 29 BC 24 A0 00 00 00 0F 29 B4 24 90 00 00 00 48 89 CE 80
+        inline constexpr const char* SetActiveOffset = "1463FC0";
+        // 48 89 5C 24 08 57 48 83 EC 20 0F B6 FA 48 8B D9 48 85 C9 74 ? E8 ? ? ? ? 48 85 C0 74 ? 40 84 FF 48 8B C8 0F 95 C2
     }
 
-    /*  7.0 old
-    namespace CN {
-        inline constexpr const char* GetActiveOffset = ""; //does not exist
-        inline constexpr const char* GetComponent = ""; //does not exist
-        inline constexpr const char* GetText = "190A4300"; 
-        inline constexpr const char* ClockPageOkOffset = "101193D0"; 
-        inline constexpr const char* ClockPageCloseOffset = "EE03560"; 
-        inline constexpr const char* ClockPageFinishOffset = "101181C0"; 
-        inline constexpr const char* ClockPageBackOffset = "101151B0"; 
-        inline constexpr const char* TouchInputOffset = "9DB42B0"; 
-        inline constexpr const char* InnerDispatcherOffset = "E648A10"; 
-        inline constexpr const char* EventCameraOffset = ""; //does not exist
-        inline constexpr const char* DamageColorA = "1309AD50"; 
-        inline constexpr const char* DamageColorB = "1309C460"; 
-        inline constexpr const char* DamageColor1 = "1309C3F0"; 
-        inline constexpr const char* DamageColor2 = "1309C2E0"; 
-        inline constexpr const char* DamageColor3 = "1309C670";
-        inline constexpr const char* DamageColor4 = "1309C270";
-        inline constexpr const char* UpdateInnerTargetOffset = "6DE13F0";
-        inline constexpr const char* SetActiveOffset = "13D8580";
+
+    namespace DomainMap
+    {
+        inline constexpr uint32_t TimeDateStamp = 0x6AD886FB;
+        inline constexpr uint32_t SizeOfImage = 0x1B65F000;
+        inline constexpr uint32_t CheckSum = 0x1AE0CBAC;
+
+        inline constexpr uint32_t GuardCallInSource = 0x2D;
+        inline constexpr uint32_t DailyCallA = 0x1BD;
+        inline constexpr uint32_t DailyCallB = 0x262;
+        inline constexpr uint32_t DailyCallReturnBias = 0xA;
+        inline constexpr uint32_t TypeToModules = 0x10;
+        inline constexpr uint32_t GuardToModules = 0x1C;
+
+        inline constexpr uint32_t ModuleSceneSlot = 0xB330;
+        inline constexpr uint32_t ModuleTransitionSlot = 0xBE90;
+        inline constexpr uint32_t ModuleDungeonSlot = 0xA400;
+        inline constexpr uint32_t SceneRootToScene = 0x60;
+        inline constexpr uint32_t SceneToScript = 0x28;
+        inline constexpr uint32_t ScriptState = 0x70;
+        inline constexpr uint32_t SceneState = 0x64;
+        inline constexpr uint32_t TransitionRootToObject = 0x30;
+        inline constexpr uint32_t TransitionState = 0x38;
+        inline constexpr uint32_t TransitionDungeonId = 0x28;
+        inline constexpr uint32_t DungeonId = 0x2CC;
+
+        inline constexpr const char* SourceEntry =
+            "41 56 56 57 55 53 48 83 EC 20 41 89 D6 48 89 CF "
+            "80 3D ?? ?? ?? ?? 00 0F 84 ?? ?? ?? ?? 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? "
+            "48 89 F9 E8 ?? ?? ?? ?? 84 C0 0F 85 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? "
+            "48 8B 88 00 A4 00 00 48 85 C9 0F 84 ?? ?? ?? ?? 44 89 F2 E8 ?? ?? ?? ??";
+        inline constexpr const char* SourceGuard =
+            "56 48 83 EC 30 48 89 CE 80 3D ?? ?? ?? ?? 00 0F 84 ?? ?? ?? ?? "
+            "80 3D ?? ?? ?? ?? 00 48 8B 05 ?? ?? ?? ?? 0F 85 ?? ?? ?? ?? "
+            "48 8B 88 80 9E 00 00 48 85 C9 0F 84 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 75 26";
+        inline constexpr const char* DungeonTypeCheck =
+            "56 57 53 48 83 EC 20 89 CE 80 3D ?? ?? ?? ?? 00 48 8B 05 ?? ?? ?? ?? "
+            "75 61 48 83 B8 80 9E 00 00 00 74 78 48 8B 88 90 BE 00 00 "
+            "48 85 C9 74 71 E8 ?? ?? ?? ?? 48 85 C0 74 6C 8B 78 28";
+        inline constexpr const char* DailyFightCall = "B9 03 00 00 00 E8 ?? ?? ?? ?? 84 C0";
     }
 
-    namespace OS {
-        inline constexpr const char* GetActiveOffset = ""; //does not exist
-        inline constexpr const char* GetComponent = ""; //does not exist
-        inline constexpr const char* GetText = "19086640"; 
-        inline constexpr const char* ClockPageOkOffset = "100FF760";
-        inline constexpr const char* ClockPageCloseOffset = "EDEBCE0";
-        inline constexpr const char* ClockPageFinishOffset = "100FDC70";
-        inline constexpr const char* ClockPageBackOffset = "100FC930";
-        inline constexpr const char* TouchInputOffset = "9D976C0";
-        inline constexpr const char* InnerDispatcherOffset = "E291D10";
-        inline constexpr const char* EventCameraOffset = "70D9930"; //special need 
-        inline constexpr const char* DamageColorA = "1307CFB0";
-        inline constexpr const char* DamageColorB = "1307C960";
-        inline constexpr const char* DamageColor1 = "1307C8F0";
-        inline constexpr const char* DamageColor2 = "1307CAB0";
-        inline constexpr const char* DamageColor3 = "1307CD30";
-        inline constexpr const char* DamageColor4 = "1307CA40";
-        inline constexpr const char* UpdateInnerTargetOffset = "6DDF9E0";
-        inline constexpr const char* SetActiveOffset = "13D8580";
-    }
-    */
 
+    //OS 7.1old
     namespace OS
     {
         inline constexpr const char* GetActiveOffset = ""; //does not exist
