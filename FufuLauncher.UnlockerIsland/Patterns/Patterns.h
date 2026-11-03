@@ -52,7 +52,7 @@ namespace Patterns
     inline constexpr const char* ResinSetupView =
         "56 48 83 EC 20 48 89 CE 80 3D ?? ?? ?? ?? 00 74 ?? 80 3D ?? ?? ?? ?? 00 75 ?? 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 48 8B 8E 88 00 00 00 48 85 C9 0F 84 ?? ?? ?? ?? 48 8B 15 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 86 40 02 00 00 48 85 C0 74 ?? 48 83 78 10 00 74 ?? 48 89 F1 B2 01 48 83 C4 20 5E E9 ?? ?? ?? ??";
     inline constexpr const char* ResinContextShow =
-        "56 53 48 83 EC 28 89 D3 48 89 CE 80 3D ?? ?? ?? ?? 00 75 ?? 84 DB 74 ?? 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 48 8B 8E 30 02 00 00 48 85 C9 74 ?? B2 01 E8 ?? ?? ?? ??";
+        "56 53 48 83 EC 28 89 D3 48 89 CE 80 3D ?? ?? ?? ?? 00 75 ?? 84 DB 74 ?? 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 48 8B 8E ?? ?? ?? ?? 48 85 C9 74 ?? B2 01 E8 ?? ?? ?? ??";
     inline constexpr const char* ResinInventoryChanged =
         "56 57 48 81 EC 88 00 00 00 41 89 D0 48 89 CA 80 3D ?? ?? ?? ?? 00 48 8B 05 ?? ?? ?? ?? 0F 85 ?? ?? ?? ?? 48 8B B0 50 9E 00 00 48 8B 42 48 48 C7 44 24 48 00 00 00 00 48 89 44 24 40 44 89 44 24 48 48 8B 0D ?? ?? ?? ?? 48 8D 54 24 40 E8 ?? ?? ?? ?? 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 0F 57 C0 0F 29 44 24 20 48 C7 44 24 30 00 00 00 00 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? C7 44 24 20 1B 01 00 00";
     inline constexpr const char* ResinItemCount =
@@ -97,6 +97,8 @@ namespace Patterns
         "41 56 56 57 55 53 48 81 EC C0 00 00 00 44 0F 29 8C 24 ? ? ? ? 44 0F 29 84 24 ? ? ? ? 0F 29 BC 24 ? ? ? ? 66 0F 29 B4 24 ? ? ? ? 4C 89 CB 4C 89 C6 66 44 0F 28 C1 49 89 CE 0F 57 C0 0F 29 44 24 30 80 3D ? ? ? ? 00 0F 85 ? ? ? ?";
     inline constexpr const char* CameraDistanceIsRadiusMode =
         "56 57 48 83 EC 38 89 D7 80 3D ? ? ? ? 00 75 ? 8B 01 8B 51 04 8B 49 08 89 C6 09 D6 75 ? 85 C9 75 ? EB ? 81 C2 92 ED EE 50 39 D0 75 ? 81 F1 D3 33 26 58 01 C8 05 8C 00 36 CA EB ? 80 3D ? ? ? ? 00 48 8B 05 ? ? ? ? 75 ? 48 8B 88 E0 BE 00 00 48 85 C9 74 ? BA 03 00 00 00 E8 ? ? ? ? 31 C0 39 F8 0F 94 C0 48 83 C4 38 5F 5E C3";
+    inline constexpr const char* CameraDistanceIsRadiusModeOS =
+        "56 57 48 83 EC 38 89 D7 80 3D ? ? ? ? 00 75 ? 8B 01 8B 51 04 8B 49 08 89 C6 09 D6 75 ? 85 C9 75 ? EB ? 81 C2 92 ED EE 50 39 D0 75 ? 81 F1 D3 33 26 58 01 C8 05 8C 00 36 CA EB ? 80 3D ? ? ? ? 00 48 8B 05 ? ? ? ? 75 ? 48 8B 88 60 BE 00 00 48 85 C9 74 ? BA 03 00 00 00 E8 ? ? ? ? 31 C0 39 F8 0F 94 C0 48 83 C4 38 5F 5E C3";
     inline constexpr const char* UnderwaterMaskPreMain = "41 56 56 57 55 53 48 81 EC F0 04 00 00";
     inline constexpr const char* UnderwaterMaskMain = "41 57 41 56 56 57 53 48 81 EC D0 04 00 00 48 89 CE";
     inline constexpr const char* UnderwaterMaskPostMain =
@@ -150,6 +152,20 @@ namespace Patterns
         "E9 ? ? ? ? 66 66 2E 0F 1F 84 ? ? ? ? 00 E9 ? ? ? ? 66 66 2E 0F 1F 84 ? ? ? ? 00 "
         "E9 ? ? ? ? 66 66 2E 0F 1F 84 ? ? ? ? 00 E9 ? ? ? ? 66 66 2E 0F 1F 84 ? ? ? ? 00 "
         "56 48 83 EC 20 48 89 CE C7 41 ? ? ? ? 00 48 C7 01 00 00 00 00 48 89 D1 44 89 C2";
+    
+    inline constexpr const char* CameraInputDeviceOS =
+        "48 8B 80 80 A0 00 00 48 85 C0 0F 84 ?? ?? ?? ?? 83 B8 58 01 00 00 03 48 8B 47 10 75";
+    inline constexpr const char* ResinSetupViewOS =
+        "56 48 83 EC 20 48 89 CE 80 3D ?? ?? ?? ?? 00 74 ?? 80 3D ?? ?? ?? ?? 00 75 ?? "
+        "80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 48 8B 4E 10 48 85 C9 0F 84 ?? ?? ?? ?? "
+        "48 8B 15 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 86 28 02 00 00 48 85 C0 74 ?? "
+        "48 83 78 10 00 74 ?? 48 89 F1 B2 01 48 83 C4 20 5E E9 ?? ?? ?? ??";
+    inline constexpr const char* ResinInventoryChangedOS =
+        "56 57 48 81 EC 88 00 00 00 41 89 D0 48 89 CA 80 3D ?? ?? ?? ?? 00 48 8B 05 ?? ?? ?? ?? "
+        "0F 85 ?? ?? ?? ?? 48 8B B0 70 9E 00 00 48 8B 42 60 48 C7 44 24 48 00 00 00 00 "
+        "48 89 44 24 40 44 89 44 24 48 48 8B 0D ?? ?? ?? ?? 48 8D 54 24 40 E8 ?? ?? ?? ?? "
+        "80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 0F 57 C0 0F 29 44 24 20 48 C7 44 24 30 00 00 00 00 "
+        "80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? C7 44 24 20 1B 01 00 00";
 
     namespace CN
     {
@@ -230,43 +246,42 @@ namespace Patterns
         inline constexpr const char* DailyFightCall = "B9 03 00 00 00 E8 ?? ?? ?? ?? 84 C0";
     }
 
-
-    //OS 7.1old
+    
     namespace OS
     {
         inline constexpr const char* GetActiveOffset = ""; //does not exist
         inline constexpr const char* GetComponent = ""; //does not exist
-        inline constexpr const char* GetText = "19CE4B60";
+        inline constexpr const char* GetText = "1A33FE50";
         // 48 8B 81 E0 00 00 00 C3 0F 1F 84 00 ? ? ? ? 56 57 48 83 EC 28 48 89 CE 48 85 D2 0F 84
-        inline constexpr const char* ClockPageOkOffset = "10D9E7B0";
+        inline constexpr const char* ClockPageOkOffset = "AE164A0";
         // 56 57 55 53 48 83 EC 28 48 89 CE 80 3D ? ? ? ? ? 0F 85 ? ? ? ? 80 BE ? ? ? ? ? 74 ? 48 83 C4 28 5B 5D 5F 5E C3 48 8B 86
-        inline constexpr const char* ClockPageCloseOffset = "1255F2C0";
-        // 56 57 53 48 83 EC 20 48 89 CE 80 3D ? ? ? ? ? 0F 85 ? ? ? ? 48 8B 8E 10 02 00 00 48 85 C9 0F 84
-        inline constexpr const char* ClockPageFinishOffset = "10DA1620";
-        // 56 48 83 EC 30 48 8B 05 ? ? ? ? 48 8B 90 ? ? ? ? 48 85 D2 0F 84 ? ? ? ? 48 89 CE 80 3D
-        inline constexpr const char* ClockPageBackOffset = "10D9FED0";
-        // 56 57 48 83 EC 38 0F 29 74 24 ? 48 89 CE 80 3D ? ? ? ? ? 0F 84 ? ? ? ? 80 3D ? ? ? ? ? 0F 85 ? ? ? ? C6 86 55 02 00 00 01
-        inline constexpr const char* TouchInputOffset = "966B2D0";
-        // 56 57 48 83 EC 28 48 89 CE 80 3D ? ? ? ? ? 48 8B 05 ? ? ? ? 0F 85 ? ? ? ? 48 8B 88 ? ? ? ? 48 85 C9 0F 84
-        inline constexpr const char* InnerDispatcherOffset = "A64CE00";
+        inline constexpr const char* ClockPageCloseOffset = "9AAE250";
+        // 56 57 53 48 83 EC 20 48 89 CE 80 3D ? ? ? ? ? 0F 85 ? ? ? ? 48 8B 8E ? ? ? ? 48 85 C9 0F 84
+        inline constexpr const char* ClockPageFinishOffset = "AE169F0";
+        // 56 48 83 EC 30 48 8B 05 ? ? ? ? 48 8B 90 60 8E 01 00 48 85 D2 0F 84 ? ? ? ? 48 89 CE 80 3D
+        inline constexpr const char* ClockPageBackOffset = "AE15410";
+        // 56 57 48 83 EC 38 0F 29 74 24 ? 48 89 CE 80 3D ? ? ? ? ? 0F 84 ? ? ? ? 80 3D ? ? ? ? ? 0F 85 ? ? ? ? C6 86 ? ? ? ? 01
+        inline constexpr const char* TouchInputOffset = "D49A5B0";
+        // 56 57 48 83 EC 28 48 89 CE 80 3D ? ? ? ? ? 48 8B 05 ? ? ? ? 0F 85 ? ? ? ? 48 8B 88 80 9E 00 00 48 85 C9 0F 84
+        inline constexpr const char* InnerDispatcherOffset = "10EF6610";
         // 41 57 41 56 41 55 41 54 56 57 55 53 48 81 EC 08 01 00 00 4C 89 CD 4C 89 C7 48 89 D3 48 89 CA
-        inline constexpr const char* EventCameraOffset = "73AC8E0"; //special need
+        inline constexpr const char* EventCameraOffset = "C5438F0"; //special need
         // 41 57 41 56 56 57 55 53 48 83 EC 48 48 89 D7 49 89 CE 80 3D ? ? ? ? 00 0F 85 ? ? ? ? 80
-        inline constexpr const char* DamageColorA = "13BA5720";
+        inline constexpr const char* DamageColorA = "13F58A60";
         // 56 57 53 48 83 EC 40 44 89 CF 4C 89 C3 48 89 CE 80 3D ? ? ? ? ? 75 ? 48 8B 0D ? ? ? ? 80 B9 C7 00 00 00 00 74 ? B9 35 0E 00 00 E8
-        inline constexpr const char* DamageColorB = "13BA4A70";
+        inline constexpr const char* DamageColorB = "13F57D00";
         // 56 57 53 48 83 EC 40 44 89 CB 4C 89 C7 48 89 CE 80 3D ? ? ? ? ? 75 ? 48 8B 0D ? ? ? ? 80 B9 C7 00 00 00 00 74 ? B9 35 0E 00 00 E8
-        inline constexpr const char* DamageColor1 = "13BA47F0";
+        inline constexpr const char* DamageColor1 = "13F5A340";
         // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? ? 75 ? 4C 8B 40 60 48 8D 4C 24 ? 48 89 C2
-        inline constexpr const char* DamageColor2 = "13BA4500";
+        inline constexpr const char* DamageColor2 = "13F5A5C0";
         // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? ? 75 ? 4C 8B 40 48 48 8D 4C 24 ? 48 89 C2
-        inline constexpr const char* DamageColor3 = "13BA4780";
+        inline constexpr const char* DamageColor3 = "13F57C90";
         // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? ? 75 ? 4C 8B 40 58 48 8D 4C 24 ? 48 89 C2
-        inline constexpr const char* DamageColor4 = "13BA4490";
+        inline constexpr const char* DamageColor4 = "13F589F0";
         // 56 48 83 EC 30 45 89 C1 48 89 D0 48 89 CE 80 3D ? ? ? ? ? 75 ? 4C 8B 40 40 48 8D 4C 24 ? 48 89 C2
-        inline constexpr const char* UpdateInnerTargetOffset = "7085E10";
+        inline constexpr const char* UpdateInnerTargetOffset = "71B2E20";
         // 56 57 55 53 48 81 EC C8 00 00 00 44 0F 29 84 24 ? ? ? ? 0F 29 BC 24 ? ? ? ? 0F 29 B4 24 ? ? ? ?
-        inline constexpr const char* SetActiveOffset = "1451EE0";
+        inline constexpr const char* SetActiveOffset = "1464FC0";
         // 48 89 5C 24 08 57 48 83 EC 20 0F B6 FA 48 8B D9 48 85 C9 74 ? E8 ? ? ? ? 48 85 C0 74 ? 40 84 FF 48 8B C8 0F 95 C2
     }
 }
@@ -306,6 +321,7 @@ namespace Offsets
     extern std::string GetActiveOffset;
     extern std::string GetComponent;
     extern std::string GetText;
+    extern bool IsOS;
     extern std::string ClockPageOkOffset;
     extern std::string ClockPageCloseOffset;
     extern std::string ClockPageFinishOffset;

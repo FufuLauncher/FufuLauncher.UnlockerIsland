@@ -133,7 +133,8 @@ namespace CameraDistance
     {
         auto* collect = Scanner::ScanMainMod(Patterns::CameraDistanceCollect);
         auto* radius = Scanner::ScanMainMod(Patterns::CameraDistanceInitializeRadius);
-        auto* mode = Scanner::ScanMainMod(Patterns::CameraDistanceIsRadiusMode);
+        auto* mode = Scanner::ScanMainMod(Offsets::IsOS
+            ? Patterns::CameraDistanceIsRadiusModeOS : Patterns::CameraDistanceIsRadiusMode);
         // Check the cached ideal radius and the global-config accessor/upper
         // radius writes as well as the prologues before using fixed field offsets.
         if (!collect || !radius || !mode ||

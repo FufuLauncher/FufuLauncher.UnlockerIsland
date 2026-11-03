@@ -28,8 +28,11 @@ namespace Offsets
     std::string UpdateInnerTargetOffset;
     std::string SetActiveOffset;
 
+    bool IsOS = false;
+
     void InitOffsets(bool isOS)
     {
+        IsOS = isOS;
         if (isOS)
         {
             GetActiveOffset = Patterns::OS::GetActiveOffset;

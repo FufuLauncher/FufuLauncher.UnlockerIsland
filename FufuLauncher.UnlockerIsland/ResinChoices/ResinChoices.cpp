@@ -306,18 +306,21 @@ namespace ResinChoices
             auto* refresh = static_cast<uint8_t*>(setupCall) - 0x46;
             if (Scanner::ScanRange(refresh, 0x4D, Patterns::RefreshResinList) != refresh) return false;
             auto* windowBase = static_cast<uint8_t*>(setup) - 0x2000;
-            auto* setupView = static_cast<uint8_t*>(Scanner::ScanRange(windowBase, 0x4000, Patterns::ResinSetupView));
+            auto* setupView = static_cast<uint8_t*>(Offsets::IsOS
+                ? Scanner::ScanRange(setup, 0x6000, Patterns::ResinSetupViewOS)
+                : Scanner::ScanRange(windowBase, 0x4000, Patterns::ResinSetupView));
             auto* inventory = static_cast<uint8_t*>(Scanner::ScanRange(setup, 0x400, Patterns::ResinItemCount));
             void* disable = Scanner::ScanRange(windowBase, 0x4000, Patterns::ResinContextDisable);
             void* show = Scanner::ScanMainMod(Patterns::ResinContextShow);
-            void* changed = Scanner::ScanMainMod(Patterns::ResinInventoryChanged);
+            void* changed = Scanner::ScanMainMod(Offsets::IsOS
+                ? Patterns::ResinInventoryChangedOS : Patterns::ResinInventoryChanged);
             if (!setupView || !inventory || !show || !disable || !changed ||
                 !IsValidCodePtr(p_GetActive.load()))
                 return false;
-            if (Scanner::ResolveRelative(setupView + 0x60, 1, 5) != refresh) return false;
+            if (Scanner::ResolveRelative(setupView + (Offsets::IsOS ? 0x5Du : 0x60u), 1, 5) != refresh) return false;
             uint32_t viewOffset = 0, storedViewOffset = 0, inventoryOffset = 0;
             memcpy(&viewOffset, refresh + 0x2B, sizeof(viewOffset));
-            memcpy(&storedViewOffset, setupView + 0x46, sizeof(storedViewOffset));
+            memcpy(&storedViewOffset, setupView + (Offsets::IsOS ? 0x43u : 0x46u), sizeof(storedViewOffset));
             memcpy(&inventoryOffset, inventory + 0x10, sizeof(inventoryOffset));
             if (viewOffset != storedViewOffset || viewOffset < 0x20 || viewOffset > 0x1000 || viewOffset % 8 ||
                 inventoryOffset < 0x20 || inventoryOffset > 0x1000000 || inventoryOffset % 8)

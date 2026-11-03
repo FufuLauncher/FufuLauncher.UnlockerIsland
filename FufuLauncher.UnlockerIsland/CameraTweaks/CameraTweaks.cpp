@@ -73,8 +73,8 @@ namespace CameraTweaks
             {
                 if (!g_InputRootSlot || !*g_InputRootSlot) return 0;
                 auto* manager = *reinterpret_cast<uint8_t**>(
-                    static_cast<uint8_t*>(*g_InputRootSlot) + 0x9EC0);
-                return manager ? *reinterpret_cast<int*>(manager + 0x1AC) : 0;
+                    static_cast<uint8_t*>(*g_InputRootSlot) + (Offsets::IsOS ? 0xA080u : 0x9EC0u));
+                return manager ? *reinterpret_cast<int*>(manager + (Offsets::IsOS ? 0x158u : 0x1ACu)) : 0;
             }
             __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
         }
@@ -147,14 +147,18 @@ namespace CameraTweaks
                 const uint8_t write[] = {0x48, 0x89, 0x86, 0x1C, 0x05, 0, 0};
                 const uint8_t deviceField[] = {0x48, 0x8B, 0x80, 0xC0, 0x9E, 0, 0};
                 const uint8_t modeField[] = {0x83, 0xB8, 0xAC, 0x01, 0, 0, 0x03};
+                const uint8_t deviceFieldOS[] = {0x48, 0x8B, 0x80, 0x80, 0xA0, 0, 0};
+                const uint8_t modeFieldOS[] = {0x83, 0xB8, 0x58, 0x01, 0, 0, 0x03};
+                const uint8_t* deviceFieldUse = Offsets::IsOS ? deviceFieldOS : deviceField;
+                const uint8_t* modeFieldUse = Offsets::IsOS ? modeFieldOS : modeField;
                 return memcmp(follow + 0x68, reset, sizeof(reset)) == 0 &&
                     follow[0x4AF] == 0xE8 && Relative(follow + 0x4AF, 1, 5) == decay &&
                     memcmp(decay + 0x3A, read, sizeof(read)) == 0 &&
                     memcmp(decay + 0xC9, write, sizeof(write)) == 0 &&
                     follow[0x2B] == 0x80 && follow[0x2C] == 0x3D &&
                     decay[0x2D] == 0x80 && decay[0x2E] == 0x3D &&
-                    memcmp(device, deviceField, sizeof(deviceField)) == 0 &&
-                    memcmp(device + 0x10, modeField, sizeof(modeField)) == 0 &&
+                    memcmp(device, deviceFieldUse, 7) == 0 &&
+                    memcmp(device + 0x10, modeFieldUse, 7) == 0 &&
                     device[-0xD] == 0x48 && device[-0xC] == 0x8B && device[-0xB] == 0x05 &&
                     device[-6] == 0x0F && device[-5] == 0x85;
             }
@@ -187,7 +191,8 @@ namespace CameraTweaks
         const auto& cfg = Config::Get();
         auto* follow = static_cast<uint8_t*>(FindUniqueCode(Patterns::CameraFollowTick));
         auto* decay = static_cast<uint8_t*>(FindUniqueCode(Patterns::CameraAngularDecay));
-        auto* device = static_cast<uint8_t*>(FindUniqueCode(Patterns::CameraInputDevice, false));
+        auto* device = static_cast<uint8_t*>(FindUniqueCode(
+            Offsets::IsOS ? Patterns::CameraInputDeviceOS : Patterns::CameraInputDevice, false));
         if (ValidateInputPath(follow, decay, device))
         {
             g_InputRootSlot = reinterpret_cast<void**>(Relative(device - 0xD, 3, 7));
