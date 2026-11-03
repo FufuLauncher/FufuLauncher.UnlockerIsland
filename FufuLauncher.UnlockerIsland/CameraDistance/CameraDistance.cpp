@@ -138,7 +138,8 @@ namespace CameraDistance
         // Check the cached ideal radius and the global-config accessor/upper
         // radius writes as well as the prologues before using fixed field offsets.
         if (!collect || !radius || !mode ||
-            !Scanner::ScanRange(collect, 0x560, "F2 0F 11 87 40 01 00 00") ||
+            !Scanner::ScanRange(collect, 0x560, Offsets::IsOS
+                ? "F2 0F 11 87 F8 02 00 00" : "F2 0F 11 87 40 01 00 00") ||
             !Scanner::ScanRange(collect, 0x560, "48 8B 4F 20 48 85 C9") ||
             !Scanner::ScanRange(radius, 0xDB0, "F2 0F 11 86 78 04 00 00"))
         {
