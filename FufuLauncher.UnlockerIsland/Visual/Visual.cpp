@@ -361,25 +361,43 @@ void WINAPI hk_CraftEntry(void* _this)
     if (orig) orig(_this);
 }
 
-void WINAPI hk_OpenTeam()
+bool WINAPI hk_OpenTeam(void* iterator, void* method)
 {
-    if (Config::Get().enable_remove_team_anim)
+    using namespace Offsets::Team;
+    auto orig = (tOpenTeam)o_OpenTeam.load();
+    if (!orig) return false;
+    // The native completion path discards the request unless the in-level page
+    // is ready. A Paimon menu transition can take several coroutine resumes.
+    // Keep the native wait until that transition finishes, then skip the rest.
+    float* duration = nullptr;
+    float saved = 0;
+    __try
     {
-        auto check = (tCheckCanEnter)p_CheckCanEnter.load();
-        auto openPage = (tOpenTeamPage)p_OpenTeamPage.load();
-        if (IsValid(check) && IsValid(openPage))
+        if (iterator && Config::Get().enable_remove_team_anim)
         {
-            bool canEnter = false;
-            SafeInvoke([&] { canEnter = check(); });
-            if (canEnter)
+            auto* owner = *reinterpret_cast<uint8_t**>(static_cast<uint8_t*>(iterator) +
+                (Offsets::IsOS ? IteratorOwnerOS : IteratorOwner));
+            const int state = *reinterpret_cast<int*>(static_cast<uint8_t*>(iterator) + IteratorState);
+            if (owner && state == 1 &&
+                *reinterpret_cast<int*>(owner + (Offsets::IsOS ? PageTransitionOS : PageTransition)) == 0 &&
+                *reinterpret_cast<int*>(owner + (Offsets::IsOS ? PageStateOS : PageState)) == PageReady)
             {
-                SafeInvoke([&] { openPage(false); });
-                return;
+                auto* field = reinterpret_cast<float*>(owner + (Offsets::IsOS ? LoadingDurationOS : LoadingDuration));
+                const float elapsed = *reinterpret_cast<float*>(owner + (Offsets::IsOS ? LoadingElapsedOS : LoadingElapsed));
+                if (std::isfinite(*field) && *field >= 0 && std::isfinite(elapsed) && elapsed >= 0)
+                {
+                    saved = *field;
+                    duration = field;
+                    *duration = 0;
+                }
             }
         }
     }
-    auto orig = (tOpenTeam)o_OpenTeam.load();
-    if (orig) orig();
+    __except (EXCEPTION_EXECUTE_HANDLER) { duration = nullptr; }
+    bool result = false;
+    __try { result = orig(iterator, method); }
+    __finally { if (duration) *duration = saved; }
+    return result;
 }
 
 static Il2CppString* SafeGetName(tGetName getName, void* obj)

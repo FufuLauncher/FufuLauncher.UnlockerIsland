@@ -10,6 +10,7 @@ Licensed under the AGPL-3.0 License.
 #include "../Scanner/Scanner.h"
 #include "../Config/Config.h"
 #include "Utils.h"
+#include "Compatibility.h"
 #include "../MinHook/MinHook.h"
 #include "SharedState.h"
 #include "../Patterns/Patterns.h"
@@ -637,14 +638,22 @@ bool Hooks::Init()
         uintptr_t offsetSetActive = StringToAddr(Offsets::SetActiveOffset);
         if (hMod && offsetSetActive)
         {
-            void* setActiveAddr = (void*)((uintptr_t)hMod + offsetSetActive);
-            LogOffset("SetActive", setActiveAddr, setActiveAddr);
-            std::cout << "[SCAN] SetActive via offset: 0x"
-                << std::hex << offsetSetActive << std::dec << '\n';
-            if (MH_CreateHook(setActiveAddr, (void*)hk_SetActive, (void**)&o_SetActive) == MH_OK)
-                std::cout << "   -> SetActive Hook Ready." << std::endl;
+            void* setActiveAddr = Compatibility::ResolveFunctionEntry(offsetSetActive, Patterns::SetActive,
+                Offsets::EntryChecks::SetActiveSize);
+            if (!setActiveAddr)
+            {
+                std::cout << "[ERR] SetActive entry validation failed; UI/grass hooks were not installed.\n";
+            }
             else
-                std::cout << "   -> [ERR] SetActive MH_CreateHook Failed." << std::endl;
+            {
+                LogOffset("SetActive", setActiveAddr, setActiveAddr);
+                std::cout << "[SCAN] SetActive via offset: 0x"
+                    << std::hex << offsetSetActive << std::dec << '\n';
+                if (MH_CreateHook(setActiveAddr, (void*)hk_SetActive, (void**)&o_SetActive) == MH_OK)
+                    std::cout << "   -> SetActive Hook Ready." << std::endl;
+                else
+                    std::cout << "   -> [ERR] SetActive MH_CreateHook Failed." << std::endl;
+            }
         }
         else
         {
@@ -658,7 +667,7 @@ bool Hooks::Init()
     HOOK_DIR("CraftEntry", Patterns::CraftEntry, hk_CraftEntry, o_CraftEntry);
     SCAN_DIR("CheckCanEnter", Patterns::CheckCanEnter, p_CheckCanEnter);
     SCAN_DIR("OpenTeamPage", Patterns::OpenTeamPage, p_OpenTeamPage);
-    HOOK_DIR("OpenTeam", Patterns::OpenTeam, hk_OpenTeam, o_OpenTeam);
+    HOOK_DIR("OpenTeam", isOS ? Patterns::OpenTeamOS : Patterns::OpenTeam, hk_OpenTeam, o_OpenTeam);
     HOOK_DIR("DisplayFog", Patterns::DisplayFog, hk_DisplayFog, o_DisplayFog);
     HOOK_REL("PlayerPerspective", Patterns::PlayerPerspective, hk_PlayerPerspective, o_PlayerPerspective);
     SCAN_REL("SetSyncCount", Patterns::SetSyncCount, o_SetSyncCount);
@@ -713,81 +722,33 @@ bool Hooks::Init()
     VirtualProtect(p_CheckCanOpenMap.load(), 5, PAGE_EXECUTE_READWRITE, &oldProtect);
 
     {
-        HMODULE hMod = GetModuleHandle(NULL);
-        if (hMod)
+        using namespace Offsets::EntryChecks;
+        const auto ok = Compatibility::ResolveFunctionEntry(StringToAddr(Offsets::ClockPageOkOffset),
+            isOS ? Patterns::ClockPageOkOS : Patterns::ClockPageOk, ClockOkSize);
+        const auto close = Compatibility::ResolveFunctionEntry(StringToAddr(Offsets::ClockPageCloseOffset),
+            Patterns::ClockPageClose, ClockActionSize);
+        const auto finish = Compatibility::ResolveFunctionEntry(StringToAddr(Offsets::ClockPageFinishOffset),
+            Patterns::ClockPageFinish, ClockActionSize);
+        const auto back = Compatibility::ResolveFunctionEntry(StringToAddr(Offsets::ClockPageBackOffset),
+            Patterns::ClockPageBack, ClockActionSize);
+        if (ok && close && finish && back &&
+            MH_CreateHook(ok, (void*)hk_ClockPageOk, (void**)&o_ClockPageOk) == MH_OK)
         {
-            uintptr_t base = (uintptr_t)hMod;
-
-            uintptr_t offsetClockOk = StringToAddr(Offsets::ClockPageOkOffset);
-            if (offsetClockOk)
-            {
-                void* clockOkAddr = (void*)(base + offsetClockOk);
-                LogOffset("ClockPage.Ok", clockOkAddr, clockOkAddr);
-                if (MH_CreateHook(clockOkAddr, (void*)hk_ClockPageOk, (void**)&o_ClockPageOk) == MH_OK)
-                {
-                    std::cout << "[SCAN] ClockPageOk hooked via offset at: 0x" << std::hex << offsetClockOk << std::dec
-                        << '\n';
-                }
-                else
-                {
-                    std::cout << "[ERR] Failed to hook ClockPageOk via offset.\n";
-                }
-            }
-            else
-            {
-                std::cout << "[ERR] ClockPageOk offset is missing.\n";
-            }
-
-            uintptr_t offsetClockClose = StringToAddr(Offsets::ClockPageCloseOffset);
-            if (offsetClockClose)
-            {
-                void* clockCloseAddr = (void*)(base + offsetClockClose);
-                p_ClockPageClose.store(clockCloseAddr);
-                LogOffset("ClockPage.Close", clockCloseAddr, clockCloseAddr);
-                std::cout << "[SCAN] ClockPageClose resolved via offset at: 0x" << std::hex << offsetClockClose <<
-                    std::dec << '\n';
-            }
-            else
-            {
-                std::cout << "[WARN] ClockPageClose offset is missing.\n";
-            }
-
-            uintptr_t offsetClockFinish = StringToAddr(Offsets::ClockPageFinishOffset);
-            if (offsetClockFinish)
-            {
-                void* clockFinishAddr = (void*)(base + offsetClockFinish);
-                p_ClockPageFinish.store(clockFinishAddr);
-                LogOffset("ClockPage.Finish", clockFinishAddr, clockFinishAddr);
-                std::cout << "[SCAN] ClockPageFinish resolved via offset at: 0x" << std::hex << offsetClockFinish <<
-                    std::dec << '\n';
-            }
-            else
-            {
-                std::cout << "[WARN] ClockPageFinish offset is missing; falling back to OK+Close.\n";
-            }
-
-            uintptr_t offsetClockBack = StringToAddr(Offsets::ClockPageBackOffset);
-            if (offsetClockBack)
-            {
-                void* clockBackAddr = (void*)(base + offsetClockBack);
-                p_ClockPageBack.store(clockBackAddr);
-                LogOffset("ClockPage.Back", clockBackAddr, clockBackAddr);
-                std::cout << "[SCAN] ClockPageBack resolved via offset at: 0x" << std::hex << offsetClockBack <<
-                    std::dec << '\n';
-            }
-            else
-            {
-                std::cout << "[WARN] ClockPageBack offset is missing; falling back to Close path.\n";
-            }
+            p_ClockPageClose.store(close);
+            p_ClockPageFinish.store(finish);
+            p_ClockPageBack.store(back);
+            LogOffset("ClockPage.Ok", ok, ok);
+            LogOffset("ClockPage.Close", close, close);
+            LogOffset("ClockPage.Finish", finish, finish);
+            LogOffset("ClockPage.Back", back, back);
+            std::cout << "[SCAN] Clock page entries validated; speedup hook ready.\n";
         }
-        else
-        {
-            std::cout << "[ERR] Critical: GetModuleHandle failed!" << '\n';
-        }
+        else std::cout << "[WARN] Clock page entries unsupported; native clock retained.\n";
     }
 
-    if (Config::Get().enable_rainbow_damage)
+    // Install once even when disabled, so a config reload can enable colors.
     {
+        using namespace Offsets::EntryChecks;
         std::cout << "[SCAN] Hooking Rainbow Damage Colors..." << std::endl;
 
         uintptr_t base = (uintptr_t)GetModuleHandle(NULL);
@@ -808,27 +769,46 @@ bool Hooks::Init()
         uintptr_t off3 = ParseOffset(Offsets::DamageColor3Offset);
         uintptr_t off4 = ParseOffset(Offsets::DamageColor4Offset);
 
-        if (offA)
-            MH_CreateHook((void*)(base + offA), (void*)RainbowDamageFeature::HookGetColorA,
-                          (void**)&RainbowDamageFeature::g_oGetColorA);
-        if (offB)
-            MH_CreateHook((void*)(base + offB), (void*)RainbowDamageFeature::HookGetColorB,
-                          (void**)&RainbowDamageFeature::g_oGetColorB);
-        if (off1)
-            MH_CreateHook((void*)(base + off1), (void*)RainbowDamageFeature::HookGetColor1,
-                          (void**)&RainbowDamageFeature::g_oGetColor1);
-        if (off2)
-            MH_CreateHook((void*)(base + off2), (void*)RainbowDamageFeature::HookGetColor2,
-                          (void**)&RainbowDamageFeature::g_oGetColor2);
-        if (off3)
-            MH_CreateHook((void*)(base + off3), (void*)RainbowDamageFeature::HookGetColor3,
-                          (void**)&RainbowDamageFeature::g_oGetColor3);
-        if (off4)
-            MH_CreateHook((void*)(base + off4), (void*)RainbowDamageFeature::HookGetColor4,
-                          (void**)&RainbowDamageFeature::g_oGetColor4);
-
-        CreateThread(nullptr, 0, RainbowDamageFeature::ColorCycleThread, nullptr, 0, nullptr);
-        std::cout << "   -> Rainbow Damage Hooks Ready." << std::endl;
+        const bool validated = Compatibility::ResolveFunctionEntry(offA, Patterns::DamageColorList, DamageColorCollectionSize) &&
+            Compatibility::ResolveFunctionEntry(offB, Patterns::DamageColorArray, DamageColorCollectionSize) &&
+            Compatibility::ResolveFunctionEntry(off1, Patterns::DamageColorIndex, DamageColorIndexSize) &&
+            Compatibility::ResolveFunctionEntry(off2, Patterns::DamageColorIndex, DamageColorIndexSize) &&
+            Compatibility::ResolveFunctionEntry(off3, Patterns::DamageColorIndex, DamageColorIndexSize) &&
+            Compatibility::ResolveFunctionEntry(off4, Patterns::DamageColorIndex, DamageColorIndexSize);
+        struct ColorHook { uintptr_t offset; void* hook; void** original; };
+        ColorHook hooks[] = {
+            {offA, (void*)RainbowDamageFeature::HookGetColorA, (void**)&RainbowDamageFeature::g_oGetColorA},
+            {offB, (void*)RainbowDamageFeature::HookGetColorB, (void**)&RainbowDamageFeature::g_oGetColorB},
+            {off1, (void*)RainbowDamageFeature::HookGetColor1, (void**)&RainbowDamageFeature::g_oGetColor1},
+            {off2, (void*)RainbowDamageFeature::HookGetColor2, (void**)&RainbowDamageFeature::g_oGetColor2},
+            {off3, (void*)RainbowDamageFeature::HookGetColor3, (void**)&RainbowDamageFeature::g_oGetColor3},
+            {off4, (void*)RainbowDamageFeature::HookGetColor4, (void**)&RainbowDamageFeature::g_oGetColor4}
+        };
+        if (validated)
+        {
+            size_t installed = 0;
+            for (auto& hook : hooks)
+            {
+                if (MH_CreateHook((void*)(base + hook.offset), hook.hook, hook.original) != MH_OK) break;
+                ++installed;
+            }
+            if (installed == sizeof(hooks) / sizeof(hooks[0]))
+            {
+                auto thread = CreateThread(nullptr, 0, RainbowDamageFeature::ColorCycleThread, nullptr, 0, nullptr);
+                if (thread) CloseHandle(thread);
+                std::cout << "   -> Rainbow Damage Hooks Ready." << std::endl;
+            }
+            else
+            {
+                for (size_t i = 0; i < installed; ++i)
+                {
+                    MH_RemoveHook((void*)(base + hooks[i].offset));
+                    *hooks[i].original = nullptr;
+                }
+                std::cout << "[WARN] Damage color hooks failed; native colors retained.\n";
+            }
+        }
+        else std::cout << "[WARN] Damage color entries unsupported; native colors retained.\n";
     }
 
     if (MH_CreateHookApi(L"user32.dll", "SetCursor", (void*)hk_SetCursor, (void**)&o_SetCursor) == MH_OK)

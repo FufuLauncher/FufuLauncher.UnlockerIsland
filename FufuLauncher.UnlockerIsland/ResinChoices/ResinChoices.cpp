@@ -21,6 +21,7 @@ namespace ResinChoices
 {
     namespace
     {
+        using namespace Offsets::ResinChoices;
         // Bit order is shared with Config::GetResinChoiceMask().
         constexpr std::array<uint32_t, 5> kItemIds{106, 220007, 107012, 107009, 201};
         constexpr uint32_t kInventoryChanged = 1, kChoicesChanged = 2, kWindowShown = 4;
@@ -85,10 +86,10 @@ namespace ResinChoices
             const int count = list->Count();
             if (count < 0 || count > 32) return nullptr;
             auto* items = list->Items();
-            if (!items || IsBadReadPtr(items, 0x20)) return nullptr;
+            if (!items || IsBadReadPtr(items, ArrayData)) return nullptr;
             const auto capacity = items->Count();
             if (capacity < static_cast<size_t>(count) || capacity > 1000) return nullptr;
-            auto* values = reinterpret_cast<uint8_t*>(items) + 0x20;
+            auto* values = reinterpret_cast<uint8_t*>(items) + ArrayData;
             if (count && (IsBadReadPtr(values, count * sizeof(uint64_t)) ||
                 IsBadWritePtr(values, count * sizeof(uint64_t))))
                 return nullptr;
@@ -130,9 +131,9 @@ namespace ResinChoices
             void* nativeObject = nullptr;
             auto getActive = reinterpret_cast<tGetActive>(p_GetActive.load());
             return getActive && ReadPointer(context, g_ViewOffset, view) &&
-                ReadPointer(view, 0x10, nativeView) &&
+                ReadPointer(view, CachedNativePointer, nativeView) &&
                 ReadPointer(context, g_GameObjectOffset, gameObject) &&
-                ReadPointer(gameObject, 0x10, nativeObject) && getActive(gameObject);
+                ReadPointer(gameObject, CachedNativePointer, nativeObject) && getActive(gameObject);
         }
 
         bool TakeSnapshot(void* view, Snapshot& snapshot)
@@ -303,32 +304,34 @@ namespace ResinChoices
 
         bool InitRefresh(void* setupCall, void* setup)
         {
-            auto* refresh = static_cast<uint8_t*>(setupCall) - 0x46;
-            if (Scanner::ScanRange(refresh, 0x4D, Patterns::RefreshResinList) != refresh) return false;
-            auto* windowBase = static_cast<uint8_t*>(setup) - 0x2000;
+            auto* refresh = static_cast<uint8_t*>(setupCall) - RefreshSetupCall;
+            if (Scanner::ScanRange(refresh, RefreshCheckSize, Patterns::RefreshResinList) != refresh) return false;
+            auto* windowBase = static_cast<uint8_t*>(setup) - ContextSearchBack;
             auto* setupView = static_cast<uint8_t*>(Offsets::IsOS
-                ? Scanner::ScanRange(setup, 0x6000, Patterns::ResinSetupViewOS)
-                : Scanner::ScanRange(windowBase, 0x4000, Patterns::ResinSetupView));
-            auto* inventory = static_cast<uint8_t*>(Scanner::ScanRange(setup, 0x400, Patterns::ResinItemCount));
-            void* disable = Scanner::ScanRange(windowBase, 0x4000, Patterns::ResinContextDisable);
+                ? Scanner::ScanRange(setup, SetupViewSearchSizeOS, Patterns::ResinSetupViewOS)
+                : Scanner::ScanRange(windowBase, ContextSearchSize, Patterns::ResinSetupView));
+            auto* inventory = static_cast<uint8_t*>(Scanner::ScanRange(setup, InventorySearchSize, Patterns::ResinItemCount));
+            void* disable = Scanner::ScanRange(windowBase, ContextSearchSize, Patterns::ResinContextDisable);
             void* show = Scanner::ScanMainMod(Patterns::ResinContextShow);
             void* changed = Scanner::ScanMainMod(Offsets::IsOS
                 ? Patterns::ResinInventoryChangedOS : Patterns::ResinInventoryChanged);
             if (!setupView || !inventory || !show || !disable || !changed ||
                 !IsValidCodePtr(p_GetActive.load()))
                 return false;
-            if (Scanner::ResolveRelative(setupView + (Offsets::IsOS ? 0x5Du : 0x60u), 1, 5) != refresh) return false;
+            if (Scanner::ResolveRelative(setupView +
+                (Offsets::IsOS ? SetupViewRefreshJumpOS : SetupViewRefreshJump), 1, 5) != refresh) return false;
             uint32_t viewOffset = 0, storedViewOffset = 0, inventoryOffset = 0;
-            memcpy(&viewOffset, refresh + 0x2B, sizeof(viewOffset));
-            memcpy(&storedViewOffset, setupView + (Offsets::IsOS ? 0x43u : 0x46u), sizeof(storedViewOffset));
-            memcpy(&inventoryOffset, inventory + 0x10, sizeof(inventoryOffset));
+            memcpy(&viewOffset, refresh + RefreshViewOperand, sizeof(viewOffset));
+            memcpy(&storedViewOffset, setupView + (Offsets::IsOS ? SetupViewStoreOperandOS : SetupViewStoreOperand),
+                   sizeof(storedViewOffset));
+            memcpy(&inventoryOffset, inventory + InventorySlotOperand, sizeof(inventoryOffset));
             if (viewOffset != storedViewOffset || viewOffset < 0x20 || viewOffset > 0x1000 || viewOffset % 8 ||
                 inventoryOffset < 0x20 || inventoryOffset > 0x1000000 || inventoryOffset % 8)
                 return false;
-            void* count = Scanner::ResolveRelative(inventory + 0x22, 1, 5);
-            const uint8_t prologue[]{0x56, 0x57, 0x48, 0x83, 0xEC, 0x28, 0x89, 0xD6, 0x48, 0x89, 0xCF};
-            if (!count || IsBadReadPtr(count, sizeof(prologue)) || memcmp(count, prologue, sizeof(prologue))) return
-                false;
+            void* count = Scanner::ResolveRelative(inventory + InventoryCountCall, 1, 5);
+            if (!count || IsBadReadPtr(count, sizeof(Patterns::ResinItemCountPrologue)) ||
+                memcmp(count, Patterns::ResinItemCountPrologue, sizeof(Patterns::ResinItemCountPrologue)))
+                return false;
             auto** moduleTable = reinterpret_cast<void**>(Scanner::ResolveRelative(inventory, 3, 7));
             if (!moduleTable || IsBadReadPtr(moduleTable, sizeof(*moduleTable))) return false;
             g_Message = RegisterWindowMessageW(L"FufuLauncher.UnlockerIsland.ResinChoices.Refresh");
@@ -350,7 +353,7 @@ namespace ResinChoices
                 return false;
             }
             g_ViewOffset = viewOffset;
-            g_GameObjectOffset = setupView[0x2A];
+            g_GameObjectOffset = setupView[GameObjectOperand];
             g_InventoryOffset = inventoryOffset;
             g_ModuleTable = moduleTable;
             g_GetItemCount = reinterpret_cast<GetItemCount>(count);
@@ -360,7 +363,7 @@ namespace ResinChoices
             LogOffset("ResinContext.Show", show, show);
             LogOffset("ResinContext.OnDisable", disable, disable);
             LogOffset("ResinInventoryChanged", changed, changed);
-            LogOffset("ResinItemCount", count, inventory + 0x22);
+            LogOffset("ResinItemCount", count, inventory + InventoryCountCall);
             return true;
         }
     }
@@ -369,21 +372,20 @@ namespace ResinChoices
 
     void Init()
     {
+        using namespace Offsets::ResinChoices;
         std::cout << "[SCAN] SetupResinList...\n";
         void* call = Scanner::ScanMainMod(Patterns::SetupResinList);
         auto* setup = static_cast<uint8_t*>(call ? Scanner::ResolveRelative(call, 1, 5) : nullptr);
-        if (setup && !IsBadReadPtr(setup, 0x2E))
+        if (setup && !IsBadReadPtr(setup, SetupReadSize))
         {
-            const uint8_t prologue[]{0x56, 0x57, 0x53, 0x48, 0x83, 0xEC, 0x20, 0x48, 0x89, 0xCB};
-            const uint8_t listRead[]{0x48, 0x8B, 0x8B};
-            const uint8_t listCheck[]{0x48, 0x85, 0xC9, 0x0F, 0x84};
-            const uint8_t sizeReset[]{0xC7, 0x41, 0x18, 0, 0, 0, 0};
+            // Locate the list read after the native initialization/hotfix guards.
+            auto* listRead = static_cast<uint8_t*>(Scanner::ScanUniqueMainMod(
+                Patterns::ResinListRead,
+                setup, ListReadSearchSize));
             uint32_t offset = 0;
-            memcpy(&offset, setup + 0x1A, sizeof(offset));
-            if (!memcmp(setup, prologue, sizeof(prologue)) &&
-                !memcmp(setup + 0x17, listRead, sizeof(listRead)) &&
-                !memcmp(setup + 0x1E, listCheck, sizeof(listCheck)) &&
-                !memcmp(setup + 0x27, sizeReset, sizeof(sizeReset)) &&
+            if (listRead) memcpy(&offset, listRead + ListFieldOperand, sizeof(offset));
+            if (!memcmp(setup, Patterns::ResinSetupPrologue, sizeof(Patterns::ResinSetupPrologue)) &&
+                listRead &&
                 offset >= 0x20 && offset <= 0x1000 && offset % 8 == 0 &&
                 MH_CreateHook(setup, reinterpret_cast<void*>(HookSetupList),
                               reinterpret_cast<void**>(&o_SetupResinList)) == MH_OK)

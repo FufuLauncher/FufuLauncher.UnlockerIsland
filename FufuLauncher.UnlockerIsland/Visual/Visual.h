@@ -14,7 +14,7 @@ void* WINAPI hk_PlayerPerspective(void* a1, float a2, void* a3);
 void LogOffset(const std::string& name, void* resultAddress, void* instructionAddress = nullptr);
 bool WINAPI hk_EventCamera(void* a, void* b);
 void WINAPI hk_CraftEntry(void* _this);
-void WINAPI hk_OpenTeam();
+bool WINAPI hk_OpenTeam(void* iterator, void* method);
 void WINAPI hk_SetActive(void* pThis, bool active);
 bool IsCameraPageActiveFromEvents();
 auto hk_DisplayFog(__int64 a1, __int64 a2) -> __int64;

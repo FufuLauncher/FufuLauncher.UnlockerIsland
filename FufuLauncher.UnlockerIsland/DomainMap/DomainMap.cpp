@@ -14,6 +14,7 @@ Licensed under the AGPL-3.0 License.
 #include "DomainMap.h"
 #include "../Patterns/Patterns.h"
 #include "../Scanner/Scanner.h"
+#include "../Core/Compatibility.h"
 #include "../MinHook/MinHook.h"
 
 namespace
@@ -41,18 +42,21 @@ namespace
 
     bool StableDomain()
     {
-        using namespace Patterns::DomainMap;
+        using namespace Offsets::DomainMap;
+        const bool os = Offsets::IsOS;
         const auto modules = *g_Modules;
         if (!modules) return false;
-        const auto scene = Object(Object(modules, ModuleSceneSlot), SceneRootToScene);
+        const auto scene = Object(Object(modules, os ? ModuleSceneSlotOS : ModuleSceneSlot),
+                                  os ? SceneRootToSceneOS : SceneRootToScene);
         const auto script = Object(scene, SceneToScript);
-        const auto transition = Object(Object(modules, ModuleTransitionSlot), TransitionRootToObject);
+        const auto transition = Object(Object(modules, os ? ModuleTransitionSlotOS : ModuleTransitionSlot),
+                                       os ? TransitionRootToObjectOS : TransitionRootToObject);
         const auto dungeon = Object(modules, ModuleDungeonSlot);
         if (!scene || !script || !transition || !dungeon) return false;
-        const auto dungeonId = Read<uint32_t>(dungeon, DungeonId);
+        const auto dungeonId = Read<uint32_t>(dungeon, os ? DungeonIdOS : DungeonId);
         return Read<int>(script, ScriptState) == 1 && Read<int>(scene, SceneState) == 4 &&
-            Read<int>(transition, TransitionState) == 10 && dungeonId != 0 &&
-            dungeonId == Read<uint32_t>(transition, TransitionDungeonId);
+            Read<int>(transition, os ? TransitionStateOS : TransitionState) == 10 && dungeonId != 0 &&
+            dungeonId == Read<uint32_t>(transition, os ? TransitionDungeonIdOS : TransitionDungeonId);
     }
 
     void HookSourceJump(void* instance, uint32_t sourceId, void* methodInfo)
@@ -87,16 +91,10 @@ void DomainMap::Init()
 {
 #if defined(_M_X64)
     using namespace Patterns::DomainMap;
+    using namespace Offsets::DomainMap;
     auto base = reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
-    const auto dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
-    const auto nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(base + dos->e_lfanew);
-    wchar_t path[MAX_PATH]{};
-    const DWORD length = GetModuleFileNameW(nullptr, path, MAX_PATH);
-    const auto slash = std::wcsrchr(path, L'\\');
-    if (!length || length >= MAX_PATH || _wcsicmp(slash ? slash + 1 : path, L"YuanShen.exe") != 0 ||
-        dos->e_magic != IMAGE_DOS_SIGNATURE || nt->Signature != IMAGE_NT_SIGNATURE ||
-        nt->FileHeader.Machine != IMAGE_FILE_MACHINE_AMD64 || nt->FileHeader.TimeDateStamp != TimeDateStamp ||
-        nt->OptionalHeader.SizeOfImage != SizeOfImage || nt->OptionalHeader.CheckSum != CheckSum)
+    const auto imageSize = Compatibility::GetImageSize();
+    if (!imageSize)
     {
         std::cout << "[DomainMap] Unsupported build; native source restrictions retained.\n";
         return;
@@ -106,20 +104,21 @@ void DomainMap::Init()
         return static_cast<unsigned char*>(Scanner::ScanUniqueMainMod(pattern, within, size));
     };
     auto source = find(SourceEntry);
-    auto type = find(DungeonTypeCheck);
+    auto type = find(Offsets::IsOS ? DungeonTypeCheckOS : DungeonTypeCheck);
     auto guard = source
                      ? static_cast<unsigned char*>(Scanner::ResolveRelative(source + GuardCallInSource, 1, 5))
                      : nullptr;
-    if (!source || !type || !guard || find(SourceGuard, guard, 0x100) != guard) return;
+    if (!source || !type || !guard ||
+        find(Offsets::IsOS ? SourceGuardOS : SourceGuard, guard, GuardCheckSize) != guard) return;
     for (unsigned i = 0; i < 2; ++i)
     {
         auto call = guard + (i == 0 ? DailyCallA : DailyCallB);
-        if (find(DailyFightCall, call, 12) != call || Scanner::ResolveRelative(call + 5, 1, 5) != type) return;
+        if (find(DailyFightCall, call, DailyCallCheckSize) != call || Scanner::ResolveRelative(call + 5, 1, 5) != type) return;
         g_DailyCallers[i] = call + DailyCallReturnBias;
     }
     auto modules = static_cast<unsigned char*>(Scanner::ResolveRelative(type + TypeToModules, 3, 7));
     if (modules != Scanner::ResolveRelative(guard + GuardToModules, 3, 7) || modules < base ||
-        modules + sizeof(void*) > base + SizeOfImage)
+        modules + sizeof(void*) > base + imageSize)
         return;
     g_Modules = reinterpret_cast<const unsigned char* const*>(modules);
     if (MH_CreateHook(source, reinterpret_cast<void*>(&HookSourceJump),

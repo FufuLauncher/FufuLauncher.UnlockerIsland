@@ -18,7 +18,7 @@ namespace CameraDistance
 {
     namespace
     {
-        // CN 7.1: JAEBHHCCJAP (Initialize), not the Unity transform or FOV.
+        using namespace Offsets::CameraDistance;
         using Collect = void(__fastcall*)(void*, double, void*, void*, void*, void*);
         using InitializeRadius = void(__fastcall*)(void*, double, void*, void*, void*);
         using IsRadiusMode = bool(__fastcall*)(const void*, int, void*);
@@ -28,8 +28,7 @@ namespace CameraDistance
 
         // PipelineCameraGlobalConfig: ordinary follow limits and the native
         // settings interpolation endpoints. Vehicle/special limits are untouched.
-        constexpr size_t kMaxOffsets[] = {0x60, 0x64, 0x68, 0x6C, 0xA4, 0xA8, 0xAC};
-        constexpr size_t kLimitCount = sizeof(kMaxOffsets) / sizeof(kMaxOffsets[0]);
+        constexpr size_t kLimitCount = sizeof(MaximumFields) / sizeof(MaximumFields[0]);
 
         struct SavedLimits
         {
@@ -44,7 +43,7 @@ namespace CameraDistance
             // Never retain a managed config pointer across frames/map changes.
             for (size_t i = 0; i < saved.written; ++i)
             {
-                *reinterpret_cast<float*>(saved.config + kMaxOffsets[i]) = saved.values[i];
+                *reinterpret_cast<float*>(saved.config + MaximumFields[i]) = saved.values[i];
             }
             saved.written = 0;
         }
@@ -62,20 +61,20 @@ namespace CameraDistance
                 auto* input = static_cast<uint8_t*>(state);
                 // PHHOPIKPLKB is passed unboxed (dump offsets minus 0x10).
                 // Normal=0; preserve Parallel/Cinema and scripted radius blends.
-                if (*reinterpret_cast<int*>(input + 0x13C) != 0 ||
-                    *reinterpret_cast<int*>(input + 0x34) != 0 ||
-                    !g_IsRadiusMode(input + 0x4C4, 0, nullptr))
+                if (*reinterpret_cast<int*>(input + StateMode) != 0 ||
+                    *reinterpret_cast<int*>(input + StateBlend) != 0 ||
+                    !g_IsRadiusMode(input + StateRadiusMode, 0, nullptr))
                     return false;
 
-                auto* global = *reinterpret_cast<uint8_t**>(static_cast<uint8_t*>(self) + 0x20);
+                auto* global = *reinterpret_cast<uint8_t**>(static_cast<uint8_t*>(self) + GlobalConfig);
                 if (!global) return false;
-                const float minimum = *reinterpret_cast<float*>(global + 0x34);
+                const float minimum = *reinterpret_cast<float*>(global + MinimumDistance);
                 if (!std::isfinite(minimum) || minimum <= 0.0f || minimum >= 6.0f) return false;
 
                 // Read and validate the complete snapshot before the first write.
                 for (size_t i = 0; i < kLimitCount; ++i)
                 {
-                    saved.values[i] = *reinterpret_cast<float*>(global + kMaxOffsets[i]);
+                    saved.values[i] = *reinterpret_cast<float*>(global + MaximumFields[i]);
                     if (!std::isfinite(saved.values[i]) || saved.values[i] < minimum ||
                         saved.values[i] > 100.0f)
                         return false;
@@ -84,7 +83,7 @@ namespace CameraDistance
                 const float maximum = (std::max)(6.0f, cfg.camera_max_distance);
                 for (size_t i = 0; i < kLimitCount; ++i)
                 {
-                    *reinterpret_cast<float*>(global + kMaxOffsets[i]) = maximum;
+                    *reinterpret_cast<float*>(global + MaximumFields[i]) = maximum;
                     saved.written = i + 1;
                 }
                 return true;
@@ -131,6 +130,7 @@ namespace CameraDistance
 
     void Init()
     {
+        using namespace Offsets::CameraDistance;
         auto* collect = Scanner::ScanMainMod(Patterns::CameraDistanceCollect);
         auto* radius = Scanner::ScanMainMod(Patterns::CameraDistanceInitializeRadius);
         auto* mode = Scanner::ScanMainMod(Offsets::IsOS
@@ -138,10 +138,10 @@ namespace CameraDistance
         // Check the cached ideal radius and the global-config accessor/upper
         // radius writes as well as the prologues before using fixed field offsets.
         if (!collect || !radius || !mode ||
-            !Scanner::ScanRange(collect, 0x560, Offsets::IsOS
-                ? "F2 0F 11 87 F8 02 00 00" : "F2 0F 11 87 40 01 00 00") ||
-            !Scanner::ScanRange(collect, 0x560, "48 8B 4F 20 48 85 C9") ||
-            !Scanner::ScanRange(radius, 0xDB0, "F2 0F 11 86 78 04 00 00"))
+            !Scanner::ScanRange(collect, CollectCheckSize, Offsets::IsOS
+                ? Patterns::CameraDistanceIdealRadiusOS : Patterns::CameraDistanceIdealRadius) ||
+            !Scanner::ScanRange(collect, CollectCheckSize, Patterns::CameraDistanceGlobalConfig) ||
+            !Scanner::ScanRange(radius, RadiusCheckSize, Patterns::CameraDistanceRadiusWrite))
         {
             std::cout << "[WARN] Camera distance layout unsupported; native distance unchanged.\n";
             return;
