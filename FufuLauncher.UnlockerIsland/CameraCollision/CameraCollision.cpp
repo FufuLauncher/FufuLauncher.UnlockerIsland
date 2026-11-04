@@ -20,17 +20,11 @@ namespace CameraCollision
 {
     namespace
     {
-        // CN 7.1 DAMLEAKHMIP.OFLJEMLABKC, the common native camera protector.
+        // The common native camera protector; input/output pose fields are shared.
         using Tick = void(__fastcall*)(void*, double, void*, void*, void*, void*, void*);
         Tick g_Tick = nullptr;
         using Vector = CameraOffset::Offset;
-        constexpr size_t kDesiredPosition = 0x60; // unboxed MKEKBINNCNJ
-        constexpr size_t kCameraMode = 0x240;
-        constexpr size_t kSkipProtection = 0x291;
-        constexpr size_t kEventTarget = 0x293;
-        constexpr size_t kPosition = 0x30; // unboxed CameraStateData
-        constexpr size_t kOrientation = 0x48;
-        constexpr size_t kLookAt = 0xA8;
+        using namespace Offsets::CameraCollision;
 
         struct CallState
         {
@@ -63,31 +57,31 @@ namespace CameraCollision
                 auto* pose = static_cast<uint8_t*>(output);
                 // Normal follow cameras share this protector, including combat,
                 // climb and flight. Parallel/Cinema are separate native modes.
-                if (*reinterpret_cast<int*>(state + kCameraMode) != 0)
+                if (*reinterpret_cast<int*>(state + CameraMode) != 0)
                 {
                     CameraOffset::SuspendImmediately();
                     return;
                 }
-                const auto skip = state[kSkipProtection];
-                if (skip > 1 || state[kEventTarget] > 1) return;
+                const auto skip = state[SkipProtection];
+                if (skip > 1 || state[EventTarget] > 1) return;
 
                 if (CameraOffset::HasPendingOffset())
                 {
                     const double fov = *reinterpret_cast<double*>(pose);
-                    if (std::isfinite(fov) && fov > 30.0 && state[kEventTarget] == 0)
+                    if (std::isfinite(fov) && fov > 30.0 && state[EventTarget] == 0)
                     {
                         // Check cached UI eligibility on the actual frame callback,
                         // so leaving aim/dialogue does not require another FOV event.
                         CameraOffset::Tick(Hooks::CanApplyCameraOffset(), false);
                         CameraOffset::Rotation rotation;
-                        std::memcpy(&rotation, pose + kOrientation, sizeof(rotation));
+                        std::memcpy(&rotation, pose + Orientation, sizeof(rotation));
                         Vector offset;
                         if (CameraOffset::GetWorldOffset(dt, rotation, offset))
                         {
                             Vector desired, position, lookAt;
-                            std::memcpy(&desired, state + kDesiredPosition, sizeof(desired));
-                            std::memcpy(&position, pose + kPosition, sizeof(position));
-                            std::memcpy(&lookAt, pose + kLookAt, sizeof(lookAt));
+                            std::memcpy(&desired, state + DesiredPosition, sizeof(desired));
+                            std::memcpy(&position, pose + Position, sizeof(position));
+                            std::memcpy(&lookAt, pose + LookAt, sizeof(lookAt));
                             // Translate the desired pose and its look-at point as a
                             // pair. Spherical angles, radius and orientation remain
                             // native; the offset does not change their desired values.
@@ -96,9 +90,9 @@ namespace CameraCollision
                             lookAt = Shift(lookAt, offset);
                             if (Finite(desired) && Finite(position) && Finite(lookAt))
                             {
-                                std::memcpy(state + kDesiredPosition, &desired, sizeof(desired));
-                                std::memcpy(pose + kPosition, &position, sizeof(position));
-                                std::memcpy(pose + kLookAt, &lookAt, sizeof(lookAt));
+                                std::memcpy(state + DesiredPosition, &desired, sizeof(desired));
+                                std::memcpy(pose + Position, &position, sizeof(position));
+                                std::memcpy(pose + LookAt, &lookAt, sizeof(lookAt));
                             }
                         }
                     }
@@ -113,7 +107,7 @@ namespace CameraCollision
                 {
                     call.input = state;
                     call.originalSkip = skip;
-                    state[kSkipProtection] = 1;
+                    state[SkipProtection] = 1;
                     call.skipWritten = true;
                 }
             }
@@ -136,18 +130,23 @@ namespace CameraCollision
             }
             __finally
             {
-                if (call.skipWritten) call.input[kSkipProtection] = call.originalSkip;
+                if (call.skipWritten) call.input[SkipProtection] = call.originalSkip;
             }
         }
     }
 
     void Init()
     {
+        using namespace Offsets::CameraCollision;
         auto* tick = Scanner::ScanMainMod(Patterns::CameraCollisionTick);
-        if (!tick || !Scanner::ScanRange(tick, 0x100,
-                                         "80 BE 91 02 00 00 00 0F 85 ? ? ? ? 80 BB 36 04 00 00 00") ||
-            !Scanner::ScanRange(tick, 0x100,
-                                "0F 10 87 A8 00 00 00 48 8B 87 B8 00 00 00 48 89 83 98 04 00 00 0F 11 83 88 04 00 00"))
+        if (!tick || !Scanner::ScanRange(tick, EntryCheckSize,
+                Offsets::IsOS
+                    ? Patterns::CameraCollisionGuardOS
+                    : Patterns::CameraCollisionGuard) ||
+            !Scanner::ScanRange(tick, EntryCheckSize,
+                Offsets::IsOS
+                    ? Patterns::CameraCollisionLookAtOS
+                    : Patterns::CameraCollisionLookAt))
         {
             std::cout << "[WARN] Native camera protector layout unsupported; offset/collision options unavailable.\n";
             return;

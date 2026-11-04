@@ -24,7 +24,10 @@ typedef int32_t (WINAPI *tSetFrameCount)(int32_t);
 typedef void (WINAPI *tSwitchInput)(void*);
 typedef int32_t (WINAPI *tChangeFov)(void*, float);
 typedef void (WINAPI *tSetupQuestBanner)(void*);
-typedef void (WINAPI *tShowDamage)(void*, int, int, int, float, Il2CppString*, void*, void*, int, char, float);
+// 7.2 ShowOneDamageText: the three trailing effect arguments and MethodInfo
+// must survive forwarding, including while the feature is disabled.
+typedef void (WINAPI *tShowDamage)(void*, int, int, int, float, Il2CppString*, void*, void*, int, bool, float,
+                                 bool, bool, float, void*);
 typedef void (WINAPI *tCraftEntry)(void*);
 typedef bool (WINAPI *tCraftPartner)(Il2CppString*, void*, void*, void*, void*);
 typedef Il2CppString* (WINAPI *tFindString)(const char*);
@@ -35,7 +38,7 @@ typedef void (WINAPI *tSetupResinList)(void*);
 typedef bool (WINAPI *tEventCamera)(void*, void*);
 typedef bool (WINAPI *tCheckCanEnter)();
 typedef void (WINAPI *tOpenTeamPage)(bool);
-typedef void (WINAPI *tOpenTeam)();
+typedef bool (WINAPI *tOpenTeam)(void*, void*);
 typedef __int64 (*tDisplayFog)(__int64, __int64);
 typedef void* (WINAPI *tPlayerPerspective)(void*, float, void*);
 typedef int32_t (WINAPI *tSetSyncCount)(bool);

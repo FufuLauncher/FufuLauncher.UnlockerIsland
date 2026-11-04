@@ -19,6 +19,7 @@ namespace CameraTweaks
 {
     namespace
     {
+        using namespace Offsets::CameraTweaks;
         using FollowTick = void (__fastcall*)(void*, double, void*, void*);
         using AngularDecay = void (__fastcall*)(double, void*, double, double);
         using BlenderTick = void (__fastcall*)(void*, float);
@@ -73,8 +74,9 @@ namespace CameraTweaks
             {
                 if (!g_InputRootSlot || !*g_InputRootSlot) return 0;
                 auto* manager = *reinterpret_cast<uint8_t**>(
-                    static_cast<uint8_t*>(*g_InputRootSlot) + (Offsets::IsOS ? 0xA080u : 0x9EC0u));
-                return manager ? *reinterpret_cast<int*>(manager + (Offsets::IsOS ? 0x158u : 0x1ACu)) : 0;
+                    static_cast<uint8_t*>(*g_InputRootSlot) + (Offsets::IsOS ? InputManagerSlotOS : InputManagerSlot));
+                return manager ? *reinterpret_cast<int*>(manager +
+                    (Offsets::IsOS ? InputModeFieldOS : InputModeField)) : 0;
             }
             __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
         }
@@ -94,7 +96,7 @@ namespace CameraTweaks
         {
             __try
             {
-                auto* velocity = reinterpret_cast<float*>(static_cast<uint8_t*>(state) + 0x51C);
+                auto* velocity = reinterpret_cast<float*>(static_cast<uint8_t*>(state) + AngularVelocity);
                 if (!std::isfinite(velocity[0]) || !std::isfinite(velocity[1])) return;
                 const uint64_t zero = 0;
                 memcpy(velocity, &zero, sizeof(zero));
@@ -142,25 +144,27 @@ namespace CameraTweaks
             __try
             {
                 if (!follow || !decay || !device) return false;
-                const uint8_t reset[] = {0x48, 0xC7, 0x86, 0x1C, 0x05, 0, 0, 0, 0, 0, 0};
-                const uint8_t read[] = {0x4C, 0x8B, 0x86, 0x1C, 0x05, 0, 0};
-                const uint8_t write[] = {0x48, 0x89, 0x86, 0x1C, 0x05, 0, 0};
-                const uint8_t deviceField[] = {0x48, 0x8B, 0x80, 0xC0, 0x9E, 0, 0};
-                const uint8_t modeField[] = {0x83, 0xB8, 0xAC, 0x01, 0, 0, 0x03};
-                const uint8_t deviceFieldOS[] = {0x48, 0x8B, 0x80, 0x80, 0xA0, 0, 0};
-                const uint8_t modeFieldOS[] = {0x83, 0xB8, 0x58, 0x01, 0, 0, 0x03};
-                const uint8_t* deviceFieldUse = Offsets::IsOS ? deviceFieldOS : deviceField;
-                const uint8_t* modeFieldUse = Offsets::IsOS ? modeFieldOS : modeField;
-                return memcmp(follow + 0x68, reset, sizeof(reset)) == 0 &&
-                    follow[0x4AF] == 0xE8 && Relative(follow + 0x4AF, 1, 5) == decay &&
-                    memcmp(decay + 0x3A, read, sizeof(read)) == 0 &&
-                    memcmp(decay + 0xC9, write, sizeof(write)) == 0 &&
-                    follow[0x2B] == 0x80 && follow[0x2C] == 0x3D &&
-                    decay[0x2D] == 0x80 && decay[0x2E] == 0x3D &&
-                    memcmp(device, deviceFieldUse, 7) == 0 &&
-                    memcmp(device + 0x10, modeFieldUse, 7) == 0 &&
-                    device[-0xD] == 0x48 && device[-0xC] == 0x8B && device[-0xB] == 0x05 &&
-                    device[-6] == 0x0F && device[-5] == 0x85;
+                const auto* deviceField = Offsets::IsOS
+                    ? Patterns::CameraInputManagerFieldOS : Patterns::CameraInputManagerField;
+                const auto* modeField = Offsets::IsOS
+                    ? Patterns::CameraInputModeFieldOS : Patterns::CameraInputModeField;
+                return memcmp(follow + FollowVelocityReset, Patterns::CameraVelocityReset,
+                              sizeof(Patterns::CameraVelocityReset)) == 0 &&
+                    follow[FollowDecayCall] == 0xE8 && Relative(follow + FollowDecayCall, 1, 5) == decay &&
+                    memcmp(decay + DecayVelocityRead, Patterns::CameraVelocityRead,
+                           sizeof(Patterns::CameraVelocityRead)) == 0 &&
+                    memcmp(decay + DecayVelocityWrite, Patterns::CameraVelocityWrite,
+                           sizeof(Patterns::CameraVelocityWrite)) == 0 &&
+                    memcmp(follow + FollowHotfixCompare, Patterns::RipRelativeByteCompare,
+                           sizeof(Patterns::RipRelativeByteCompare)) == 0 &&
+                    memcmp(decay + DecayHotfixCompare, Patterns::RipRelativeByteCompare,
+                           sizeof(Patterns::RipRelativeByteCompare)) == 0 &&
+                    memcmp(device, deviceField, sizeof(Patterns::CameraInputManagerField)) == 0 &&
+                    memcmp(device + InputModeCompare, modeField, sizeof(Patterns::CameraInputModeField)) == 0 &&
+                    memcmp(device - InputRootLoadDistance, Patterns::RipRelativeLoad,
+                           sizeof(Patterns::RipRelativeLoad)) == 0 &&
+                    memcmp(device - InputRootJumpDistance, Patterns::NearNotEqualJump,
+                           sizeof(Patterns::NearNotEqualJump)) == 0;
             }
             __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
         }
@@ -171,11 +175,12 @@ namespace CameraTweaks
             {
                 __try
                 {
-                    auto* state = static_cast<float*>(self);
-                    const float duration = state[27];
+                    auto* state = static_cast<uint8_t*>(self);
+                    const float duration = *reinterpret_cast<float*>(state +
+                        (Offsets::IsOS ? BlenderDurationOS : BlenderDuration));
                     if (std::isfinite(duration) && duration > 0.0f)
                     {
-                        state[120] = duration;
+                        *reinterpret_cast<float*>(state + (Offsets::IsOS ? BlenderElapsedOS : BlenderElapsed)) = duration;
                     }
                 }
                 __except (EXCEPTION_EXECUTE_HANDLER)
@@ -188,16 +193,16 @@ namespace CameraTweaks
 
     void Init()
     {
-        const auto& cfg = Config::Get();
+        using namespace Offsets::CameraTweaks;
         auto* follow = static_cast<uint8_t*>(FindUniqueCode(Patterns::CameraFollowTick));
         auto* decay = static_cast<uint8_t*>(FindUniqueCode(Patterns::CameraAngularDecay));
         auto* device = static_cast<uint8_t*>(FindUniqueCode(
             Offsets::IsOS ? Patterns::CameraInputDeviceOS : Patterns::CameraInputDevice, false));
         if (ValidateInputPath(follow, decay, device))
         {
-            g_InputRootSlot = reinterpret_cast<void**>(Relative(device - 0xD, 3, 7));
-            g_FollowHotfix = Relative(follow + 0x2B, 2, 7);
-            g_DecayHotfix = Relative(decay + 0x2D, 2, 7);
+            g_InputRootSlot = reinterpret_cast<void**>(Relative(device - InputRootLoadDistance, 3, 7));
+            g_FollowHotfix = Relative(follow + FollowHotfixCompare, 2, 7);
+            g_DecayHotfix = Relative(decay + DecayHotfixCompare, 2, 7);
             const auto decayStatus = MH_CreateHook(decay, reinterpret_cast<void*>(HookAngularDecay),
                                                    reinterpret_cast<void**>(&g_OriginalAngularDecay));
             const auto followStatus = decayStatus == MH_OK
@@ -221,16 +226,14 @@ namespace CameraTweaks
             std::cout << "[WARN] Camera input path unavailable or layout unsupported; smoothing unchanged.\n";
         }
 
-        if (cfg.disable_camera_blend)
+        // Install while disabled too: configuration reload must be able to enable it.
         {
             auto* code = static_cast<uint8_t*>(Scanner::ScanMainMod(Patterns::CameraStateBlenderTick));
-            const uint8_t timers[] = {
-                0xF3, 0x0F, 0x10, 0x46, 0x6C, 0xF3, 0x0F, 0x10, 0xB6, 0xE0, 0x01, 0x00, 0x00,
-                0x0F, 0x28, 0xCE, 0xF3, 0x41, 0x0F, 0x58, 0xC8,
-                0xF3, 0x0F, 0x11, 0xB6, 0xE0, 0x01, 0x00, 0x00
-            };
-            if (code && !IsBadReadPtr(code, 0x4F + sizeof(timers)) &&
-                memcmp(code + 0x4F, timers, sizeof(timers)) == 0 &&
+            const auto* timerCode = Offsets::IsOS ? Patterns::CameraBlendTimersOS : Patterns::CameraBlendTimers;
+            const auto timerSize = Offsets::IsOS
+                ? sizeof(Patterns::CameraBlendTimersOS) : sizeof(Patterns::CameraBlendTimers);
+            if (code && !IsBadReadPtr(code, BlenderTimerUpdate + timerSize) &&
+                memcmp(code + BlenderTimerUpdate, timerCode, timerSize) == 0 &&
                 MH_CreateHook(code, reinterpret_cast<void*>(HookBlenderTick),
                               reinterpret_cast<void**>(&g_OriginalBlenderTick)) == MH_OK)
             {

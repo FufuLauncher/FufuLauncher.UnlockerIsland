@@ -145,6 +145,7 @@
         <ClInclude Include="Config\Config.h"/>
         <ClInclude Include="DomainMap\DomainMap.h"/>
         <ClInclude Include="Core\Hooks.h"/>
+        <ClInclude Include="Core\Compatibility.h"/>
         <ClInclude Include="ResinChoices\ResinChoices.h"/>
         <ClInclude Include="Core\SharedState.h"/>
         <ClInclude Include="Patterns\Patterns.h"/>

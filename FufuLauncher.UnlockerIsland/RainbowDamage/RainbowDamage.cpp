@@ -51,6 +51,7 @@ namespace RainbowDamageFeature
         if (Config::Get().rainbow_damage_mode == 1)
         {
             int fixedIdx = Config::Get().rainbow_fixed_color_idx % PALETTE_COUNT;
+            if (fixedIdx < 0) fixedIdx += PALETTE_COUNT;
             return g_palette[fixedIdx];
         }
         return g_palette[g_colorIdx];
