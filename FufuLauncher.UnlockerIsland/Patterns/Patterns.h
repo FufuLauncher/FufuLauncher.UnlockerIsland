@@ -110,24 +110,41 @@ namespace Patterns
     inline constexpr const char* ExpHashCmp = "81 F9 E1 73 90 69";
     inline constexpr const char* ExpTailJmp = "41 5F E9";
     inline constexpr const char* ExpTestJz = "84 C0 0F 84";
-    inline constexpr const char* CameraFollowTick =
-        "56 57 53 48 81 EC 90 00 00 00 44 0F 29 84 24 ? ? ? ? 0F 29 7C 24 ? 0F 29 74 24 ? 4C 89 CB";
-    inline constexpr const char* CameraAngularDecay =
-        "56 48 81 EC 80 00 00 00 44 0F 29 44 24 ? 0F 29 7C 24 ? 0F 29 74 24 ? 0F 28 FB 44 0F 28 C2 48 89 D6 0F 28 F0";
-    inline constexpr const char* CameraInputDevice =
-        "48 8B 80 C0 9E 00 00 48 85 C0 0F 84 ? ? ? ? 83 B8 AC 01 00 00 03 48 8B 47 18 75";
-    inline constexpr const char* CameraInputDeviceOS =
-        "48 8B 80 80 A0 00 00 48 85 C0 0F 84 ?? ?? ?? ?? 83 B8 58 01 00 00 03 48 8B 47 10 75";
+    inline constexpr const char* CameraViewInput =
+        "56 57 48 81 EC 98 00 00 00 44 0F 29 94 24 80 00 00 00 44 0F 29 4C 24 70 "
+        "44 0F 29 44 24 60 0F 29 7C 24 50 0F 29 74 24 40 44 89 C0 49 89 D0 48 89 CE";
+    inline constexpr const char* CameraViewInputRoot = "48 8B 0D ? ? ? ? 48 8B 89 C0 9E 00 00";
+    inline constexpr const char* CameraViewInputRootOS = "48 8B 0D ? ? ? ? 48 8B 89 80 A0 00 00";
+    inline constexpr const char* CameraViewInputFilter =
+        "4C 89 86 DC 01 00 00 84 C0 0F 84 ? ? ? ? F3 44 0F 10 96 AC 01 00 00 F3 0F 10 86 B0 01 00 00";
+    inline constexpr const char* CameraViewInputFilterOS =
+        "4C 89 86 FC 01 00 00 84 C0 0F 84 ? ? ? ? F3 44 0F 10 96 A4 01 00 00 F3 0F 10 86 A8 01 00 00";
+    // The mouse-event gate and its unchanged native conversion path.
+    inline constexpr const char* CameraViewDispatch =
+        "56 57 53 48 83 EC 70 44 0F 29 54 24 60 44 0F 29 4C 24 50 44 "
+        "0F 29 44 24 40 0F 29 7C 24 30 0F 29 74 24 20 48 89 D7 48 89 "
+        "CE 80 3D ? ? ? ? 00 0F 85 ? ? ? ? 66 0F 6E F7";
+    inline constexpr const char* CameraViewDispatchGate =
+        "F3 0F 10 0D ? ? ? ? 0F 2E C8 0F 96 86 ? ? ? ? 48 8B "
+        "86 ? ? ? ? 48 85 C0 74 ? 48 83 78 10 00 74 ? 48 83 78 "
+        "30 00 74 ? 0F 2E C8 77 ?";
+    inline constexpr const char* CameraViewDispatchConvert =
+        "48 8D BE ? ? ? ? 48 89 F1 E8 ? ? ? ? 44 0F 28 C0 E8 "
+        "? ? ? ? 66 44 0F 6F 0D ? ? ? ? 66 41 0F EF F1 F3 41 "
+        "0F 59 F0 F3 44 0F 10 05 ? ? ? ? F3 41 0F 59 F0 F3 44 0F "
+        "10 15 ? ? ? ? F3 41 0F 58 C2 F3 0F 5E F0 0F 57 C0 F3 0F "
+        "5A C6 F2 0F 11 86 ? ? ? ? 48 89 F1 E8 ? ? ? ? 0F 28 "
+        "F0 E8 ? ? ? ? 66 41 0F EF F9 F3 0F 59 FE F3 41 0F 59 F8 "
+        "F3 41 0F 58 C2 F3 0F 5E F8 0F 57 C0 F3 0F 5A C7 F2 0F 11 86 "
+        "? ? ? ? 48 89 F1 48 89 FA 0F 28 74 24 20 0F 28 7C 24 30 "
+        "44 0F 28 44 24 40 44 0F 28 4C 24 50 44 0F 28 54 24 60 48 83 "
+        "C4 70 5B 5F 5E E9 ? ? ? ?";
+    inline constexpr const char* CameraViewSensitivityGetter = "56 57 48 83 EC 28 48 89 CE";
+    inline constexpr const char* CameraViewDeltaTimeGetter = "48 83 EC 28 E8 ? ? ? ? F3 0F 10 80 B8 00 00 00 48 83 C4 28 C3";
+    inline constexpr const char* CameraViewEventDispatch = "56 57 48 81 EC 18 01 00 00 49 89 D0 48 89 CA";
     inline constexpr const char* CameraStateBlenderTick =
         "41 57 41 56 41 55 41 54 56 57 55 53 B8 88 18 00 00 E8 ? ? ? ? 48 29 C4 44 0F 29 8C 24 70 18 00 00";
     // Exact instruction guards used with memcmp after locating the entry.
-    inline constexpr uint8_t CameraVelocityReset[] = {0x48, 0xC7, 0x86, 0x1C, 0x05, 0, 0, 0, 0, 0, 0};
-    inline constexpr uint8_t CameraVelocityRead[] = {0x4C, 0x8B, 0x86, 0x1C, 0x05, 0, 0};
-    inline constexpr uint8_t CameraVelocityWrite[] = {0x48, 0x89, 0x86, 0x1C, 0x05, 0, 0};
-    inline constexpr uint8_t CameraInputManagerField[] = {0x48, 0x8B, 0x80, 0xC0, 0x9E, 0, 0};
-    inline constexpr uint8_t CameraInputManagerFieldOS[] = {0x48, 0x8B, 0x80, 0x80, 0xA0, 0, 0};
-    inline constexpr uint8_t CameraInputModeField[] = {0x83, 0xB8, 0xAC, 0x01, 0, 0, 0x03};
-    inline constexpr uint8_t CameraInputModeFieldOS[] = {0x83, 0xB8, 0x58, 0x01, 0, 0, 0x03};
     inline constexpr uint8_t CameraBlendTimers[] = {
         0xF3, 0x0F, 0x10, 0x46, 0x6C, 0xF3, 0x0F, 0x10, 0xB6, 0xE0, 0x01, 0x00, 0x00,
         0x0F, 0x28, 0xCE, 0xF3, 0x41, 0x0F, 0x58, 0xC8,
@@ -138,9 +155,6 @@ namespace Patterns
         0x0F, 0x28, 0xCE, 0xF3, 0x41, 0x0F, 0x58, 0xC8,
         0xF3, 0x0F, 0x11, 0x4E, 0x6C
     };
-    inline constexpr uint8_t RipRelativeLoad[] = {0x48, 0x8B, 0x05};
-    inline constexpr uint8_t RipRelativeByteCompare[] = {0x80, 0x3D};
-    inline constexpr uint8_t NearNotEqualJump[] = {0x0F, 0x85};
     inline constexpr const char* CameraCollisionTick =
         "41 57 41 56 56 57 53 48 81 EC 20 03 00 00 66 44 0F 29 BC 24 10 03 00 00 66 44 0F 29 B4 24 00 03 00 00";
     inline constexpr const char* CameraCollisionGuard =
@@ -382,20 +396,40 @@ namespace Offsets
 
     namespace CameraTweaks
     {
+        inline constexpr uint32_t ViewInputRootLoad = 0x48;
+        inline constexpr uint32_t ViewInputRootLoadSize = 0xE;
+        inline constexpr uint32_t ViewInputFilterCheck = 0x88;
+        inline constexpr uint32_t ViewInputFilterCheckSize = 0x20;
         inline constexpr uint32_t InputManagerSlot = 0x9EC0;
         inline constexpr uint32_t InputManagerSlotOS = 0xA080;
         inline constexpr uint32_t InputModeField = 0x1AC;
         inline constexpr uint32_t InputModeFieldOS = 0x158;
-        inline constexpr uint32_t AngularVelocity = 0x51C;
-        inline constexpr uint32_t FollowVelocityReset = 0x68;
-        inline constexpr uint32_t FollowDecayCall = 0x4AF;
-        inline constexpr uint32_t DecayVelocityRead = 0x3A;
-        inline constexpr uint32_t DecayVelocityWrite = 0xC9;
-        inline constexpr uint32_t FollowHotfixCompare = 0x2B;
-        inline constexpr uint32_t DecayHotfixCompare = 0x2D;
-        inline constexpr uint32_t InputModeCompare = 0x10;
-        inline constexpr uint32_t InputRootLoadDistance = 0xD;
-        inline constexpr uint32_t InputRootJumpDistance = 0x6;
+        inline constexpr int KeyboardMouseMode = 2;
+        inline constexpr uint32_t ViewDispatchEntrySize = 0x3A;
+        inline constexpr uint32_t ViewDispatchHotfixCheck = 0x29;
+        inline constexpr uint32_t ViewDispatchGateCheck = 0x69;
+        inline constexpr uint32_t ViewDispatchGateSize = 0x31;
+        inline constexpr uint32_t ViewDispatchActiveWrite = 0x74;
+        inline constexpr uint32_t ViewDispatchBindingRead = 0x7B;
+        inline constexpr uint32_t ViewDispatchConvert = 0x185;
+        inline constexpr uint32_t ViewDispatchConvertSize = 0xBE;
+        inline constexpr uint32_t ViewDispatchXWrite = 0x1D7;
+        inline constexpr uint32_t ViewDispatchYWrite = 0x20D;
+        inline constexpr uint32_t ViewHorizontalSensitivityCall = 0x18F;
+        inline constexpr uint32_t ViewVerticalSensitivityCall = 0x1E2;
+        inline constexpr uint32_t ViewDeltaTimeCall = 0x198;
+        inline constexpr uint32_t ViewDeltaTimeSecondCall = 0x1EA;
+        inline constexpr uint32_t ViewEventDispatchJump = 0x23E;
+        inline constexpr uint32_t ViewRadiansLoad = 0x1B0;
+        inline constexpr uint32_t ViewTimeBiasLoad = 0x1BE;
+        inline constexpr uint32_t ViewInputActive = 0x17DC;
+        inline constexpr uint32_t ViewInputActiveOS = 0x17E2;
+        inline constexpr uint32_t ViewInputBinding = 0x548;
+        inline constexpr uint32_t ViewInputBindingOS = 0xBA8;
+        inline constexpr uint32_t ViewInputEvent = 0x490;
+        inline constexpr uint32_t ViewInputEventOS = 0x898;
+        inline constexpr uint32_t ViewBindingOwner = 0x10;
+        inline constexpr uint32_t ViewBindingTarget = 0x30;
         inline constexpr uint32_t BlenderDuration = 0x6C;
         inline constexpr uint32_t BlenderDurationOS = 0x68;
         inline constexpr uint32_t BlenderElapsed = 0x1E0;
