@@ -5,6 +5,7 @@ Licensed under the AGPL-3.0 License.
 #include "CameraTweaks.h"
 
 #include "../Config/Config.h"
+#include "../Core/Compatibility.h"
 #include "../MinHook/MinHook.h"
 #include "../Patterns/Patterns.h"
 #include "../Scanner/Scanner.h"
@@ -20,155 +21,140 @@ namespace CameraTweaks
     namespace
     {
         using namespace Offsets::CameraTweaks;
-        using FollowTick = void (__fastcall*)(void*, double, void*, void*);
-        using AngularDecay = void (__fastcall*)(double, void*, double, double);
         using BlenderTick = void (__fastcall*)(void*, float);
-        FollowTick g_OriginalFollowTick = nullptr;
-        AngularDecay g_OriginalAngularDecay = nullptr;
         BlenderTick g_OriginalBlenderTick = nullptr;
+        using ViewInput = void(__fastcall*)(void*, uint64_t, bool, bool, void*);
+        ViewInput g_OriginalViewInput = nullptr;
         void** g_InputRootSlot = nullptr;
-        const uint8_t* g_FollowHotfix = nullptr;
-        const uint8_t* g_DecayHotfix = nullptr;
-        thread_local void* g_FollowState = nullptr;
-        thread_local bool g_DirectMouseInput = false;
-
-        uint8_t* Relative(uint8_t* instruction, size_t displacement, size_t length)
-        {
-            int32_t delta = 0;
-            memcpy(&delta, instruction + displacement, sizeof(delta));
-            return instruction + length + delta;
-        }
-
-        void* FindUniqueCode(const char* signature, bool functionEntry = true)
-        {
-            auto* base = reinterpret_cast<uint8_t*>(GetModuleHandleW(nullptr));
-            auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
-            auto* nt = reinterpret_cast<IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
-            auto* sections = IMAGE_FIRST_SECTION(nt);
-            void* match = nullptr;
-            for (unsigned i = 0; i < nt->FileHeader.NumberOfSections; ++i)
-            {
-                const auto& section = sections[i];
-                if (!(section.Characteristics & IMAGE_SCN_MEM_EXECUTE)) continue;
-                auto* begin = base + section.VirtualAddress;
-                auto* end = begin + section.Misc.VirtualSize;
-                auto* found = static_cast<uint8_t*>(Scanner::ScanRange(begin, end - begin, signature));
-                if (!found) continue;
-                if (match || Scanner::ScanRange(found + 1, end - (found + 1), signature)) return nullptr;
-                match = found;
-            }
-            if (match && functionEntry)
-            {
-                DWORD64 imageBase = 0;
-                auto* entry = RtlLookupFunctionEntry(reinterpret_cast<DWORD64>(match), &imageBase, nullptr);
-                if (!entry || imageBase != reinterpret_cast<DWORD64>(base) ||
-                    imageBase + entry->BeginAddress != reinterpret_cast<DWORD64>(match))
-                    return nullptr;
-            }
-            return match;
-        }
+        using ViewDispatch = void(__fastcall*)(void*, uint64_t, void*);
+        using ViewSensitivity = float(__fastcall*)(void*, void*);
+        using ViewDeltaTime = float(__fastcall*)();
+        using ViewEventDispatch = void(__fastcall*)(void*, void*, void*);
+        ViewDispatch g_OriginalViewDispatch = nullptr;
+        ViewSensitivity g_HorizontalSensitivity = nullptr, g_VerticalSensitivity = nullptr;
+        ViewDeltaTime g_ViewDeltaTime = nullptr;
+        ViewEventDispatch g_ViewEventDispatch = nullptr;
+        const uint8_t* g_ViewDispatchHotfix = nullptr;
+        float g_ViewMinimumSquared = 0, g_ViewRadians = 0, g_ViewTimeBias = 0;
+        thread_local bool g_PreserveSmallViewInput = false;
 
         int InputMode()
         {
             __try
             {
                 if (!g_InputRootSlot || !*g_InputRootSlot) return 0;
-                auto* manager = *reinterpret_cast<uint8_t**>(
-                    static_cast<uint8_t*>(*g_InputRootSlot) + (Offsets::IsOS ? InputManagerSlotOS : InputManagerSlot));
+                auto* manager = *reinterpret_cast<uint8_t**>(static_cast<uint8_t*>(*g_InputRootSlot) +
+                    (Offsets::IsOS ? InputManagerSlotOS : InputManagerSlot));
                 return manager ? *reinterpret_cast<int*>(manager +
                     (Offsets::IsOS ? InputModeFieldOS : InputModeField)) : 0;
             }
             __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
         }
 
-        bool NativeMousePath(double deltaTime)
+        void __fastcall HookViewInput(void* self, uint64_t input, bool smooth, bool sensitivity, void* method)
+        {
+            const bool preserve = Config::Get().disable_camera_smooth && InputMode() == KeyboardMouseMode;
+            const bool previous = g_PreserveSmallViewInput;
+            g_PreserveSmallViewInput = preserve;
+            if (preserve) smooth = false;
+            __try { g_OriginalViewInput(self, input, smooth, sensitivity, method); }
+            __finally { g_PreserveSmallViewInput = previous; }
+        }
+
+        bool IsSmallViewInput(uint64_t input)
+        {
+            float value[2]; memcpy(value, &input, sizeof(value));
+            return std::isfinite(value[0]) && std::isfinite(value[1]) &&
+                (value[0] != 0 || value[1] != 0) &&
+                value[0] * value[0] + value[1] * value[1] < g_ViewMinimumSquared;
+        }
+
+        bool PrepareSmallViewInput(void* self)
         {
             __try
             {
-                return std::isfinite(deltaTime) && deltaTime > 0.0 && deltaTime <= 1.0 &&
-                    g_FollowHotfix && !*g_FollowHotfix && g_DecayHotfix && !*g_DecayHotfix &&
-                    InputMode() == 2;
+                // Keep the native hotfix route and the two live-binding checks.
+                if (!self || !g_ViewDispatchHotfix || *g_ViewDispatchHotfix) return false;
+                auto* bytes = static_cast<uint8_t*>(self);
+                auto* binding = *reinterpret_cast<uint8_t**>(bytes +
+                    (Offsets::IsOS ? ViewInputBindingOS : ViewInputBinding));
+                if (!binding || !*reinterpret_cast<void**>(binding + ViewBindingOwner) ||
+                    !*reinterpret_cast<void**>(binding + ViewBindingTarget)) return false;
+                return true;
             }
             __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
         }
 
-        void ClearAngularVelocity(void* state)
+        void __fastcall HookViewDispatch(void* self, uint64_t input, void* method)
         {
-            __try
+            if (!g_PreserveSmallViewInput || !IsSmallViewInput(input) || !PrepareSmallViewInput(self))
             {
-                auto* velocity = reinterpret_cast<float*>(static_cast<uint8_t*>(state) + AngularVelocity);
-                if (!std::isfinite(velocity[0]) || !std::isfinite(velocity[1])) return;
-                const uint64_t zero = 0;
-                memcpy(velocity, &zero, sizeof(zero));
+                g_OriginalViewDispatch(self, input, method);
+                return;
             }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-            }
+            // Only replace the native near-zero rejection. Use its getters,
+            // float operation order, reusable event and dispatcher unchanged.
+            float value[2]; memcpy(value, &input, sizeof(value));
+            auto* bytes = static_cast<uint8_t*>(self);
+            bytes[Offsets::IsOS ? ViewInputActiveOS : ViewInputActive] = 1;
+            const auto event = Offsets::IsOS ? ViewInputEventOS : ViewInputEvent;
+            const float horizontal = g_HorizontalSensitivity(self, nullptr);
+            const float dx = ((-value[0] * horizontal) * g_ViewRadians) / (g_ViewDeltaTime() + g_ViewTimeBias);
+            *reinterpret_cast<double*>(bytes + event + 8) = dx;
+            const float vertical = g_VerticalSensitivity(self, nullptr);
+            const float dy = ((-value[1] * vertical) * g_ViewRadians) / (g_ViewDeltaTime() + g_ViewTimeBias);
+            *reinterpret_cast<double*>(bytes + event + 16) = dy;
+            g_ViewEventDispatch(self, bytes + event, nullptr);
         }
 
-        void __fastcall HookAngularDecay(double deltaTime, void* state, double coefficient, double accuracy)
+        uint8_t* Relative(uint8_t* instruction, size_t displacement, size_t length)
         {
-            g_OriginalAngularDecay(deltaTime, state, coefficient, accuracy);
-            if (state && state == g_FollowState && g_DirectMouseInput && Config::Get().disable_camera_smooth)
-            {
-                ClearAngularVelocity(state);
-            }
+            int32_t relative = 0; memcpy(&relative, instruction + displacement, sizeof(relative));
+            return instruction + length + relative;
         }
 
-        struct FollowScope
+        bool FieldEquals(uint8_t* address, uint32_t expected)
         {
-            void* previousState = g_FollowState;
-            bool previousDirect = g_DirectMouseInput;
-
-            FollowScope(void* state, double deltaTime)
-            {
-                g_FollowState = state;
-                g_DirectMouseInput = NativeMousePath(deltaTime);
-            }
-
-            ~FollowScope()
-            {
-                g_FollowState = previousState;
-                g_DirectMouseInput = previousDirect;
-            }
-        };
-
-        void __fastcall HookFollowTick(void* self, double deltaTime, void* state, void* extra)
-        {
-            FollowScope scope(state, deltaTime);
-            g_OriginalFollowTick(self, deltaTime, state, extra);
+            uint32_t field = 0; memcpy(&field, address, sizeof(field)); return field == expected;
         }
 
-        bool ValidateInputPath(uint8_t* follow, uint8_t* decay, uint8_t* device)
+        bool ResolveViewDispatch(uint8_t* dispatch)
         {
-            __try
-            {
-                if (!follow || !decay || !device) return false;
-                const auto* deviceField = Offsets::IsOS
-                    ? Patterns::CameraInputManagerFieldOS : Patterns::CameraInputManagerField;
-                const auto* modeField = Offsets::IsOS
-                    ? Patterns::CameraInputModeFieldOS : Patterns::CameraInputModeField;
-                return memcmp(follow + FollowVelocityReset, Patterns::CameraVelocityReset,
-                              sizeof(Patterns::CameraVelocityReset)) == 0 &&
-                    follow[FollowDecayCall] == 0xE8 && Relative(follow + FollowDecayCall, 1, 5) == decay &&
-                    memcmp(decay + DecayVelocityRead, Patterns::CameraVelocityRead,
-                           sizeof(Patterns::CameraVelocityRead)) == 0 &&
-                    memcmp(decay + DecayVelocityWrite, Patterns::CameraVelocityWrite,
-                           sizeof(Patterns::CameraVelocityWrite)) == 0 &&
-                    memcmp(follow + FollowHotfixCompare, Patterns::RipRelativeByteCompare,
-                           sizeof(Patterns::RipRelativeByteCompare)) == 0 &&
-                    memcmp(decay + DecayHotfixCompare, Patterns::RipRelativeByteCompare,
-                           sizeof(Patterns::RipRelativeByteCompare)) == 0 &&
-                    memcmp(device, deviceField, sizeof(Patterns::CameraInputManagerField)) == 0 &&
-                    memcmp(device + InputModeCompare, modeField, sizeof(Patterns::CameraInputModeField)) == 0 &&
-                    memcmp(device - InputRootLoadDistance, Patterns::RipRelativeLoad,
-                           sizeof(Patterns::RipRelativeLoad)) == 0 &&
-                    memcmp(device - InputRootJumpDistance, Patterns::NearNotEqualJump,
-                           sizeof(Patterns::NearNotEqualJump)) == 0;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
-        }
+            auto* base = reinterpret_cast<uint8_t*>(GetModuleHandleW(nullptr));
+            if (!dispatch || !Compatibility::ResolveFunctionEntry(dispatch - base,
+                    Patterns::CameraViewDispatch, ViewDispatchEntrySize) ||
+                Scanner::ScanRange(dispatch + ViewDispatchGateCheck, ViewDispatchGateSize,
+                    Patterns::CameraViewDispatchGate) != dispatch + ViewDispatchGateCheck ||
+                Scanner::ScanRange(dispatch + ViewDispatchConvert, ViewDispatchConvertSize,
+                    Patterns::CameraViewDispatchConvert) != dispatch + ViewDispatchConvert ||
+                !FieldEquals(dispatch + ViewDispatchActiveWrite + 3, Offsets::IsOS ? ViewInputActiveOS : ViewInputActive) ||
+                !FieldEquals(dispatch + ViewDispatchBindingRead + 3, Offsets::IsOS ? ViewInputBindingOS : ViewInputBinding) ||
+                !FieldEquals(dispatch + ViewDispatchConvert + 3, Offsets::IsOS ? ViewInputEventOS : ViewInputEvent) ||
+                !FieldEquals(dispatch + ViewDispatchXWrite + 4, (Offsets::IsOS ? ViewInputEventOS : ViewInputEvent) + 8) ||
+                !FieldEquals(dispatch + ViewDispatchYWrite + 4, (Offsets::IsOS ? ViewInputEventOS : ViewInputEvent) + 16)) return false;
 
+            auto* horizontal = Relative(dispatch + ViewHorizontalSensitivityCall, 1, 5);
+            auto* vertical = Relative(dispatch + ViewVerticalSensitivityCall, 1, 5);
+            auto* delta = Relative(dispatch + ViewDeltaTimeCall, 1, 5);
+            auto* send = Relative(dispatch + ViewEventDispatchJump, 1, 5);
+            if (Relative(dispatch + ViewDeltaTimeSecondCall, 1, 5) != delta ||
+                !Compatibility::ResolveFunctionEntry(horizontal - base, Patterns::CameraViewSensitivityGetter, 9) ||
+                !Compatibility::ResolveFunctionEntry(vertical - base, Patterns::CameraViewSensitivityGetter, 9) ||
+                !Compatibility::ResolveFunctionEntry(delta - base, Patterns::CameraViewDeltaTimeGetter, 22) ||
+                !Compatibility::ResolveFunctionEntry(send - base, Patterns::CameraViewEventDispatch, 15)) return false;
+
+            memcpy(&g_ViewMinimumSquared, Relative(dispatch + ViewDispatchGateCheck, 4, 8), sizeof(float));
+            memcpy(&g_ViewRadians, Relative(dispatch + ViewRadiansLoad, 5, 9), sizeof(float));
+            memcpy(&g_ViewTimeBias, Relative(dispatch + ViewTimeBiasLoad, 5, 9), sizeof(float));
+            if (g_ViewMinimumSquared != 0.00001f * 0.00001f ||
+                g_ViewRadians != 0.017453292f || g_ViewTimeBias != 0.0001f) return false;
+            g_HorizontalSensitivity = reinterpret_cast<ViewSensitivity>(horizontal);
+            g_VerticalSensitivity = reinterpret_cast<ViewSensitivity>(vertical);
+            g_ViewDeltaTime = reinterpret_cast<ViewDeltaTime>(delta);
+            g_ViewEventDispatch = reinterpret_cast<ViewEventDispatch>(send);
+            g_ViewDispatchHotfix = Relative(dispatch + ViewDispatchHotfixCheck, 2, 7);
+            return true;
+        }
         void __fastcall HookBlenderTick(void* self, float deltaTime)
         {
             if (self && deltaTime >= 0.0f && Config::Get().disable_camera_blend)
@@ -193,38 +179,38 @@ namespace CameraTweaks
 
     void Init()
     {
+        // This is the observed mouse-input filter before camera event dispatch.
+        // Native sensitivity, inversion, TPS and output delivery remain native.
         using namespace Offsets::CameraTweaks;
-        auto* follow = static_cast<uint8_t*>(FindUniqueCode(Patterns::CameraFollowTick));
-        auto* decay = static_cast<uint8_t*>(FindUniqueCode(Patterns::CameraAngularDecay));
-        auto* device = static_cast<uint8_t*>(FindUniqueCode(
-            Offsets::IsOS ? Patterns::CameraInputDeviceOS : Patterns::CameraInputDevice, false));
-        if (ValidateInputPath(follow, decay, device))
+        auto* input = static_cast<uint8_t*>(Scanner::ScanUniqueMainMod(Patterns::CameraViewInput));
+        auto* dispatch = static_cast<uint8_t*>(Scanner::ScanUniqueMainMod(Patterns::CameraViewDispatch));
+        auto* base = reinterpret_cast<uint8_t*>(GetModuleHandleW(nullptr));
+        const auto* rootPattern = Offsets::IsOS ? Patterns::CameraViewInputRootOS : Patterns::CameraViewInputRoot;
+        const auto* filterPattern = Offsets::IsOS ? Patterns::CameraViewInputFilterOS : Patterns::CameraViewInputFilter;
+        if (input && Compatibility::ResolveFunctionEntry(input - base, Patterns::CameraViewInput, ViewInputRootLoad) &&
+            Scanner::ScanRange(input + ViewInputRootLoad, ViewInputRootLoadSize, rootPattern) == input + ViewInputRootLoad &&
+            Scanner::ScanRange(input + ViewInputFilterCheck, ViewInputFilterCheckSize, filterPattern) == input + ViewInputFilterCheck &&
+            ResolveViewDispatch(dispatch))
         {
-            g_InputRootSlot = reinterpret_cast<void**>(Relative(device - InputRootLoadDistance, 3, 7));
-            g_FollowHotfix = Relative(follow + FollowHotfixCompare, 2, 7);
-            g_DecayHotfix = Relative(decay + DecayHotfixCompare, 2, 7);
-            const auto decayStatus = MH_CreateHook(decay, reinterpret_cast<void*>(HookAngularDecay),
-                                                   reinterpret_cast<void**>(&g_OriginalAngularDecay));
-            const auto followStatus = decayStatus == MH_OK
-                                          ? MH_CreateHook(follow, reinterpret_cast<void*>(HookFollowTick),
-                                                          reinterpret_cast<void**>(&g_OriginalFollowTick))
-                                          : MH_UNKNOWN;
-            if (decayStatus == MH_OK && followStatus == MH_OK)
+            int32_t relative = 0;
+            memcpy(&relative, input + ViewInputRootLoad + 3, sizeof(relative));
+            g_InputRootSlot = reinterpret_cast<void**>(input + ViewInputRootLoad + 7 + relative);
+            if (MH_CreateHook(dispatch, reinterpret_cast<void*>(HookViewDispatch),
+                reinterpret_cast<void**>(&g_OriginalViewDispatch)) == MH_OK)
             {
-                std::cout << "[SCAN] Camera Follow Tick and Angular Decay Hooks Ready.\n";
+                if (MH_CreateHook(input, reinterpret_cast<void*>(HookViewInput),
+                    reinterpret_cast<void**>(&g_OriginalViewInput)) == MH_OK)
+                    std::cout << "[SCAN] Camera view-input filter and small-input dispatch hooks ready.\n";
+                else
+                {
+                    MH_RemoveHook(dispatch);
+                    g_OriginalViewDispatch = nullptr;
+                    std::cout << "[WARN] Camera view-input hook failed; dispatch hook removed.\n";
+                }
             }
-            else
-            {
-                if (decayStatus == MH_OK) MH_RemoveHook(decay);
-                g_OriginalAngularDecay = nullptr;
-                g_OriginalFollowTick = nullptr;
-                std::cout << "[WARN] Camera input hooks unavailable; smoothing unchanged.\n";
-            }
+            else std::cout << "[WARN] Camera view-input hook failed; native filtering retained.\n";
         }
-        else
-        {
-            std::cout << "[WARN] Camera input path unavailable or layout unsupported; smoothing unchanged.\n";
-        }
+        else std::cout << "[WARN] Camera view-input path unsupported; native filtering retained.\n";
 
         // Install while disabled too: configuration reload must be able to enable it.
         {
