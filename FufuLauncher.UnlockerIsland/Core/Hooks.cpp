@@ -42,12 +42,14 @@ Licensed under the AGPL-3.0 License.
 
 #pragma comment(lib, "d3d11.lib")
 
-static void TryInitTouchScreen()
+static std::atomic<void*> p_SwitchKeyboardInput{nullptr};
+
+static void TrySwitchTouchScreen(bool enabled)
 {
-    auto sw = (tSwitchInput)p_SwitchInput.load();
+    auto sw = (tSwitchInput)(enabled ? p_SwitchInput.load() : p_SwitchKeyboardInput.load());
     if (IsValid(sw))
     {
-        g_TouchScreenInit.store(true);
+        g_TouchScreenInit.store(enabled);
         __try
         {
             sw(nullptr);
@@ -517,9 +519,9 @@ int32_t WINAPI hk_ChangeFov(void* __this, float value)
         if (IsValid(setSync)) SafeInvoke([&]() { setSync(false); });
     }
 
-    if (!g_TouchScreenInit.load() && g_GameUpdateInit.load() && cfg.use_touch_screen)
+    if (g_GameUpdateInit.load() && g_TouchScreenInit.load() != cfg.use_touch_screen)
     {
-        TryInitTouchScreen();
+        TrySwitchTouchScreen(cfg.use_touch_screen);
     }
 
     if (cfg.enable_fps_override)
@@ -627,6 +629,28 @@ bool Hooks::Init()
         if (touchInputAddr)
         {
             p_SwitchInput.store(touchInputAddr);
+        }
+    }
+    {
+        auto* keyboardInputAddr = Scanner::ScanMainMod(Patterns::SwitchInputDeviceToKeyboardMouse);
+        if (keyboardInputAddr)
+        {
+            auto* base = reinterpret_cast<uint8_t*>(GetModuleHandleW(nullptr));
+            keyboardInputAddr = Compatibility::ResolveFunctionEntry(
+                reinterpret_cast<uint8_t*>(keyboardInputAddr) - base,
+                Patterns::SwitchInputDeviceToKeyboardMouse, 128);
+            if (!keyboardInputAddr)
+                std::cout << "[WARN] Keyboard/mouse UI restore entry validation failed.\n";
+        }
+        if (keyboardInputAddr)
+        {
+            p_SwitchKeyboardInput.store(keyboardInputAddr);
+            LogOffset("SwitchInputDeviceToKeyboardMouse", keyboardInputAddr, keyboardInputAddr);
+            std::cout << "[SCAN] SwitchInputDeviceToKeyboardMouse resolved via signature.\n";
+        }
+        else
+        {
+            std::cout << "[WARN] Keyboard/mouse UI restore function unavailable.\n";
         }
     }
     HOOK_DIR("QuestBanner", Patterns::QuestBanner, hk_SetupQuestBanner, o_SetupQuestBanner);
