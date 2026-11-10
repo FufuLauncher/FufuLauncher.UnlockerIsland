@@ -43,6 +43,17 @@ Licensed under the AGPL-3.0 License.
 #pragma comment(lib, "d3d11.lib")
 
 static std::atomic<void*> p_SwitchKeyboardInput{nullptr};
+static std::atomic<HCURSOR> g_PCGameCursor{nullptr};
+static thread_local int g_CursorShowBalance = 0;
+
+static void RestoreTouchCursorVisibility()
+{
+    while (g_CursorShowBalance > 0)
+    {
+        ShowCursor(FALSE);
+        --g_CursorShowBalance;
+    }
+}
 
 static void TrySwitchTouchScreen(bool enabled)
 {
@@ -57,6 +68,8 @@ static void TrySwitchTouchScreen(bool enabled)
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
         }
+        if (!enabled)
+            RestoreTouchCursorVisibility();
     }
 }
 #pragma comment(lib, "MinHook/libMinHook.x64.lib")
@@ -66,14 +79,50 @@ static tSetCursor o_SetCursor = nullptr;
 
 static HCURSOR WINAPI hk_SetCursor(HCURSOR cursor)
 {
-    if (cursor && Config::Get().use_system_cursor)
+    const bool touchMode = g_TouchScreenInit.load(std::memory_order_relaxed);
+    const bool useSystemCursor = Config::Get().use_system_cursor;
+    if (!touchMode && cursor && !useSystemCursor &&
+        cursor != LoadCursorW(nullptr, IDC_ARROW))
+        g_PCGameCursor.store(cursor, std::memory_order_relaxed);
+
+    const HCURSOR pcCursor = g_PCGameCursor.load(std::memory_order_relaxed);
+    if (touchMode && pcCursor)
+        cursor = pcCursor;
+
+    if (cursor && useSystemCursor)
     {
         static HCURSOR systemNormal = static_cast<HCURSOR>(LoadImageW(
             nullptr, IDC_ARROW, IMAGE_CURSOR, 0, 0,
             LR_SHARED | LR_DEFAULTSIZE));
         if (systemNormal) cursor = systemNormal;
     }
-    return o_SetCursor ? o_SetCursor(cursor) : nullptr;
+    HCURSOR previous = o_SetCursor ? o_SetCursor(cursor) : nullptr;
+    if (touchMode && !cursor && previous && o_SetCursor)
+    {
+        o_SetCursor(previous);
+        cursor = previous;
+    }
+
+    if (touchMode)
+    {
+        CURSORINFO info{sizeof(info)};
+        if (cursor && GetCursorInfo(&info) && !(info.flags & CURSOR_SHOWING))
+        {
+            int count = -1;
+            int attempts = 0;
+            while (count < 0 && attempts < 8)
+            {
+                count = ShowCursor(TRUE);
+                ++g_CursorShowBalance;
+                ++attempts;
+            }
+        }
+    }
+    else
+    {
+        RestoreTouchCursorVisibility();
+    }
+    return previous;
 }
 
 #define HOOK_REL(name, pat, hookFn, storeOrig) \
