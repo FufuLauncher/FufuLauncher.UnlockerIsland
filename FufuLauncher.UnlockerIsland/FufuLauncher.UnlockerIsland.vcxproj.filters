@@ -150,5 +150,8 @@
   <ItemGroup>
     <ClInclude Include="DomainMap\DomainMap.h"><Filter>头文件</Filter></ClInclude>
     <ClCompile Include="DomainMap\DomainMap.cpp"><Filter>源文件</Filter></ClCompile>
+    <ClInclude Include="AntiCensor\AntiCensor.h"><Filter>头文件</Filter></ClInclude>
+    <ClCompile Include="AntiCensor\AntiCensor.cpp"><Filter>源文件</Filter></ClCompile>
+    <MASM Include="AntiCensor\AssetRegion.asm"><Filter>源文件</Filter></MASM>
   </ItemGroup>
 </Project>

@@ -28,6 +28,9 @@ Licensed under the AGPL-3.0 License.
 #include "../PaimonFollow/PaimonFollow.h"
 #include "../ResinChoices/ResinChoices.h"
 #include "../DomainMap/DomainMap.h"
+#ifdef _M_X64
+#include "../AntiCensor/AntiCensor.h"
+#endif
 #include <iostream>
 #include <atomic>
 #include <mutex>
@@ -612,6 +615,13 @@ bool Hooks::Init()
     bool isOS = (path.find("genshinimpact.exe") != std::string::npos);
     Offsets::InitOffsets(isOS);
 
+    if (MH_Initialize() != MH_OK) return false;
+
+#ifdef _M_X64
+    if (Config::Get().enable_anti_censor)
+        AntiCensor::Init();
+#endif
+
     void* getActiveAddr = nullptr;
     void* activeScan = Scanner::ScanMainMod(Patterns::GetActive);
     if (activeScan)
@@ -646,8 +656,6 @@ bool Hooks::Init()
             file << "Generated on module init." << '\n' << '\n';
         }
     }
-
-    if (MH_Initialize() != MH_OK) return false;
 
     HOOK_REL("GetFrameCount", Patterns::GetFrameCount, hk_GetFrameCount, o_GetFrameCount);
     SCAN_REL("SetFrameCount", Patterns::SetFrameCount, o_SetFrameCount);
