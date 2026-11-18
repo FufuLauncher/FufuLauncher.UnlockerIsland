@@ -217,6 +217,7 @@ namespace Config
         g_Config.disable_fog = ReadInt("DisableFog", 0, file);
 
         g_Config.disable_character_fade = ReadInt("DisableCharFade", 0, file);
+        g_Config.enable_anti_censor = ReadInt("EnableAntiCensor", 0, file) != 0;
 
         g_Config.enable_redirect_craft_override = ReadInt("RedirectCraft", 0, file);
 

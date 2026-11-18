@@ -54,6 +54,7 @@
     </PropertyGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props"/>
     <ImportGroup Label="ExtensionSettings">
+        <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" Condition="'$(Platform)'=='x64'"/>
     </ImportGroup>
     <ImportGroup Label="Shared">
     </ImportGroup>
@@ -143,6 +144,7 @@
     </ItemDefinitionGroup>
     <ItemGroup>
         <ClInclude Include="Config\Config.h"/>
+        <ClInclude Include="AntiCensor\AntiCensor.h"/>
         <ClInclude Include="DomainMap\DomainMap.h"/>
         <ClInclude Include="Core\Hooks.h"/>
         <ClInclude Include="Core\Compatibility.h"/>
@@ -170,6 +172,7 @@
     </ItemGroup>
     <ItemGroup>
         <ClCompile Include="Config\Config.cpp"/>
+        <ClCompile Include="AntiCensor\AntiCensor.cpp" Condition="'$(Platform)'=='x64'"/>
         <ClCompile Include="DomainMap\DomainMap.cpp"/>
         <ClCompile Include="Core\dllmain.cpp"/>
         <ClCompile Include="Core\Hooks.cpp"/>
@@ -192,9 +195,11 @@
     </ItemGroup>
     <ItemGroup>
         <Content Include="MinHook\libMinHook.x64.lib"/>
+        <MASM Include="AntiCensor\AssetRegion.asm" Condition="'$(Platform)'=='x64'"/>
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
     <ImportGroup Label="ExtensionTargets">
+        <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" Condition="'$(Platform)'=='x64'"/>
     </ImportGroup>
     <PropertyGroup>
         <AutoBuildNumber>$([System.DateTime]::Now.ToString("yyMM"))</AutoBuildNumber>

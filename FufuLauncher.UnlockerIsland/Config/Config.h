@@ -55,6 +55,7 @@ struct ModConfig
     bool disable_fog = false;
 
     bool disable_character_fade = false;
+    bool enable_anti_censor = false;
 
     bool enable_custom_title = false;
 
