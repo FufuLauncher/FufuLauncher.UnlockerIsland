@@ -5,6 +5,7 @@ Licensed under the AGPL-3.0 License.
 #include "AntiCensor.h"
 #include "../Core/Compatibility.h"
 #include "../MinHook/MinHook.h"
+#include "../Patterns/Patterns.h"
 #include <iostream>
 
 extern "C"
@@ -16,17 +17,8 @@ extern "C"
 
 void AntiCensor::Init()
 {
-    constexpr uintptr_t readerRva = 0x06F00580;
-    constexpr uintptr_t hashReadRva = 0x06F0068F;
-    constexpr uintptr_t compareRva = 0x06F0071C;
-    constexpr uintptr_t selectBundleRva = 0x06F00722;
-    constexpr uintptr_t decisionStartRva = 0x06F0070E;
-    constexpr char readerSignature[] =
-        "41 57 41 56 41 55 41 54 56 57 55 53 48 83 EC 38 48 89 D6 49 89 CF 80 3D 70 8E 8C FE 00 75 3E";
-    constexpr char hashReadSignature[] =
-        "FF 90 60 01 00 00 49 89 C5";
-    constexpr char decisionSignature[] =
-        "FF 90 48 01 00 00 0F B6 CB 85 FF 0F 44 F8 39 0D DE C9 96 FE 0F 44 F8 41 FF CE 41 83 FE 01 77 A2 E9 BF 00 00 00";
+    using namespace Patterns::AntiCensor;
+    using namespace Offsets::AntiCensor;
 
     const auto game = GetModuleHandleW(nullptr);
     if (GetModuleHandleW(L"YuanShen.exe") != game)
@@ -34,17 +26,17 @@ void AntiCensor::Init()
 
     auto* base = reinterpret_cast<uint8_t*>(game);
     // The detour depends on the native loop's register allocation.
-    if (Compatibility::GetImageSize() != 0x1B65F000 ||
-        !Compatibility::ResolveFunctionEntry(readerRva, readerSignature, 31) ||
-        Scanner::ScanUniqueMainMod(hashReadSignature, base + hashReadRva, 9) != base + hashReadRva ||
-        Scanner::ScanUniqueMainMod(decisionSignature, base + decisionStartRva, 37) != base + decisionStartRva)
+    if (Compatibility::GetImageSize() != ImageSize ||
+        !Compatibility::ResolveFunctionEntry(ReaderRva, ReaderEntry, ReaderCheckSize) ||
+        Scanner::ScanUniqueMainMod(HashRead, base + HashReadRva, HashReadCheckSize) != base + HashReadRva ||
+        Scanner::ScanUniqueMainMod(RegionDecision, base + DecisionStartRva, DecisionCheckSize) != base + DecisionStartRva)
     {
         std::cout << "[WARN] AntiCensor: unsupported CN asset index reader.\n";
         return;
     }
 
-    auto* comparison = base + compareRva;
-    AntiCensorSelectBundle = base + selectBundleRva;
+    auto* comparison = base + CompareRva;
+    AntiCensorSelectBundle = base + SelectBundleRva;
     if (MH_CreateHook(comparison, reinterpret_cast<void*>(&AntiCensorCompareRegion),
                       &AntiCensorOriginalComparison) != MH_OK)
     {

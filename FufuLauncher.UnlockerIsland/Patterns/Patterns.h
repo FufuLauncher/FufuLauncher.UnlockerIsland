@@ -271,6 +271,17 @@ namespace Patterns
         inline constexpr const char* DailyFightCall = "B9 03 00 00 00 E8 ?? ?? ?? ?? 84 C0";
     }
 
+    namespace AntiCensor
+    {
+        inline constexpr const char* ReaderEntry =
+            "41 57 41 56 41 55 41 54 56 57 55 53 48 83 EC 38 48 89 D6 49 89 CF "
+            "80 3D 70 8E 8C FE 00 75 3E";
+        inline constexpr const char* HashRead = "FF 90 60 01 00 00 49 89 C5";
+        inline constexpr const char* RegionDecision =
+            "FF 90 48 01 00 00 0F B6 CB 85 FF 0F 44 F8 39 0D DE C9 96 FE "
+            "0F 44 F8 41 FF CE 41 83 FE 01 77 A2 E9 BF 00 00 00";
+    }
+
     namespace CN
     {
         inline constexpr const char* GetActiveOffset = ""; //does not exist
@@ -517,6 +528,20 @@ namespace Offsets
         inline constexpr uint32_t DungeonIdOS = 0x2B8;
         inline constexpr uint32_t GuardCheckSize = 0x100;
         inline constexpr uint32_t DailyCallCheckSize = 12;
+    }
+
+    namespace AntiCensor
+    {
+        // CN 7.2 asset index reader and its in-function region comparison.
+        inline constexpr uint32_t ImageSize = 0x1B65F000;
+        inline constexpr uint32_t ReaderRva = 0x06F00580;
+        inline constexpr uint32_t ReaderCheckSize = 31;
+        inline constexpr uint32_t HashReadRva = 0x06F0068F;
+        inline constexpr uint32_t HashReadCheckSize = 9;
+        inline constexpr uint32_t DecisionStartRva = 0x06F0070E;
+        inline constexpr uint32_t DecisionCheckSize = 37;
+        inline constexpr uint32_t CompareRva = 0x06F0071C;
+        inline constexpr uint32_t SelectBundleRva = 0x06F00722;
     }
 
     namespace EntryChecks
