@@ -280,6 +280,12 @@ namespace Patterns
         inline constexpr const char* RegionDecision =
             "FF 90 48 01 00 00 0F B6 CB 85 FF 0F 44 F8 39 0D DE C9 96 FE "
             "0F 44 F8 41 FF CE 41 83 FE 01 77 A2 E9 BF 00 00 00";
+        inline constexpr const char* GetResourceIdentifier =
+            "56 57 53 48 81 EC 80 00 00 00 49 89 D0 48 89 CE 48 89 54 24 58 "
+            "80 3D ? ? ? ? 00 0F 85 81 01 00 00 48 8B 4E ? 48 85 C9 "
+            "0F 84 A0 01 00 00 4C 89 C2 45 31 C0 E8 ? ? ? ? 84 C0";
+        inline constexpr const char* PackResourceIdentifier =
+            "C1 F9 02 89 C8 F7 D8 0F 48 C1 48 81 E6 00 FF FF FF 48 C1 E6 18 48 09 F0";
     }
 
     namespace CN
@@ -542,6 +548,14 @@ namespace Offsets
         inline constexpr uint32_t DecisionCheckSize = 37;
         inline constexpr uint32_t CompareRva = 0x06F0071C;
         inline constexpr uint32_t SelectBundleRva = 0x06F00722;
+
+        // CN/OS 7.2 resource identifiers used by prefab requests and preloads.
+        inline constexpr uint32_t ImageSizeOS = 0x1B690000;
+        inline constexpr uint32_t GetResourceIdentifierRva = 0x07237B80;
+        inline constexpr uint32_t GetResourceIdentifierRvaOS = 0x072373B0;
+        inline constexpr uint32_t GetResourceIdentifierCheckSize = 60;
+        inline constexpr uint32_t PackResourceIdentifierOffset = 0x180;
+        inline constexpr uint32_t PackResourceIdentifierCheckSize = 24;
     }
 
     namespace EntryChecks
